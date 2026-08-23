@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+.nyc_output/
+
+# Data / local state
+*.db
+*.sqlite3
+data/
+datasets/*.parquet
+datasets/*.csv
+!datasets/.gitkeep
+
+# Experiment artifacts (keep definitions, ignore heavy outputs)
+experiments/**/run.json
+experiments/**/results.json
+experiments/**/*.lock
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Cursor / agent local state
+.cursor/
