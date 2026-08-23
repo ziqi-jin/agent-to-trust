@@ -4,11 +4,13 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "apps/*",
+    "simulator"
   ],
   "scripts": {
-    "test": "npm run test --workspace @acl/api",
+    "test": "npm run test --workspace @acl/api && npm run test --workspace @acl/scoring && npm run test --workspace @acl/simulator",
     "test:scoring": "npm run test --workspace @acl/scoring",
+    "test:simulator": "npm run test --workspace @acl/simulator",
     "dev:api": "npm run dev --workspace @acl/api"
   },
   "devDependencies": {
