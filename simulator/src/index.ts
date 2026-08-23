@@ -8,6 +8,7 @@ export { Rng, mulberry32, hashSeed, round2 } from './rng';
 export { generateAgents } from './agents';
 export { generateTask } from './tasks';
 export { Wallet } from './wallet';
+export { MarketEngine, selectOffer } from './market';
 export { runSimulation } from './scheduler';
 export { evidenceToPoints, scoreAgents } from './score';
 export { DOMAINS } from './types';
@@ -16,6 +17,9 @@ export type {
   SimAgent,
   SimTask,
   Offer,
+  Contract,
+  ContractStatus,
+  AcceptanceStrategy,
   SimTransaction,
   SimEvent,
   SimEvidence,

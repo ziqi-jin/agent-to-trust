@@ -61,6 +61,25 @@ export interface SimTransaction {
   round: number;
 }
 
+/** 合约生命周期状态。 */
+export type ContractStatus = 'accepted' | 'executed' | 'settled' | 'cancelled';
+
+/** 撮合接受策略（MVP：最低价 / 随机）。 */
+export type AcceptanceStrategy = 'lowest-price' | 'random';
+
+/** 市场合约：buyer 与 provider 在 task 上达成的成交记录。 */
+export interface Contract {
+  id: string;
+  taskId: string;
+  buyerId: string;
+  providerId: string;
+  price: number;
+  latency: number;
+  status: ContractStatus;
+  createdAt: Date;
+  acceptedAt: Date;
+}
+
 export interface SimEvent {
   type: string;
   round: number;
@@ -90,6 +109,7 @@ export interface SimulationStats {
   agentCount: number;
   rounds: number;
   tasksCreated: number;
+  contractsCreated: number;
   transactions: number;
   settled: number;
   failed: number;
@@ -102,6 +122,7 @@ export interface SimulationResult {
   config: SimulationConfig;
   agents: SimAgent[];
   tasks: SimTask[];
+  contracts: Contract[];
   transactions: SimTransaction[];
   events: SimEvent[];
   evidence: SimEvidence[];

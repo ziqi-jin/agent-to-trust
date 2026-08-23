@@ -12,8 +12,9 @@ import { Rng } from './rng';
 import { generateAgents } from './agents';
 import { generateTask } from './tasks';
 import { Wallet } from './wallet';
+import { MarketEngine } from './market';
 import type {
-  Offer,
+  Contract,
   SimAgent,
   SimEvent,
   SimEvidence,
@@ -62,14 +63,17 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
   const wallet = new Wallet(agents);
 
   const tasks: SimTask[] = [];
+  const contracts: Contract[] = [];
   const transactions: SimTransaction[] = [];
   const events: SimEvent[] = [];
   const evidence: SimEvidence[] = [];
+  const market = new MarketEngine(rng);
 
   const stats: SimulationStats = {
     agentCount,
     rounds,
     tasksCreated: 0,
+    contractsCreated: 0,
     transactions: 0,
     settled: 0,
     failed: 0,
@@ -89,34 +93,31 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
     const buyer = pickBuyer(agents, wallet, task.budget, rng);
     if (!buyer) continue;
 
-    const candidates = agents.filter((a) => a.id !== buyer.id && a.capabilities.includes(task.domain));
+    const candidates = market.discover(task, agents, buyer.id);
     if (candidates.length === 0) {
       events.push({ type: 'DISCOVER', round, taskId: task.id, data: { matched: 0 } });
       continue;
     }
 
     // OFFER：每个候选报价（85%–115% 预算）+ 时延
-    const offers: Offer[] = candidates.map((a) => ({
-      taskId: task.id,
-      agentId: a.id,
-      price: Math.round(task.budget * (0.85 + 0.3 * rng.float())),
-      latency: Math.round(1 + (1 - a.skill) * 10),
-    }));
+    const offers = market.offerAll(task, candidates);
     for (const o of offers) {
       events.push({ type: 'OFFER', round, taskId: task.id, agentId: o.agentId, data: { price: o.price } });
     }
 
-    // ACCEPT：buyer 选最低价
-    offers.sort((a, b) => a.price - b.price);
-    const accepted = offers[0];
-    const provider = agents.find((a) => a.id === accepted.agentId);
+    // ACCEPT：buyer 按策略选 offer，形成 contract
+    const contract = market.accept(task, buyer.id, offers, 'lowest-price', new Date(BASE_TIME + round * 60_000));
+    if (!contract) continue;
+    const provider = agents.find((a) => a.id === contract.providerId);
     if (!provider) continue;
+    contracts.push(contract);
+    stats.contractsCreated++;
     events.push({
       type: 'ACCEPT',
       round,
       taskId: task.id,
       agentId: provider.id,
-      data: { price: accepted.price, buyer: buyer.id },
+      data: { price: contract.price, buyer: buyer.id },
     });
 
     // EXECUTE
@@ -131,8 +132,8 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
 
     // SETTLE：success 全款 / partial 半款 / failure 0
     let amount = 0;
-    if (outcome.result === 'success') amount = accepted.price;
-    else if (outcome.result === 'partial') amount = Math.round(accepted.price / 2);
+    if (outcome.result === 'success') amount = contract.price;
+    else if (outcome.result === 'partial') amount = Math.round(contract.price / 2);
     if (amount > 0) wallet.transfer(buyer.id, provider.id, amount);
 
     stats.totalValue += amount;
@@ -184,6 +185,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
     config: { ...config, agentCount, rounds, initialWallet },
     agents: finalAgents,
     tasks,
+    contracts,
     transactions,
     events,
     evidence,

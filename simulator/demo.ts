@@ -16,6 +16,7 @@ const walletTotal = r.agents.reduce((s, a) => s + a.wallet, 0);
 console.log(`=== Agent Credit Lab 仿真（${AGENT_COUNT} Agent × ${ROUNDS} 轮）===`);
 console.log(`agents        : ${r.stats.agentCount}`);
 console.log(`tasks         : ${r.stats.tasksCreated}`);
+console.log(`contracts     : ${r.stats.contractsCreated} (撮合成交)`);
 console.log(
   `transactions  : ${r.stats.transactions} (settled ${r.stats.settled} / partial ${r.stats.partial} / failed ${r.stats.failed})`,
 );
