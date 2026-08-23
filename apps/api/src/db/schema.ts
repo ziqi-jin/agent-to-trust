@@ -48,6 +48,7 @@ export const creditScores = pgTable(
     score: integer('score'),
     adjustedScore: integer('adjusted_score'),
     confidence: real('confidence').notNull().default(0),
+    coverage: real('coverage').notNull().default(0),
     freshnessDays: real('freshness_days'),
     modelVersion: text('model_version').notNull(),
     dimensions: jsonb('dimensions'),

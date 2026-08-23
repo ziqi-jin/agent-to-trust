@@ -1,3 +1,4 @@
+import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Database } from './db/client';
 import { agentsRoutes } from './routes/agents';
@@ -13,6 +14,8 @@ declare module 'fastify' {
 export function buildApp(db: Database): FastifyInstance {
   const app = Fastify({ logger: false });
   app.decorate('db', db);
+  // dev 跨域（dashboard 本地 localhost:3001 → API localhost:8000）
+  app.register(cors, { origin: true });
   app.register(agentsRoutes);
   app.register(evidenceRoutes);
   app.register(scoresRoutes);

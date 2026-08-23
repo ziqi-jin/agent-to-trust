@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS credit_scores (
   score integer,
   adjusted_score integer,
   confidence real NOT NULL DEFAULT 0,
+  coverage real NOT NULL DEFAULT 0,
   freshness_days real,
   model_version text NOT NULL,
   dimensions jsonb,
@@ -56,6 +57,8 @@ CREATE TABLE IF NOT EXISTS score_snapshots (
 );
 
 CREATE INDEX IF NOT EXISTS idx_score_snapshots_agent_id ON score_snapshots(agent_id);
+
+ALTER TABLE credit_scores ADD COLUMN IF NOT EXISTS coverage real NOT NULL DEFAULT 0;
 `;
 
 export async function migrate(url: string): Promise<void> {
