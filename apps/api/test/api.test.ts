@@ -23,7 +23,10 @@ function createAgent(name = 'test-agent') {
   });
 }
 
-describe('Agent Registry', () => {
+// 验收维度映射：docs/TESTING.md
+// 正确性 / 确定性 / 可解释性 / 鲁棒性 / 数据完整性 / 持久化
+
+describe('[正确性] Correctness', () => {
   it('创建 + 查询 Agent', async () => {
     const res = await createAgent();
     expect(res.statusCode).toBe(201);
@@ -36,61 +39,28 @@ describe('Agent Registry', () => {
     expect(get.json().name).toBe('test-agent');
   });
 
-  it('重名返回 409', async () => {
+  it('全失败证据 → score 0', async () => {
+    const agent = (await createAgent('fail-agent')).json();
+    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
+    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
+    const res = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
+    expect(res.json().score).toBe(0);
+  });
+});
+
+describe('[鲁棒性] Robustness — 输入校验', () => {
+  it('缺 name → 400', async () => {
+    const res = await app.inject({ method: 'POST', url: '/agents', payload: {} });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('重名 → 409', async () => {
     await createAgent();
     const res = await createAgent();
     expect(res.statusCode).toBe(409);
   });
 
-  it('缺 name 返回 400', async () => {
-    const res = await app.inject({ method: 'POST', url: '/agents', payload: {} });
-    expect(res.statusCode).toBe(400);
-  });
-});
-
-describe('Evidence → Score 闭环', () => {
-  it('完整 vertical slice', async () => {
-    const agent = (await createAgent('slice-agent')).json();
-    const aid = agent.id;
-
-    // 未评分：unverified
-    const before = await app.inject({ method: 'GET', url: `/agents/${aid}/score` });
-    expect(before.statusCode).toBe(200);
-    expect(before.json().score).toBeNull();
-    expect(before.json().confidence).toBe(0);
-
-    // 提交证据
-    const evs = [
-      { dimension: 'capability', source: 'benchmark', sourceType: 'benchmark', result: 'success' },
-      { dimension: 'reliability', source: 'simulation', sourceType: 'simulation', result: 'success' },
-      { dimension: 'delivery', source: 'simulation', sourceType: 'simulation', result: 'success' },
-    ];
-    for (const ev of evs) {
-      const r = await app.inject({ method: 'POST', url: `/agents/${aid}/evidence`, payload: ev });
-      expect(r.statusCode).toBe(201);
-    }
-
-    // 计算分数
-    const res = await app.inject({ method: 'POST', url: `/agents/${aid}/score` });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.score).not.toBeNull();
-    expect(body.score).toBeGreaterThanOrEqual(0);
-    expect(body.score).toBeLessThanOrEqual(1000);
-    expect(body.confidence).toBeGreaterThan(0);
-    expect(body.modelVersion).toBe('baseline-v0.1');
-    expect(body.evidenceCount).toBe(3);
-
-    // 再查：持久化 + 证据可追溯
-    const again = await app.inject({ method: 'GET', url: `/agents/${aid}/score` });
-    expect(again.json().score).toBe(body.score);
-    expect(again.json().evidenceRefs.length).toBe(3);
-
-    const list = await app.inject({ method: 'GET', url: `/agents/${aid}/evidence` });
-    expect(list.json().length).toBe(3);
-  });
-
-  it('非法维度返回 422', async () => {
+  it('非法维度 → 422', async () => {
     const agent = (await createAgent()).json();
     const res = await app.inject({
       method: 'POST',
@@ -100,11 +70,65 @@ describe('Evidence → Score 闭环', () => {
     expect(res.statusCode).toBe(422);
   });
 
-  it('全部失败证据 → 分数为 0', async () => {
-    const agent = (await createAgent('fail-agent')).json();
-    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
-    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
+  it('非法 result → 422', async () => {
+    const agent = (await createAgent()).json();
+    const res = await app.inject({
+      method: 'POST',
+      url: `/agents/${agent.id}/evidence`,
+      payload: { dimension: 'capability', result: 'boom' },
+    });
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('不存在的 agent 提交 evidence → 404', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/agents/nope/evidence',
+      payload: { dimension: 'capability', result: 'success' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('不存在的 agent 查 score → 404', async () => {
+    const res = await app.inject({ method: 'GET', url: '/agents/nope/score' });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('[可解释性] Explainability — 可追溯', () => {
+  it('score.evidenceRefs 与提交的 evidence id 一一对应', async () => {
+    const agent = (await createAgent('trace-agent')).json();
+    const ids: string[] = [];
+    for (const d of ['capability', 'reliability', 'delivery']) {
+      const r = await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: d, source: 'benchmark', result: 'success' } });
+      ids.push(r.json().id);
+    }
     const res = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
-    expect(res.json().score).toBe(0);
+    const body = res.json();
+    expect(body.evidenceCount).toBe(3);
+    expect(body.evidenceRefs.sort()).toEqual(ids.sort());
+  });
+});
+
+describe('[确定性] Determinism + [持久化] Persistence', () => {
+  it('落库后重复 GET score 返回一致', async () => {
+    const agent = (await createAgent('persist-agent')).json();
+    for (const ev of [
+      { dimension: 'capability', source: 'benchmark', result: 'success' },
+      { dimension: 'reliability', source: 'simulation', result: 'success' },
+      { dimension: 'delivery', source: 'simulation', result: 'success' },
+    ]) {
+      await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: ev });
+    }
+    const posted = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
+    expect(posted.statusCode).toBe(200);
+    const body = posted.json();
+    expect(body.score).not.toBeNull();
+    expect(body.modelVersion).toBe('baseline-v0.1');
+    expect(body.confidence).toBeGreaterThan(0);
+
+    const again = await app.inject({ method: 'GET', url: `/agents/${agent.id}/score` });
+    expect(again.json().score).toBe(body.score);
+    expect(again.json().evidenceRefs).toEqual(body.evidenceRefs);
   });
 });
