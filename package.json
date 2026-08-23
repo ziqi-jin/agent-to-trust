@@ -1,0 +1,20 @@
+{
+  "name": "agent-credit-lab",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @acl/api",
+    "test:scoring": "npm run test --workspace @acl/scoring",
+    "dev:api": "npm run dev --workspace @acl/api"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

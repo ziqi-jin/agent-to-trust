@@ -29,8 +29,9 @@ docker compose up
 Then open:
 
 ```
-http://localhost:8000/docs   # API (FastAPI / OpenAPI)
-http://localhost:3000        # Dashboard
+http://localhost:8000/health  # API 健康检查
+http://localhost:8000         # API 根（接口见 apps/api/README.md）
+http://localhost:3000         # Dashboard
 ```
 
 > Requires Docker + Docker Compose. Nothing else.
@@ -84,7 +85,7 @@ Every score is bound to evidence. **No evidence, low confidence.**
 ```
 agent-credit-lab/
 ├── apps/
-│   ├── api/            # FastAPI backend
+│   ├── api/            # Fastify backend (Node + TypeScript)
 │   └── dashboard/      # Next.js + TypeScript frontend
 ├── packages/
 │   ├── core/           # shared domain models
