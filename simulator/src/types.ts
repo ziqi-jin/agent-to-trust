@@ -136,6 +136,8 @@ export interface SimEvidence {
   dimension: Dimension;
   source: Source;
   result: EvidenceResult;
+  /** 连续质量值 0..1（可选，有则评分用 value 而非 result，反映质量梯度） */
+  value?: number;
   timestamp: Date;
 }
 

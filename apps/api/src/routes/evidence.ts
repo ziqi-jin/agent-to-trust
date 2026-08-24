@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { DIMENSIONS, isDimension, type Dimension, type Source } from '@acl/core';
 import { agents, evidence } from '../db/schema';
+import { computeAndPersist, serialize } from './scores';
 
 interface EvidenceBody {
   dimension?: string;
@@ -48,7 +49,9 @@ export async function evidenceRoutes(app: FastifyInstance) {
         payloadHash: body.payloadHash ?? null,
       })
       .returning();
-    return reply.code(201).send(created);
+    // 交易/事件 → 分数自动更新：插入 evidence 后立刻重算该 agent 信用分
+    const score = await computeAndPersist(app, id);
+    return reply.code(201).send({ evidence: created, score: serialize(score) });
   });
 
   app.get('/agents/:id/evidence', async (req, reply) => {

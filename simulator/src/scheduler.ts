@@ -173,7 +173,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
           ? 'partial'
           : 'failure';
     evidence.push(
-      { agentId: provider.id, transactionId: tx.id, dimension: 'capability', source: 'simulation', result: capResult, timestamp: ts },
+      { agentId: provider.id, transactionId: tx.id, dimension: 'capability', source: 'simulation', result: capResult, value: verification.measuredQuality, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'reliability', source: 'simulation', result: outcome.onTime ? 'success' : 'failure', timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'delivery', source: 'simulation', result: verification.result, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'integrity', source: 'simulation', result: outcome.cheated ? 'failure' : 'success', timestamp: ts },

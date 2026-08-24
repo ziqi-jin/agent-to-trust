@@ -127,6 +127,31 @@ describe('[可解释性] Simulation Engine', () => {
   });
 });
 
+describe('[标定] P0-9 连续质量', () => {
+  it('capability evidence 带连续 value（0..1）', () => {
+    const r = runSimulation(CONFIG);
+    const cap = r.evidence.filter((e) => e.dimension === 'capability');
+    expect(cap.length).toBeGreaterThan(0);
+    for (const e of cap) {
+      expect(e.value).toBeDefined();
+      expect(e.value!).toBeGreaterThanOrEqual(0);
+      expect(e.value!).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('分数有区分度（最高分不再打满 1000）', () => {
+    const r = runSimulation(CONFIG);
+    const scores = [...scoreAgents(r).values()]
+      .map((s) => s.score)
+      .filter((s): s is number => s !== null);
+    expect(scores.length).toBeGreaterThan(5);
+    const max = Math.max(...scores);
+    const min = Math.min(...scores);
+    expect(max).toBeLessThan(1000);
+    expect(max - min).toBeGreaterThan(50);
+  });
+});
+
 describe('[鲁棒性] Simulation Engine', () => {
   it('agentCount=0 安全返回空结果', () => {
     const r = runSimulation({ agentCount: 0, rounds: 10, seed: 1 });

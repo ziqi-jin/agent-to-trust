@@ -53,7 +53,7 @@
 - [x] P0-6 Simulation Engine（agents / task generator / virtual wallet / scheduler）
 - [x] P0-7 Market Engine（discovery / offer / accept / contract）
 - [x] P0-8 Execution Engine（execute / deliver / verify / settle）
-- [ ] P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
+- [x] P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
 - [ ] P0-10 最小 vertical slice 全链路测试
 
 ### P1 — 可传播 Demo

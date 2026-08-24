@@ -34,8 +34,12 @@
 - `apps/dashboard`：传播级首页（Hero / HowItWorks / Leaderboard / 证据流 ticker / AgentDetail）
 - 测试：simulator 61 例（market / simulation / execution）全绿
 
+### Stage 1 — Reputation Engine v0.1（P0-9）
+- 事件驱动分数：evidence 提交 → 自动重算（`computeAndPersist`），无需手动 compute
+- 评分标定：capability 维度改用连续 value（measuredQuality 实测质量），分数反映「质量梯度」而非「是否及格」，消除「多个 agent 打满 1000 分」
+- 测试：simulator 63 例 + api 11 例全绿
+
 ### 待办
-- P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
 - P0-10 Vertical Slice 全链路测试
 - CI（GitHub Actions）
 - 迁移切 drizzle-kit

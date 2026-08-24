@@ -5,7 +5,7 @@ import { type Dimension, type Source } from '@acl/core';
 import { computeScore, type EvidencePoint } from '@acl/scoring';
 import { agents, creditScores, evidence, scoreSnapshots } from '../db/schema';
 
-function serialize(s: typeof creditScores.$inferSelect) {
+export function serialize(s: typeof creditScores.$inferSelect) {
   return {
     agentId: s.agentId,
     score: s.score,

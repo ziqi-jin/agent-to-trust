@@ -101,7 +101,7 @@ describe('[可解释性] Explainability — 可追溯', () => {
     const ids: string[] = [];
     for (const d of ['capability', 'reliability', 'delivery']) {
       const r = await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: d, source: 'benchmark', result: 'success' } });
-      ids.push(r.json().id);
+      ids.push(r.json().evidence.id);
     }
     const res = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
     const body = res.json();
@@ -130,5 +130,26 @@ describe('[确定性] Determinism + [持久化] Persistence', () => {
     const again = await app.inject({ method: 'GET', url: `/agents/${agent.id}/score` });
     expect(again.json().score).toBe(body.score);
     expect(again.json().evidenceRefs).toEqual(body.evidenceRefs);
+  });
+});
+
+describe('[自动更新] P0-9 Reputation Engine — 事件驱动分数', () => {
+  it('提交 evidence 后自动重算分数（无需手动 POST /score）', async () => {
+    const agent = (await createAgent('auto-agent')).json();
+    const r = await app.inject({
+      method: 'POST',
+      url: `/agents/${agent.id}/evidence`,
+      payload: { dimension: 'capability', source: 'benchmark', result: 'success' },
+    });
+    expect(r.statusCode).toBe(201);
+    const body = r.json();
+    expect(body.evidence).toBeDefined();
+    expect(body.score).toBeDefined();
+    expect(body.score.score).not.toBeNull();
+
+    // 分数已落库：GET 返回一致（分数可追踪变化）
+    const get = await app.inject({ method: 'GET', url: `/agents/${agent.id}/score` });
+    expect(get.statusCode).toBe(200);
+    expect(get.json().score).toBe(body.score.score);
   });
 });

@@ -55,7 +55,7 @@ export async function simulationRoutes(app: FastifyInstance) {
         sourceType: 'simulation',
         issuer: 'simulation',
         result: e.result,
-        value: null,
+        value: e.value ?? null,
         severity: null,
         evidenceUri: `sim://tx/${e.transactionId}`,
         payloadHash: null,

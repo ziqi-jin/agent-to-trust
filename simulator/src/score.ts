@@ -13,6 +13,7 @@ export function evidenceToPoints(evidence: SimEvidence[]): EvidencePoint[] {
     source: e.source,
     sourceType: 'simulation',
     result: e.result,
+    value: e.value,
     timestamp: e.timestamp,
   }));
 }
