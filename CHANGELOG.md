@@ -39,7 +39,12 @@
 - 评分标定：capability 维度改用连续 value（measuredQuality 实测质量），分数反映「质量梯度」而非「是否及格」，消除「多个 agent 打满 1000 分」
 - 测试：simulator 63 例 + api 11 例全绿
 
+### Stage 1 — Vertical Slice 全链路测试（P0-10）
+- 新建 `apps/api/test/e2e.test.ts`（4 例）：仿真 → 落库 → 榜单 → 详情 → 统计 → 事件流端到端跑通，分数可解释 + 可稳定复算 + 幂等 seed + source 红线
+- CI：新增 `.github/workflows/ci.yml`（typecheck / test 带 postgres / dashboard build）+ root `typecheck` script
+- 重新 seed 部署：清旧数据 + rebuild api 镜像 + 重新灌 100 Agent × 200 轮，标定生效（满分 1000 个数 0，分布 105~982）
+
 ### 待办
-- P0-10 Vertical Slice 全链路测试
+（Stage 1 闭环完成，进 Stage 2 Simulation Market）
 - CI（GitHub Actions）
 - 迁移切 drizzle-kit

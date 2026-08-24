@@ -30,10 +30,10 @@
 **路标**
 - [x] M0.1 Repository / monorepo
 - [x] M0.2 Docker Compose（postgres + redis + api；dashboard 待 Stage 1）
-- [ ] M0.3 CI
+- [x] M0.3 CI
 - [x] M0.4 工程规则（`docs/rules/`）
 - [x] M0.5 docs / ADR / changelog
-- [ ] M0.6 demo seed（`source=simulation`）
+- [x] M0.6 demo seed（`source=simulation`）
 
 **验收**：`docker compose up` 成功；干净环境 ≤15 分钟首次运行；CI 全绿；关键模块有基础测试；README Quick Start 可独立执行；seed 明确 simulation。
 
@@ -54,7 +54,7 @@
 - [x] P0-7 Market Engine（discovery / offer / accept / contract）
 - [x] P0-8 Execution Engine（execute / deliver / verify / settle）
 - [x] P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
-- [ ] P0-10 最小 vertical slice 全链路测试
+- [x] P0-10 最小 vertical slice 全链路测试
 
 ### P1 — 可传播 Demo
 
