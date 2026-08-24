@@ -4,6 +4,7 @@ import type { Database } from './db/client';
 import { agentsRoutes } from './routes/agents';
 import { evidenceRoutes } from './routes/evidence';
 import { scoresRoutes } from './routes/scores';
+import { simulationRoutes } from './routes/simulation';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -19,6 +20,7 @@ export function buildApp(db: Database): FastifyInstance {
   app.register(agentsRoutes);
   app.register(evidenceRoutes);
   app.register(scoresRoutes);
+  app.register(simulationRoutes);
   app.get('/health', async () => ({ status: 'ok' }));
   return app;
 }

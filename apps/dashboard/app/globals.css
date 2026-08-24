@@ -36,3 +36,27 @@ body {
 .score-glow {
   text-shadow: 0 0 24px rgba(52, 211, 153, 0.35);
 }
+
+/* 实验室网格背景 */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(35, 43, 58, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 43, 58, 0.5) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* 证据流 ticker */
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  animation: ticker-scroll 40s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}

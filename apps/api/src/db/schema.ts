@@ -71,3 +71,11 @@ export const scoreSnapshots = pgTable(
   },
   (t) => [index('idx_score_snapshots_agent_id').on(t.agentId)],
 );
+
+export const simulationRuns = pgTable('simulation_runs', {
+  id: text('id').primaryKey(),
+  seed: integer('seed').notNull(),
+  config: jsonb('config'),
+  stats: jsonb('stats'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

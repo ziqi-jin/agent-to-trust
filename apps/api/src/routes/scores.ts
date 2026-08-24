@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { type Dimension, type Source } from '@acl/core';
 import { computeScore, type EvidencePoint } from '@acl/scoring';
@@ -21,7 +21,7 @@ function serialize(s: typeof creditScores.$inferSelect) {
   };
 }
 
-async function computeAndPersist(app: FastifyInstance, agentId: string) {
+export async function computeAndPersist(app: FastifyInstance, agentId: string) {
   const rows = await app.db.query.evidence.findMany({ where: eq(evidence.agentId, agentId) });
   const points: EvidencePoint[] = rows.map((e) => ({
     dimension: e.dimension as Dimension,

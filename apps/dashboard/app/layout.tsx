@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Agent Credit Lab',
-  description: "Don't trust an Agent. Test it. — Agent 信誉实验场",
+  title: 'Agent Credit Lab — Don\'t trust an Agent. Test it.',
+  description:
+    '开源的 Agent 信任实验场：让 100 个 Agent 自主交易，把每一次成交、准时、诚实与否变成可追溯的证据，算出带置信度的信用分。What if every AI agent had a credit score?',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

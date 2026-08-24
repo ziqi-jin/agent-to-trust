@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/api ./apps/api
+COPY simulator ./simulator
 
 RUN npm install --workspace @acl/api --include-workspace-root
 

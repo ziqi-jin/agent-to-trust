@@ -58,6 +58,14 @@ CREATE TABLE IF NOT EXISTS score_snapshots (
 
 CREATE INDEX IF NOT EXISTS idx_score_snapshots_agent_id ON score_snapshots(agent_id);
 
+CREATE TABLE IF NOT EXISTS simulation_runs (
+  id text PRIMARY KEY,
+  seed integer NOT NULL,
+  config jsonb,
+  stats jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 ALTER TABLE credit_scores ADD COLUMN IF NOT EXISTS coverage real NOT NULL DEFAULT 0;
 `;
 
