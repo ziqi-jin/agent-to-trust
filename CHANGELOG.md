@@ -24,8 +24,18 @@
   - AgentScore 计算/持久化/查询（evidence_refs 可追溯、score_snapshots 快照）
 - 测试：评分引擎 8 例 + API 集成 6 例，全绿
 
+### Stage 1 — Simulation Market（P0-6 / P0-7 / P0-8）
+- `simulator/`（`@acl/simulator`）：确定性仿真（seed 可复现）
+  - P0-6 Simulation Engine：Agent 池 / 任务生成器 / 虚拟钱包 / 调度器
+  - P0-7 Market Engine：discovery / offer / accept / contract
+  - P0-8 Execution Engine：execute / deliver / verify / settle（状态机，作弊有概率被 verify 识破）
+  - 完整事件链：DISCOVER → OFFER → ACCEPT → EXECUTE → DELIVER → VERIFY → SETTLE → REVIEW
+- `apps/api`：仿真落库（`/simulation/run`）+ `/leaderboard` + `/stats` + `/events`
+- `apps/dashboard`：传播级首页（Hero / HowItWorks / Leaderboard / 证据流 ticker / AgentDetail）
+- 测试：simulator 61 例（market / simulation / execution）全绿
+
 ### 待办
-- P0-5 Agent Profile 前端页面（Next.js Dashboard）
+- P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
+- P0-10 Vertical Slice 全链路测试
 - CI（GitHub Actions）
-- demo seed 数据（`source=simulation`）
 - 迁移切 drizzle-kit

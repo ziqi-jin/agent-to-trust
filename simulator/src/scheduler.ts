@@ -13,6 +13,7 @@ import { generateAgents } from './agents';
 import { generateTask } from './tasks';
 import { Wallet } from './wallet';
 import { MarketEngine } from './market';
+import { ExecutionEngine } from './execution';
 import type {
   Contract,
   SimAgent,
@@ -33,26 +34,6 @@ function pickBuyer(agents: SimAgent[], wallet: Wallet, budget: number, rng: Rng)
   return rng.pick(buyers);
 }
 
-/** 决定一笔交易的执行结果（基于 provider 行为参数 + 任务复杂度，确定性由 rng 保证）。 */
-function executeOutcome(
-  provider: SimAgent,
-  complexity: number,
-  rng: Rng,
-): { onTime: boolean; delivered: boolean; cheated: boolean; result: EvidenceResult } {
-  const onTime = rng.chance(provider.reliability);
-  const delivered =
-    provider.skill >= complexity ? true : rng.chance(provider.skill / Math.max(complexity, 0.01));
-  const cheated = rng.chance(1 - provider.honesty);
-
-  let result: EvidenceResult;
-  if (cheated) result = 'failure';
-  else if (delivered && onTime) result = 'success';
-  else if (delivered && !onTime) result = 'partial';
-  else result = 'failure';
-
-  return { onTime, delivered, cheated, result };
-}
-
 export function runSimulation(config: SimulationConfig): SimulationResult {
   const agentCount = Math.max(0, Math.floor(config.agentCount));
   const rounds = Math.max(0, Math.floor(config.rounds));
@@ -68,6 +49,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
   const events: SimEvent[] = [];
   const evidence: SimEvidence[] = [];
   const market = new MarketEngine(rng);
+  const execution = new ExecutionEngine(rng);
 
   const stats: SimulationStats = {
     agentCount,
@@ -120,25 +102,47 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       data: { price: contract.price, buyer: buyer.id },
     });
 
-    // EXECUTE
-    const outcome = executeOutcome(provider, task.complexity, rng);
+    // EXECUTE → DELIVER → VERIFY → SETTLE（Execution Engine 状态机）
+    const outcome = execution.execute(contract, provider);
+    contract.status = 'executed';
     events.push({
       type: 'EXECUTE',
       round,
       taskId: task.id,
       agentId: provider.id,
-      data: { onTime: outcome.onTime, delivered: outcome.delivered, cheated: outcome.cheated, result: outcome.result },
+      data: { actualQuality: outcome.actualQuality, onTime: outcome.onTime, cheated: outcome.cheated },
     });
 
-    // SETTLE：success 全款 / partial 半款 / failure 0
-    let amount = 0;
-    if (outcome.result === 'success') amount = contract.price;
-    else if (outcome.result === 'partial') amount = Math.round(contract.price / 2);
+    const deliverable = execution.deliver(contract, outcome);
+    events.push({
+      type: 'DELIVER',
+      round,
+      taskId: task.id,
+      agentId: provider.id,
+      data: { claimedQuality: deliverable.claimedQuality, cheated: deliverable.cheated },
+    });
+
+    const verification = execution.verify(contract, outcome, deliverable, task);
+    events.push({
+      type: 'VERIFY',
+      round,
+      taskId: task.id,
+      agentId: provider.id,
+      data: {
+        measuredQuality: verification.measuredQuality,
+        caughtCheating: verification.caughtCheating,
+        result: verification.result,
+      },
+    });
+
+    const settlement = execution.settle(contract, verification);
+    contract.status = 'settled';
+    const amount = settlement.amount;
     if (amount > 0) wallet.transfer(buyer.id, provider.id, amount);
 
     stats.totalValue += amount;
-    if (outcome.result === 'success') stats.settled++;
-    else if (outcome.result === 'partial') stats.partial++;
+    if (verification.result === 'success') stats.settled++;
+    else if (verification.result === 'partial') stats.partial++;
     else stats.failed++;
 
     const tx: SimTransaction = {
@@ -147,7 +151,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       buyerId: buyer.id,
       providerId: provider.id,
       amount,
-      result: outcome.result,
+      result: verification.result,
       round,
     };
     transactions.push(tx);
@@ -157,17 +161,21 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       round,
       taskId: task.id,
       agentId: provider.id,
-      data: { amount, result: outcome.result },
+      data: { amount, result: verification.result },
     });
 
-    // REVIEW：产生 4 条 evidence（覆盖 capability/reliability/delivery/integrity）
+    // REVIEW：产生 4 条 evidence；capability 基于「实测质量」而非自报技能
     const ts = new Date(BASE_TIME + round * 60_000);
     const capResult: EvidenceResult =
-      provider.skill >= task.complexity ? 'success' : outcome.delivered ? 'partial' : 'failure';
+      verification.measuredQuality >= task.complexity
+        ? 'success'
+        : verification.measuredQuality >= 0.7 * task.complexity
+          ? 'partial'
+          : 'failure';
     evidence.push(
       { agentId: provider.id, transactionId: tx.id, dimension: 'capability', source: 'simulation', result: capResult, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'reliability', source: 'simulation', result: outcome.onTime ? 'success' : 'failure', timestamp: ts },
-      { agentId: provider.id, transactionId: tx.id, dimension: 'delivery', source: 'simulation', result: outcome.result, timestamp: ts },
+      { agentId: provider.id, transactionId: tx.id, dimension: 'delivery', source: 'simulation', result: verification.result, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'integrity', source: 'simulation', result: outcome.cheated ? 'failure' : 'success', timestamp: ts },
     );
     events.push({

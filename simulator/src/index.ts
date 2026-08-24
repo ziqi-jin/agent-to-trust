@@ -9,6 +9,7 @@ export { generateAgents } from './agents';
 export { generateTask } from './tasks';
 export { Wallet } from './wallet';
 export { MarketEngine, selectOffer } from './market';
+export { ExecutionEngine, CHEAT_CAUGHT_RATE } from './execution';
 export { runSimulation } from './scheduler';
 export { evidenceToPoints, scoreAgents } from './score';
 export { DOMAINS } from './types';
@@ -20,6 +21,10 @@ export type {
   Contract,
   ContractStatus,
   AcceptanceStrategy,
+  ExecutionOutcome,
+  Deliverable,
+  Verification,
+  Settlement,
   SimTransaction,
   SimEvent,
   SimEvidence,

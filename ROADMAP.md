@@ -49,10 +49,10 @@
 - [x] P0-2 Evidence Schema（type / source / issuer / hash / timestamp / severity）— 后端完成
 - [x] P0-3 Baseline Credit Engine（维度 + 权重 + evidence confidence + freshness decay）— 后端完成
 - [x] P0-4 Score Explain（可展开到 evidence）— 后端完成（evidence_refs 可追溯）
-- [ ] P0-5 Agent Profile 页面 — 前端待做
-- [ ] P0-6 Simulation Engine（agents / task generator / virtual wallet / scheduler）
-- [ ] P0-7 Market Engine（discovery / offer / accept / contract）
-- [ ] P0-8 Execution Engine（execute / deliver / verify / settle）
+- [x] P0-5 Agent Profile 页面
+- [x] P0-6 Simulation Engine（agents / task generator / virtual wallet / scheduler）
+- [x] P0-7 Market Engine（discovery / offer / accept / contract）
+- [x] P0-8 Execution Engine（execute / deliver / verify / settle）
 - [ ] P0-9 Reputation Engine v0.1（行为 → 分数自动更新）
 - [ ] P0-10 最小 vertical slice 全链路测试
 

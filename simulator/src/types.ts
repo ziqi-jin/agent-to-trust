@@ -80,6 +80,47 @@ export interface Contract {
   acceptedAt: Date;
 }
 
+/** 履约结果：provider 实际执行情况（不对外声称）。 */
+export interface ExecutionOutcome {
+  contractId: string;
+  providerId: string;
+  /** 实际交付质量 0..1（= 技能水平的体现，可能低于声称值） */
+  actualQuality: number;
+  /** 是否准时交付 */
+  onTime: boolean;
+  /** 是否作弊（谎报质量） */
+  cheated: boolean;
+}
+
+/** 交付物：provider 提交的成果，声称质量可能被作弊虚高。 */
+export interface Deliverable {
+  contractId: string;
+  providerId: string;
+  /** 声称质量 0..1 */
+  claimedQuality: number;
+  onTime: boolean;
+  cheated: boolean;
+}
+
+/** 验证结果：中立方实测交付物后给出的判定。 */
+export interface Verification {
+  contractId: string;
+  providerId: string;
+  /** 实测质量 0..1 */
+  measuredQuality: number;
+  /** 是否识破作弊 */
+  caughtCheating: boolean;
+  /** 最终判定 */
+  result: EvidenceResult;
+}
+
+/** 结算结果：按验证结果计算实际支付金额。 */
+export interface Settlement {
+  contractId: string;
+  amount: number;
+  result: EvidenceResult;
+}
+
 export interface SimEvent {
   type: string;
   round: number;
