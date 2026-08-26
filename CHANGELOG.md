@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+### Stage 2 — 决策策略扩展 + 真实 Agent 适配层
+- `@acl/simulator` 决策 mock 策略扩展：
+  - 报价策略 `OfferStrategy`：`market`（85%–115%）/ `undercut`（恶意压价 55%–85%）/ `premium`（高溢价 115%–145%）
+  - 接单策略 `AcceptanceStrategy` 扩展：`lowest-price` / `lowest-latency` / `random`
+  - 每个仿真 Agent 随机分配报价/接单策略（模拟不同个体决策风格）
+  - 买方预算约束：只考虑不超过任务预算的报价（高溢价/超预算被拒）
+- `@acl/adapters`（新包）真实 Agent 适配层：
+  - `DeepSeekClient`：Node 原生 fetch 调 DeepSeek，零第三方依赖
+  - `ModelAgent`：模型 + persona 包装成市场个体（模型 ≠ Agent 分层）
+  - `benchmark`：coding / reasoning / honesty 3 类基准，确定性 grader，产出 `source=benchmark` 证据
+  - 真实 smoke 验证：DeepSeek 跑通 6 case，capability 95 / integrity 100
+- 测试：simulator 63→73（+10 策略）+ adapters 18 例，全 workspace 全绿
+
 ### Stage 0 — Foundation
 - 建立 monorepo 骨架（apps / packages / simulator / benchmark / reputation / attacks / experiments）
 - 建立核心文档：README / ROADMAP / ARCHITECTURE / DATA_MODEL / EXPERIMENT_LOG / CHANGELOG

@@ -5,10 +5,10 @@
  * 确定性（seed 可复现）、纯函数（无外部副作用）、仿真数据显式标记 source=simulation。
  */
 export { Rng, mulberry32, hashSeed, round2 } from './rng';
-export { generateAgents } from './agents';
+export { generateAgents, OFFER_STRATEGIES, ACCEPT_STRATEGIES } from './agents';
 export { generateTask } from './tasks';
 export { Wallet } from './wallet';
-export { MarketEngine, selectOffer } from './market';
+export { MarketEngine, selectOffer, priceFor } from './market';
 export { ExecutionEngine, CHEAT_CAUGHT_RATE } from './execution';
 export { runSimulation } from './scheduler';
 export { evidenceToPoints, scoreAgents } from './score';
@@ -21,6 +21,7 @@ export type {
   Contract,
   ContractStatus,
   AcceptanceStrategy,
+  OfferStrategy,
   ExecutionOutcome,
   Deliverable,
   Verification,

@@ -5,7 +5,13 @@
  * 参数由确定性 rng 派生，保证同 seed 同 Agent 池。
  */
 import { round2, type Rng } from './rng';
-import { DOMAINS, type Domain, type SimAgent } from './types';
+import { DOMAINS, type AcceptanceStrategy, type Domain, type OfferStrategy, type SimAgent } from './types';
+
+/** 报价策略池：模拟真实市场里不同定价风格。 */
+export const OFFER_STRATEGIES: readonly OfferStrategy[] = ['market', 'undercut', 'premium'];
+
+/** 接单策略池。 */
+export const ACCEPT_STRATEGIES: readonly AcceptanceStrategy[] = ['lowest-price', 'lowest-latency', 'random'];
 
 export function generateAgents(count: number, rng: Rng, initialWallet: number): SimAgent[] {
   const agents: SimAgent[] = [];
@@ -23,6 +29,9 @@ export function generateAgents(count: number, rng: Rng, initialWallet: number): 
       reliability: round2(rng.range(0.3, 0.95)),
       honesty: round2(rng.range(0.3, 0.95)),
       wallet: initialWallet,
+      // 决策风格：随机分配报价/接单策略，模拟不同个体
+      offerStrategy: rng.pick(OFFER_STRATEGIES),
+      acceptStrategy: rng.pick(ACCEPT_STRATEGIES),
     });
   }
   return agents;

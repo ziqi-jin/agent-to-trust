@@ -5,7 +5,7 @@
  * 这是 P0-6 调度器里内嵌撮合逻辑的独立抽取，供 P0-7 验收「Agent 能找到服务并成交」。
  */
 import type { Rng } from './rng';
-import type { AcceptanceStrategy, Contract, Offer, SimAgent, SimTask } from './types';
+import type { AcceptanceStrategy, Contract, Offer, OfferStrategy, SimAgent, SimTask } from './types';
 
 /** 纯函数：从报价集合按策略选出一个，空集合返回 null。 */
 export function selectOffer(
@@ -17,9 +17,27 @@ export function selectOffer(
   switch (strategy) {
     case 'random':
       return rng.pick(offers);
+    case 'lowest-latency':
+      return offers.reduce((a, b) => (a.latency <= b.latency ? a : b));
     case 'lowest-price':
     default:
       return offers.reduce((a, b) => (a.price <= b.price ? a : b));
+  }
+}
+
+/** 纯函数：按报价策略计算价格（基于任务预算）。 */
+export function priceFor(strategy: OfferStrategy, budget: number, rng: Rng): number {
+  switch (strategy) {
+    case 'undercut':
+      // 恶意压价：低于市场价（55%–85% 预算），抢单/刷单动机
+      return Math.round(budget * (0.55 + 0.3 * rng.float()));
+    case 'premium':
+      // 高溢价：高于市场价（115%–145% 预算）
+      return Math.round(budget * (1.15 + 0.3 * rng.float()));
+    case 'market':
+    default:
+      // 正常市场价（85%–115% 预算）
+      return Math.round(budget * (0.85 + 0.3 * rng.float()));
   }
 }
 
@@ -37,12 +55,12 @@ export class MarketEngine {
     return agents.filter((a) => a.id !== buyerId && a.capabilities.includes(task.domain));
   }
 
-  /** OFFER：单个 agent 报价（85%–115% 预算）+ 时延（技能越高时延越低）。 */
+  /** OFFER：单个 agent 报价（按报价策略定价）+ 时延（技能越高时延越低）。 */
   offer(task: SimTask, agent: SimAgent): Offer {
     return {
       taskId: task.id,
       agentId: agent.id,
-      price: Math.round(task.budget * (0.85 + 0.3 * this.rng.float())),
+      price: priceFor(agent.offerStrategy ?? 'market', task.budget, this.rng),
       latency: Math.round(1 + (1 - agent.skill) * 10),
     };
   }

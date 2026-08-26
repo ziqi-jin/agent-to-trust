@@ -33,6 +33,10 @@ export interface SimAgent {
   honesty: number;
   /** 虚拟钱包余额 */
   wallet: number;
+  /** 报价策略（决定它作为 provider 时如何定价）。 */
+  offerStrategy?: OfferStrategy;
+  /** 接单策略（决定它作为 buyer 时如何选 offer）。 */
+  acceptStrategy?: AcceptanceStrategy;
 }
 
 export interface SimTask {
@@ -64,8 +68,11 @@ export interface SimTransaction {
 /** 合约生命周期状态。 */
 export type ContractStatus = 'accepted' | 'executed' | 'settled' | 'cancelled';
 
-/** 撮合接受策略（MVP：最低价 / 随机）。 */
-export type AcceptanceStrategy = 'lowest-price' | 'random';
+/** 撮合接受策略：buyer 如何从报价集合中选。 */
+export type AcceptanceStrategy = 'lowest-price' | 'lowest-latency' | 'random';
+
+/** 报价策略：provider 如何给任务定价。 */
+export type OfferStrategy = 'market' | 'undercut' | 'premium';
 
 /** 市场合约：buyer 与 provider 在 task 上达成的成交记录。 */
 export interface Contract {

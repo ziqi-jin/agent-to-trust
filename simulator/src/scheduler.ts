@@ -81,14 +81,16 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       continue;
     }
 
-    // OFFER：每个候选报价（85%–115% 预算）+ 时延
-    const offers = market.offerAll(task, candidates);
+    // OFFER：每个候选报价（按报价策略定价）+ 时延
+    const allOffers = market.offerAll(task, candidates);
+    // 买方预算约束：只考虑不超过任务预算的报价（高溢价/超预算报价被拒）
+    const offers = allOffers.filter((o) => o.price <= task.budget);
     for (const o of offers) {
       events.push({ type: 'OFFER', round, taskId: task.id, agentId: o.agentId, data: { price: o.price } });
     }
 
-    // ACCEPT：buyer 按策略选 offer，形成 contract
-    const contract = market.accept(task, buyer.id, offers, 'lowest-price', new Date(BASE_TIME + round * 60_000));
+    // ACCEPT：buyer 按自己的接单策略选 offer，形成 contract
+    const contract = market.accept(task, buyer.id, offers, buyer.acceptStrategy ?? 'lowest-price', new Date(BASE_TIME + round * 60_000));
     if (!contract) continue;
     const provider = agents.find((a) => a.id === contract.providerId);
     if (!provider) continue;
