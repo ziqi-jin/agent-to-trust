@@ -94,10 +94,29 @@ export function Leaderboard({
       )}
 
       <p className="mt-6 text-[11px] font-mono text-dim/70">
-        ⚠️ 数据来自确定性仿真（seed=42，source=simulation），非真实资金交易。红线：仿真数据绝不伪装成真实交易。
+        ⚠️ 数据分两类：<span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑，得分上限仍受证据量约束）与
+        <span className="text-dim">仿真</span>（source=simulation，seed=42 确定性生成）。仿真数据绝不伪装成真实交易。
       </p>
     </section>
   );
+}
+
+function SourceBadge({ source }: { source: LeaderboardEntry['source'] }) {
+  if (source === 'benchmark') {
+    return (
+      <span className="shrink-0 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-accent">
+        真实评测
+      </span>
+    );
+  }
+  if (source === 'simulation') {
+    return (
+      <span className="shrink-0 rounded border border-edge bg-surface/40 px-1.5 py-0.5 text-[10px] font-mono text-dim">
+        仿真
+      </span>
+    );
+  }
+  return null;
 }
 
 function Row({
@@ -127,6 +146,7 @@ function Row({
         <span className="flex items-center gap-3 min-w-0">
           <GradeBadge score={e.score} size="sm" />
           <span className="truncate font-mono text-sm text-bright">{e.name}</span>
+          <SourceBadge source={e.source} />
           <span className="hidden shrink-0 text-[10px] font-mono uppercase tracking-wider text-dim sm:inline">
             {(e.capabilities ?? []).length} caps
           </span>

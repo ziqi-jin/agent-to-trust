@@ -35,6 +35,8 @@ services:
     environment:
       DATABASE_URL: postgres://acl:acl@postgres:5432/acl
       PORT: 8000
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
     ports:
       - "8000:8000"
     depends_on:

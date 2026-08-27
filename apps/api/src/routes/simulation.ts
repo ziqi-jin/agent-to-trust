@@ -89,18 +89,24 @@ export async function simulationRoutes(app: FastifyInstance) {
     return allAgents
       .map((a) => {
         const sc = latest.get(a.id);
+        const source = a.name.startsWith('sim-agent-')
+          ? 'simulation'
+          : a.name.startsWith('real-')
+            ? 'benchmark'
+            : 'manual';
         return {
           agentId: a.id,
           name: a.name,
           status: a.status,
           verificationLevel: a.verificationLevel,
           capabilities: a.capabilities ?? [],
+          source,
           score: sc?.score ?? null,
           adjustedScore: sc?.adjustedScore ?? null,
           confidence: sc?.confidence ?? 0,
           coverage: sc?.coverage ?? 0,
           evidenceCount: (sc?.evidenceRefs ?? []).length,
-          isSimulated: a.name.startsWith('sim-agent-'),
+          isSimulated: source === 'simulation',
         };
       })
       .sort((x, y) => (y.score ?? -1) - (x.score ?? -1))

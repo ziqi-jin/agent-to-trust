@@ -65,6 +65,7 @@ export interface LeaderboardEntry {
   status: string;
   verificationLevel: string;
   capabilities: string[];
+  source: 'simulation' | 'benchmark' | 'manual';
   score: number | null;
   adjustedScore: number | null;
   confidence: number;
@@ -175,5 +176,10 @@ export const api = {
     http<{ seeded: boolean; config: Record<string, unknown>; stats: SimulationStats }>(
       '/simulation/run',
       { method: 'POST', body: JSON.stringify(cfg ?? {}) },
+    ),
+  runBenchmark: () =>
+    http<{ seeded: boolean; results?: Array<{ id: string; name: string; model: string; score: number | null }> }>(
+      '/benchmark/run',
+      { method: 'POST', body: '{}' },
     ),
 };
