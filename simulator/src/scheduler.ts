@@ -8,7 +8,7 @@
  * 事件链：DISCOVER → OFFER → ACCEPT → EXECUTE → SETTLE → REVIEW。
  */
 import type { EvidenceResult } from '@acl/core';
-import { Rng } from './rng';
+import { Rng, round2 } from './rng';
 import { generateAgents } from './agents';
 import { generateTask } from './tasks';
 import { Wallet } from './wallet';
@@ -27,6 +27,10 @@ import type {
 } from './types';
 
 const BASE_TIME = new Date('2026-08-23T12:00:00Z').getTime();
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
 
 function pickBuyer(agents: SimAgent[], wallet: Wallet, budget: number, rng: Rng): SimAgent | null {
   const buyers = agents.filter((a) => wallet.canPay(a.id, budget));
@@ -166,7 +170,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       data: { amount, result: verification.result },
     });
 
-    // REVIEW：产生 4 条 evidence；capability 基于「实测质量」而非自报技能
+    // REVIEW：产生 6 条 evidence；capability 基于「实测质量」而非自报技能
     const ts = new Date(BASE_TIME + round * 60_000);
     const capResult: EvidenceResult =
       verification.measuredQuality >= task.complexity
@@ -174,10 +178,31 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
         : verification.measuredQuality >= 0.7 * task.complexity
           ? 'partial'
           : 'failure';
+
+    // 成交价相对任务预算的比值（provider 报价 ÷ buyer 预算）。
+    // 买方预算约束已保证 price <= budget，故 priceRatio <= 1；
+    // 报价策略下探到 0.55（undercut），故 priceRatio ∈ [0.55, 1]。
+    const priceRatio = task.budget > 0 ? contract.price / task.budget : 1;
+
+    // economic：性价比（买家视角，钱花得值不值）——实测质量 ÷ 价位。
+    // 高质低价 = 高性价比；低质高价 = 低性价比。除以 max(priceRatio, 0.4)
+    // 是为了避免压价过狠时把性价比夸大到失真（封顶分母 0.4）。
+    const econValue = round2(clamp01(verification.measuredQuality / Math.max(priceRatio, 0.4)));
+    const econResult: EvidenceResult =
+      econValue >= 0.9 ? 'success' : econValue >= 0.6 ? 'partial' : 'failure';
+
+    // negotiation：议价（卖家视角，价位拿捏）——成交价越接近预算越不吃亏。
+    // 越接近 1 说明把价谈到了预算上限，undercut 压价则是让利过多。
+    const negotValue = round2(clamp01(priceRatio));
+    const negotResult: EvidenceResult =
+      negotValue >= 0.85 ? 'success' : negotValue >= 0.7 ? 'partial' : 'failure';
+
     evidence.push(
       { agentId: provider.id, transactionId: tx.id, dimension: 'capability', source: 'simulation', result: capResult, value: verification.measuredQuality, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'reliability', source: 'simulation', result: outcome.onTime ? 'success' : 'failure', timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'delivery', source: 'simulation', result: verification.result, timestamp: ts },
+      { agentId: provider.id, transactionId: tx.id, dimension: 'economic', source: 'simulation', result: econResult, value: econValue, timestamp: ts },
+      { agentId: provider.id, transactionId: tx.id, dimension: 'negotiation', source: 'simulation', result: negotResult, value: negotValue, timestamp: ts },
       { agentId: provider.id, transactionId: tx.id, dimension: 'integrity', source: 'simulation', result: outcome.cheated ? 'failure' : 'success', timestamp: ts },
     );
     events.push({
@@ -185,7 +210,7 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
       round,
       taskId: task.id,
       agentId: provider.id,
-      data: { evidenceCount: 4 },
+      data: { evidenceCount: 6 },
     });
   }
 

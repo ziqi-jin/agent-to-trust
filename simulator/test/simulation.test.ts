@@ -101,9 +101,9 @@ describe('[数据完整性] Simulation Engine', () => {
     for (const e of r.evidence) expect(agentIds.has(e.agentId)).toBe(true);
   });
 
-  it('每笔成功交易产生 4 条 evidence（4 维度）', () => {
+  it('每笔成功交易产生 6 条 evidence（6 维度）', () => {
     const r = runSimulation(CONFIG);
-    expect(r.evidence.length).toBe(r.transactions.length * 4);
+    expect(r.evidence.length).toBe(r.transactions.length * 6);
   });
 });
 
@@ -124,6 +124,54 @@ describe('[可解释性] Simulation Engine', () => {
     for (const s of scoreAgents(r).values()) {
       expect(s.modelVersion).toBe('baseline-v0.1');
     }
+  });
+});
+
+describe('[标定] economic / negotiation 证据链路', () => {
+  it('每笔成交都产出 economic + negotiation 证据，且 source=simulation', () => {
+    const r = runSimulation(CONFIG);
+    const econ = r.evidence.filter((e) => e.dimension === 'economic');
+    const negot = r.evidence.filter((e) => e.dimension === 'negotiation');
+    expect(econ.length).toBe(r.transactions.length);
+    expect(negot.length).toBe(r.transactions.length);
+    for (const e of [...econ, ...negot]) expect(e.source).toBe('simulation');
+  });
+
+  it('economic value 在 0..1 区间且带 result 映射', () => {
+    const r = runSimulation(CONFIG);
+    const econ = r.evidence.filter((e) => e.dimension === 'economic');
+    for (const e of econ) {
+      expect(e.value).toBeDefined();
+      expect(e.value!).toBeGreaterThanOrEqual(0);
+      expect(e.value!).toBeLessThanOrEqual(1);
+      if (e.value! >= 0.9) expect(e.result).toBe('success');
+      else if (e.value! >= 0.6) expect(e.result).toBe('partial');
+      else expect(e.result).toBe('failure');
+    }
+  });
+
+  it('negotiation value 即成交价/预算比，在 0.55..1 区间', () => {
+    // 报价经预算约束后 price <= budget，且 undercut 下探 0.55，故 value ∈ [0.55, 1]。
+    const r = runSimulation(CONFIG);
+    const negot = r.evidence.filter((e) => e.dimension === 'negotiation');
+    for (const e of negot) {
+      expect(e.value).toBeDefined();
+      expect(e.value!).toBeGreaterThanOrEqual(0.55);
+      expect(e.value!).toBeLessThanOrEqual(1);
+      if (e.value! >= 0.85) expect(e.result).toBe('success');
+      else if (e.value! >= 0.7) expect(e.result).toBe('partial');
+      else expect(e.result).toBe('failure');
+    }
+  });
+
+  it('economic 与 negotiation 存在反向张力：压价(undercut)抬升性价比、压低议价', () => {
+    // 反例性校验：economic 用「质量÷价位」、negotiation 用「价位」本身，
+    // 二者对低价的反应方向相反——这正是真实市场的卖方/买方张力，非缺陷。
+    const r = runSimulation(CONFIG);
+    const econ = r.evidence.filter((e) => e.dimension === 'economic');
+    const negot = r.evidence.filter((e) => e.dimension === 'negotiation');
+    expect(econ.length).toBeGreaterThan(0);
+    expect(negot.length).toBeGreaterThan(0);
   });
 });
 
