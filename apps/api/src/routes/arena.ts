@@ -15,6 +15,8 @@ import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { verifyPayload } from '@acl/sdk';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
+import { upsertAgentIdentity } from '../services/agentIdentity';
+import { settleSession } from '../services/arenaSettle';
 
 const EVENT_TYPES = new Set([
   'OFFER',
@@ -67,6 +69,25 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
       sellerAgentId: typeof sellerAgentId === 'string' ? sellerAgentId : null,
     });
     return reply.code(201).send({ id, status: 'open' });
+  });
+
+  /** 身份注册（Arena 参与者凭钥加入；与考场同一身份体系）。 */
+  app.post('/arena/register', async (req, reply) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const { name, pubkey } = body;
+    if (
+      typeof name !== 'string' ||
+      !name.trim() ||
+      typeof pubkey !== 'string' ||
+      !pubkey.includes('BEGIN PUBLIC KEY')
+    ) {
+      return reply.code(400).send({ error: 'name/pubkey 必填（PEM）' });
+    }
+    const identity = await upsertAgentIdentity(app.db, { name: name.trim(), pubkey });
+    if (identity.error === 'name-taken') {
+      return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
+    }
+    return reply.code(201).send({ agentId: identity.agentId, reused: identity.reused });
   });
 
   /** 会话详情 + 事件摘要。 */
@@ -175,6 +196,9 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
     }
 
     notifyWaiters(id);
+    if (type === 'SETTLE') {
+      await settleSession(app, id, seq);
+    }
     return reply.code(201).send({ ok: true, seq, type, sessionStatus: nextStatus });
   });
 

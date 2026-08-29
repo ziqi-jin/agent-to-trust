@@ -21,6 +21,7 @@ import {
 } from '@acl/sdk';
 import { agents, evidence, ingestNonces } from '../db/schema';
 import { reverifyAgent } from '../services/reverify';
+import { upsertAgentIdentity } from '../services/agentIdentity';
 import { computeAndPersist } from './scores';
 
 const MIN_BENCHMARK_VERSION = '1.0.0';
@@ -148,40 +149,17 @@ export async function ingestRoutes(app: FastifyInstance) {
       }
     }
 
-    // 7) upsert agent（密钥即身份）
+    // 7) upsert agent（密钥即身份；与 Arena register 共用同一身份体系）
     const cleanName = (agentName as string).trim();
-    const existing = await app.db.query.agents.findFirst({ where: eq(agents.name, cleanName) });
-    let agentId: string;
-    if (existing) {
-      if (existing.pubkey && existing.pubkey !== pubkey) {
-        return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
-      }
-      await app.db
-        .update(agents)
-        .set({
-          endpoint: typeof agentEndpoint === 'string' ? agentEndpoint : existing.endpoint,
-          lastSeenAt: new Date(),
-        })
-        .where(eq(agents.id, existing.id));
-      agentId = existing.id;
-    } else {
-      agentId = `ext-${slugify(cleanName)}-${createHash('sha256').update(pubkey).digest('hex').slice(0, 8)}`;
-      await app.db
-        .insert(agents)
-        .values({
-          id: agentId,
-          name: cleanName,
-          owner: null,
-          status: 'active',
-          verificationLevel: 'basic',
-          pubkey,
-          endpoint: typeof agentEndpoint === 'string' ? agentEndpoint : null,
-          lastSeenAt: new Date(),
-        })
-        .onConflictDoNothing();
-      const created = await app.db.query.agents.findFirst({ where: eq(agents.id, agentId) });
-      if (!created) return reply.code(500).send({ error: 'agent 创建失败' });
+    const identity = await upsertAgentIdentity(app.db, {
+      name: cleanName,
+      pubkey,
+      endpoint: typeof agentEndpoint === 'string' ? agentEndpoint : undefined,
+    });
+    if (identity.error === 'name-taken') {
+      return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
     }
+    const agentId = identity.agentId;
 
     // 8) 证据落库（append-only，source=real-benchmark）
     const payloadHash = createHash('sha256')
