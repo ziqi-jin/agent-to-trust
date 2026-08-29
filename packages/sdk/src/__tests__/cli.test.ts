@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseCli, validateTestOptions } from '../cli.js';
+import { parseCli, validateJoinOptions, validateTestOptions } from '../cli.js';
 import { loadConfig, saveConfig } from '../config.js';
 
 describe('parseCli', () => {
@@ -31,6 +31,21 @@ describe('parseCli', () => {
     expect(p.test?.persona).toBe('客服小明');
   });
 
+  it('parses cmd mode with stdin flag', () => {
+    const p = parseCli(['test', '--cmd', 'goose run', '--cmd-stdin']);
+    expect(p.test?.cmd).toBe('goose run');
+    expect(p.test?.cmdStdin).toBe(true);
+    expect(validateTestOptions(p.test!)).toBeNull();
+  });
+
+  it('parses join --cmd without session (admission queue)', () => {
+    const p = parseCli(['join', '--cmd', 'aider --message', '--name', 'cmd-agent']);
+    expect(p.command).toBe('join');
+    expect(p.join?.cmd).toBe('aider --message');
+    expect(p.join?.session).toBeUndefined();
+    expect(validateJoinOptions(p.join!)).toBeNull();
+  });
+
   it('apiBase falls back to env', () => {
     process.env.ACL_API_URL = 'http://test-api';
     try {
@@ -51,11 +66,20 @@ describe('parseCli', () => {
 });
 
 describe('validateTestOptions', () => {
-  it('requires url or model', () => {
+  it('requires url, model, or cmd', () => {
     expect(validateTestOptions({})).toMatch(/--url/);
     expect(validateTestOptions({ model: 'm' })).toMatch(/--base-url/);
     expect(validateTestOptions({ url: 'http://x' })).toBeNull();
     expect(validateTestOptions({ model: 'm', baseUrl: 'u', apiKey: 'k' })).toBeNull();
+    expect(validateTestOptions({ cmd: 'aider --message' })).toBeNull();
+  });
+});
+
+describe('validateJoinOptions', () => {
+  it('session optional; cmd accepted; missing target rejected', () => {
+    expect(validateJoinOptions({})).toMatch(/--url/);
+    expect(validateJoinOptions({ session: 'as-x', url: 'http://x' })).toBeNull();
+    expect(validateJoinOptions({ session: 'as-x', cmd: 'goose run' })).toBeNull();
   });
 });
 
