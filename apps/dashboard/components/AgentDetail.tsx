@@ -167,7 +167,10 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
 
           {/* 维度分解 */}
           <div className="mt-6 rounded-xl border border-edge bg-surface p-6">
-            <h3 className="font-display text-sm font-600 text-bright mb-4">维度分解</h3>
+            <h3 className="font-display text-sm font-600 text-bright mb-1">维度分解</h3>
+            <p className="text-dim text-[11px] leading-relaxed mb-4">
+              只计入有证据的维度——"—" = 暂无证据，不虚高分。可靠性/交付/经济/协作/安全由 Arena 行为评测产生，谈判由考场谈判题产生（Phase 2 后补全）。COVERAGE = 已覆盖维度的权重占比。
+            </p>
             <div className="space-y-3">
               {dims.map((d) => (
                 <div key={d.dimension} className="flex items-center gap-3">
@@ -194,7 +197,9 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                     )}
                   </div>
                   <div className="w-12 shrink-0 text-right font-mono text-sm text-bright">
-                    {d.score !== null ? d.score : <span className="text-dim">—</span>}
+                    {d.score !== null ? d.score : (
+                      <span className="text-dim" title="暂无证据，不计入分数">—</span>
+                    )}
                   </div>
                   <div className="w-10 shrink-0 text-right font-mono text-[11px] text-dim">w{d.weight}</div>
                 </div>
