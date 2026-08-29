@@ -15,6 +15,17 @@ export const agents = pgTable('agents', {
   verificationLevel: text('verification_level').notNull().default('unverified'),
   capabilities: jsonb('capabilities').$type<string[]>(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  /** SDK 上报绑定：密钥即身份，同一 agent 只有同一把钥能更新。 */
+  pubkey: text('pubkey'),
+  /** 被测 endpoint（endpoint 模式记录，供抽样复算）。 */
+  endpoint: text('endpoint'),
+  lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+});
+
+/** 上报 nonce（防重放）：一次性，插入冲突即重放。 */
+export const ingestNonces = pgTable('ingest_nonces', {
+  nonce: text('nonce').primaryKey(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const evidence = pgTable(

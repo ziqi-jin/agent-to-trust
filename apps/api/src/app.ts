@@ -4,6 +4,7 @@ import type { Database } from './db/client';
 import { agentsRoutes } from './routes/agents';
 import { benchmarkRoutes } from './routes/benchmark';
 import { evidenceRoutes } from './routes/evidence';
+import { ingestRoutes } from './routes/ingest';
 import { scoresRoutes } from './routes/scores';
 import { simulationRoutes } from './routes/simulation';
 
@@ -21,6 +22,7 @@ export function buildApp(db: Database): FastifyInstance {
   app.register(agentsRoutes);
   app.register(benchmarkRoutes);
   app.register(evidenceRoutes);
+  app.register(ingestRoutes);
   app.register(scoresRoutes);
   app.register(simulationRoutes);
   app.get('/health', async () => ({ status: 'ok' }));

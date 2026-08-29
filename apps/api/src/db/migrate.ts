@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS simulation_runs (
 );
 
 ALTER TABLE credit_scores ADD COLUMN IF NOT EXISTS coverage real NOT NULL DEFAULT 0;
+
+-- 真实数据接入（Phase 1 /ingest）
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS pubkey text;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS endpoint text;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS ingest_nonces (
+  nonce text PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 export async function migrate(url: string): Promise<void> {
