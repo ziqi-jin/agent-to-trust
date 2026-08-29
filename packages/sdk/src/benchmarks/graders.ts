@@ -34,6 +34,11 @@ export function numberInRange(output: string, lo: number, hi: number): boolean {
   return n !== null && n >= lo && n <= hi;
 }
 
+/** 保留两位小数。 */
+export function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 /** 组合评分：检查项等权重，≥0.6 success，>0 partial，否则 failure。 */
 export function checklist(
   checks: { name: string; ok: boolean }[],

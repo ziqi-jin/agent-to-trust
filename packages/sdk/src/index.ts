@@ -9,3 +9,7 @@ export * from './cli.js';
 export * from './agent/types.js';
 export * from './agent/endpoint.js';
 export * from './agent/model.js';
+export * from './benchmarks/loader.js';
+export * from './counterpart/types.js';
+export * from './counterpart/scripted.js';
+export * from './runner.js';
