@@ -20,6 +20,7 @@ import {
   verifyPayload,
 } from '@acl/sdk';
 import { agents, evidence, ingestNonces } from '../db/schema';
+import { reverifyAgent } from '../services/reverify';
 import { computeAndPersist } from './scores';
 
 const MIN_BENCHMARK_VERSION = '1.0.0';
@@ -203,6 +204,9 @@ export async function ingestRoutes(app: FastifyInstance) {
 
     // 9) 触发评分重算
     const score = await computeAndPersist(app, agentId);
+
+    // 10) 异步抽样复算（不阻塞响应；endpoint 模式才可能升级 verified）
+    void reverifyAgent(app, agentId).catch(() => {});
 
     return reply.send({
       agentId,
