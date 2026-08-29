@@ -9,6 +9,12 @@
  *   acl init   (L1 埋点初始化，后续版本)
  */
 import { parseArgs } from 'node:util';
+import { hostname } from 'node:os';
+import { EndpointAgent } from './agent/endpoint.js';
+import { ModelAgent } from './agent/model.js';
+import { loadConfig } from './config.js';
+import { BENCHMARK_VERSION, runSuite } from './runner.js';
+import { uploadResults } from './upload.js';
 
 export interface TestOptions {
   name?: string;
@@ -103,9 +109,56 @@ async function main(): Promise<void> {
         console.error(`[acl] ${err}`);
         process.exit(1);
       }
-      // Task 4/5 接入：runSuite() + uploadResults()
-      console.error('[acl] 评测运行器尚未实现（Task 4/5 进行中）');
-      process.exit(2);
+      const t = parsed.test!;
+      const config = loadConfig();
+      const name = (t.name ?? config.agentName ?? hostname().replace(/\..*$/, '') || 'my-agent').slice(0, 60);
+      const agent = t.url
+        ? new EndpointAgent(t.url)
+        : new ModelAgent({
+            model: t.model!,
+            baseUrl: t.baseUrl!,
+            apiKey: t.apiKey!,
+            persona: t.persona,
+          });
+
+      console.log(`[acl] 考场 v${BENCHMARK_VERSION} · ${t.url ? `endpoint ${t.url}` : `model ${t.model}`}`);
+      console.log('[acl] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
+
+      const suite = await runSuite(agent);
+
+      for (const r of suite.results) {
+        const bar = '█'.repeat(Math.round(r.value * 10)).padEnd(10, '░');
+        const mark = r.result === 'success' ? '✓' : r.result === 'partial' ? '~' : '✗';
+        console.log(`  ${mark} ${r.caseId.padEnd(24)} ${bar} ${r.value}`);
+      }
+      console.log('\n[acl] 维度汇总：');
+      for (const s of suite.summary) {
+        console.log(`  ${s.dimension.padEnd(14)} ${s.value}`);
+      }
+
+      const apiBase = t.apiBase ?? config.apiBase ?? 'https://reeftavern.cc/credit/api';
+      console.log(`\n[acl] 上报 ${apiBase}/ingest/results …`);
+      try {
+        const res = await uploadResults(suite, {
+          meta: {
+            name,
+            endpoint: t.url,
+            modelMeta: t.model
+              ? { model: t.model, baseUrl: t.baseUrl!, persona: t.persona }
+              : undefined,
+          },
+          apiBase,
+        });
+        console.log(`[acl] ✓ 上榜成功 agentId=${res.agentId} score=${res.score}`);
+        console.log(
+          `[acl] README badge: [![ACL](${apiBase}/badge/${res.agentId}.svg)](https://reeftavern.cc/credit)`,
+        );
+      } catch (e) {
+        console.error(`[acl] 上报失败：${(e as Error).message}`);
+        console.error('[acl] 本地结果已打印；可用 --api-base 指定平台地址重试');
+        process.exit(1);
+      }
+      return;
     }
     case 'join':
       console.error('[acl] Arena 会话桥将在 Phase 2 提供');
