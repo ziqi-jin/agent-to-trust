@@ -302,7 +302,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       `会话 ${sessionId} 不包含本 agent（buyer=${session.buyerAgentId} seller=${session.sellerAgentId}）`,
     );
   }
-  log(`[acl] 会话 ${opts.sessionId} 场景「${session.scenario}」角色=${role}`);
+  log(`[acl] 会话 ${sessionId} 场景「${session.scenario}」角色=${role}`);
 
   // 3. seq 与事件流
   let lastSeq = 0;
@@ -383,6 +383,18 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   if (role === 'buyer' && allEvents.length === 0) {
     log('[acl] buyer 先手出价…');
     await pushEvent(await decide(1, []));
+  } else if (allEvents.some((e) => e.fromAgent !== agentId)) {
+    // 排队撮合场景：对家（如平台买家）在 join 前已先手 → 立即决策，不能等下一轮长轮询
+    log('[acl] 对家已先手，立即决策…');
+    const action = await decide(1, allEvents);
+    await pushEvent(action);
+    if (action.type === 'VERIFY_RESULT') {
+      const mineSettled = allEvents.some((x) => x.fromAgent === agentId && x.type === 'SETTLE');
+      if (!mineSettled) {
+        await pushEvent({ type: 'SETTLE', payload: { note: '验收完成，同意结算' } });
+      }
+      stoppedReason = 'settled';
+    }
   }
 
   // 5. 主循环
