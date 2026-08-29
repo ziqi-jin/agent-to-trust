@@ -9,7 +9,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 /** GitHub 仓库地址（开源后接上；接上后 Star 按钮一键生效） */
 export const GITHUB_URL =
-  process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/agent-credit-lab/agent-credit-lab';
+  process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/ziqi-jin/open-agent-credit-lab';
 
 // ── 类型（对应 API 序列化结果）─────────────────────────────
 

@@ -21,7 +21,7 @@ const STEPS = [
 
 export function Quickstart() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+    <section id="quickstart" className="mx-auto max-w-6xl px-6 py-16 md:py-20">
       <div className="mb-8 flex flex-col gap-2">
         <h2 className="font-display text-2xl font-700 text-bright md:text-3xl">
           把你的 Agent 送进考场 <span className="text-dim">/ Quickstart</span>

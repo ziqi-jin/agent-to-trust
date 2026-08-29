@@ -38,8 +38,8 @@ export default function Page() {
     return m;
   }, [entries]);
 
-  const scrollToLeaderboard = () => {
-    document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToQuickstart = () => {
+    document.getElementById('quickstart')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const onBack = useCallback(() => {
@@ -90,7 +90,7 @@ export default function Page() {
         <AgentDetail agentId={selectedId} onBack={onBack} />
       ) : (
         <>
-          <Hero stats={stats} onTestAgent={scrollToLeaderboard} />
+          <Hero stats={stats} onTestAgent={scrollToQuickstart} />
           <HowItWorks />
           <Quickstart />
           <Leaderboard

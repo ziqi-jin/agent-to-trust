@@ -14,8 +14,6 @@ import {
 import { GradeBadge } from './GradeBadge';
 import { ScoreRing } from './ScoreRing';
 
-const DIMENSIONS = Object.keys(DIMENSION_LABELS);
-const SOURCES = Object.keys(SOURCE_LABELS);
 const RESULTS = ['success', 'failure', 'partial'];
 
 function fmtTime(iso: string): string {
@@ -35,9 +33,6 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [evDimension, setEvDimension] = useState(DIMENSIONS[0]);
-  const [evSource, setEvSource] = useState(SOURCES[0]);
-  const [evResult, setEvResult] = useState('success');
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -62,20 +57,6 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
     load();
   }, [load]);
 
-  const submitEvidence = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await api.addEvidence(agentId, { dimension: evDimension, source: evSource, result: evResult });
-      const [ev, sc] = await Promise.all([api.listEvidence(agentId), api.computeScore(agentId)]);
-      setEvidence(ev);
-      setScore(sc);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const dims = score?.dimensions ?? [];
 
@@ -204,53 +185,6 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                   <div className="w-10 shrink-0 text-right font-mono text-[11px] text-dim">w{d.weight}</div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* 提交 Evidence */}
-          <div className="mt-6 rounded-xl border border-edge bg-surface p-6">
-            <h3 className="font-display text-sm font-600 text-bright mb-4">提交 Evidence（测试打分）</h3>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={evDimension}
-                onChange={(e) => setEvDimension(e.target.value)}
-                className="rounded-md bg-abyss border border-edge px-3 py-2 text-sm text-bright focus:outline-none focus:border-accent/50"
-              >
-                {DIMENSIONS.map((d) => (
-                  <option key={d} value={d}>
-                    {DIMENSION_LABELS[d]}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={evSource}
-                onChange={(e) => setEvSource(e.target.value)}
-                className="rounded-md bg-abyss border border-edge px-3 py-2 text-sm text-bright focus:outline-none focus:border-accent/50"
-              >
-                {SOURCES.map((s) => (
-                  <option key={s} value={s}>
-                    {SOURCE_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={evResult}
-                onChange={(e) => setEvResult(e.target.value)}
-                className="rounded-md bg-abyss border border-edge px-3 py-2 text-sm text-bright focus:outline-none focus:border-accent/50"
-              >
-                {RESULTS.map((r) => (
-                  <option key={r} value={r}>
-                    {RESULT_LABELS[r]}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={submitEvidence}
-                disabled={busy}
-                className="rounded-md bg-info/90 text-abyss font-semibold text-sm px-4 py-2 hover:bg-info disabled:opacity-40"
-              >
-                提交并重算
-              </button>
             </div>
           </div>
 

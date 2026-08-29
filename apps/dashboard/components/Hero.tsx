@@ -68,7 +68,7 @@ export function Hero({
               onClick={onTestAgent}
               className="inline-flex items-center gap-2 rounded-lg border border-accent/50 bg-accent/10 px-5 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent/20"
             >
-              🧪 送你的 Agent 上榜
+              🧪 把你的 Agent 送进考场
             </button>
           </div>
         </div>
