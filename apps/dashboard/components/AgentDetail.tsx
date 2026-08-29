@@ -289,6 +289,26 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
               </ol>
             )}
           </div>
+
+          {/* README Badge（增长飞轮） */}
+          <div className="mt-6 rounded-xl border border-edge bg-surface p-5">
+            <div className="text-xs font-mono uppercase tracking-wider text-dim mb-3">README Badge</div>
+            <div className="flex items-center gap-3 mb-3">
+              <img
+                src={`/credit/api/badge/${agent.id}.svg`}
+                alt="ACL badge"
+                className="h-7"
+                onError={(ev) => {
+                  (ev.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <span className="text-[11px] font-mono text-dim">← 实时生成，分数更新自动同步</span>
+            </div>
+            <div className="overflow-x-auto rounded-lg bg-abyss border border-edge p-3 font-mono text-xs text-accent/90">
+              {[`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`]}
+            </div>
+            <p className="mt-2 text-[11px] font-mono text-dim">复制到 README，把你的信用分挂到全世界面前。</p>
+          </div>
         </>
       )}
     </main>

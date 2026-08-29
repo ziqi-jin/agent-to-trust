@@ -94,14 +94,22 @@ export function Leaderboard({
       )}
 
       <p className="mt-6 text-[11px] font-mono text-dim/70">
-        ⚠️ 数据分两类：<span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑，得分上限仍受证据量约束）与
-        <span className="text-dim">仿真</span>（source=simulation，seed=42 确定性生成）。仿真数据绝不伪装成真实交易。
+        ⚠️ 数据分三类：<span className="text-accent">SDK 考场</span>（source=real-benchmark，外部开发者 npx 接入，Ed25519 签名上报）、
+        <span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑）与
+        <span className="text-dim">仿真</span>（source=simulation，seed=42 确定性生成）。仿真数据绝不伪装成真实数据；SDK 数据经签名验证后才可升级 verified。
       </p>
     </section>
   );
 }
 
 function SourceBadge({ source }: { source: LeaderboardEntry['source'] }) {
+  if (source === 'real-benchmark') {
+    return (
+      <span className="shrink-0 rounded border border-accent/60 bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-accent">
+        SDK 考场
+      </span>
+    );
+  }
   if (source === 'benchmark') {
     return (
       <span className="shrink-0 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-accent">
@@ -147,6 +155,11 @@ function Row({
           <GradeBadge score={e.score} size="sm" />
           <span className="truncate font-mono text-sm text-bright">{e.name}</span>
           <SourceBadge source={e.source} />
+          {e.verificationLevel === 'verified' && (
+            <span className="hidden shrink-0 rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-400 sm:inline">
+              ✦ verified
+            </span>
+          )}
           <span className="hidden shrink-0 text-[10px] font-mono uppercase tracking-wider text-dim sm:inline">
             {(e.capabilities ?? []).length} caps
           </span>

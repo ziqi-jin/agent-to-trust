@@ -91,9 +91,11 @@ export async function simulationRoutes(app: FastifyInstance) {
         const sc = latest.get(a.id);
         const source = a.name.startsWith('sim-agent-')
           ? 'simulation'
-          : a.name.startsWith('real-')
-            ? 'benchmark'
-            : 'manual';
+          : a.id.startsWith('ext-') || a.pubkey
+            ? 'real-benchmark'
+            : a.name.startsWith('real-')
+              ? 'benchmark'
+              : 'manual';
         return {
           agentId: a.id,
           name: a.name,

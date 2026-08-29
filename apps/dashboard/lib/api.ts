@@ -65,7 +65,7 @@ export interface LeaderboardEntry {
   status: string;
   verificationLevel: string;
   capabilities: string[];
-  source: 'simulation' | 'benchmark' | 'manual';
+  source: 'simulation' | 'benchmark' | 'manual' | 'real-benchmark';
   score: number | null;
   adjustedScore: number | null;
   confidence: number;

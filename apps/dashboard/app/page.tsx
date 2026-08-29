@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, GITHUB_URL, type Evidence, type LeaderboardEntry, type StatsResponse } from '@/lib/api';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
+import { Quickstart } from '@/components/Quickstart';
 import { Leaderboard } from '@/components/Leaderboard';
 import { Ticker } from '@/components/Ticker';
 import { AgentDetail } from '@/components/AgentDetail';
@@ -108,6 +109,7 @@ export default function Page() {
         <>
           <Hero stats={stats} onTestAgent={scrollToLeaderboard} />
           <HowItWorks />
+          <Quickstart />
           <Leaderboard
             entries={entries}
             onSelect={setSelectedId}
