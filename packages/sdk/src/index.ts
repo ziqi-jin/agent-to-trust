@@ -8,6 +8,7 @@ export * from './config.js';
 export * from './cli.js';
 export * from './agent/types.js';
 export * from './agent/endpoint.js';
+export * from './agent/cmd.js';
 export * from './agent/model.js';
 export * from './benchmarks/loader.js';
 export * from './counterpart/types.js';

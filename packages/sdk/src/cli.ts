@@ -12,6 +12,7 @@ import { parseArgs } from 'node:util';
 import { hostname } from 'node:os';
 import { EndpointAgent } from './agent/endpoint.js';
 import { ModelAgent } from './agent/model.js';
+import { CmdAgent } from './agent/cmd.js';
 import { loadConfig } from './config.js';
 import { BENCHMARK_VERSION, loadSuite } from './benchmarks/loader.js';
 import { runSuite } from './runner.js';
@@ -26,6 +27,10 @@ export interface TestOptions {
   apiKey?: string;
   persona?: string;
   apiBase?: string;
+  /** CLI agent 模式：命令模板（prompt 追加末尾或替换 {prompt} 占位符）。 */
+  cmd?: string;
+  /** CLI agent stdin 模式：prompt 写入子进程标准输入。 */
+  cmdStdin?: boolean;
   /** 密钥目录（多身份/测试用，默认 ~/.acl）。 */
   dir?: string;
 }
@@ -40,6 +45,10 @@ export interface JoinCliOptions {
   apiKey?: string;
   persona?: string;
   apiBase?: string;
+  /** CLI agent 模式：命令模板。 */
+  cmd?: string;
+  /** CLI agent stdin 模式。 */
+  cmdStdin?: boolean;
   maxRounds?: number;
   /** 密钥目录（多身份/测试用，默认 ~/.acl）。 */
   dir?: string;
@@ -56,6 +65,11 @@ const USAGE = `@acl/sdk — Agent Credit Lab 本地考场
 用法:
   acl test --url <endpoint> [--name <agent名>]
       对一个 HTTP endpoint 跑评测（OpenAI chat 格式，agent 零改动）
+
+  acl test --cmd "<命令模板>" [--cmd-stdin] [--name <agent名>]
+      对本地 CLI agent 跑评测：prompt 经 shell 转义拼在命令后，
+      模板含 {prompt} 则原位替换；--cmd-stdin 改为写入标准输入
+      例：acl test --cmd "aider --message" / acl test --cmd "goose run" --cmd-stdin
 
   acl test --model <model> --base-url <url> --api-key <key> [--persona <提示>]
       直接对模型配置跑评测（OpenAI 兼容协议通吃 DeepSeek/智谱/Kimi/OpenAI）
@@ -92,6 +106,8 @@ export function parseCli(argv: string[]): ParsedCommand {
         'api-key': { type: 'string' },
         persona: { type: 'string' },
         'api-base': { type: 'string' },
+        cmd: { type: 'string' },
+        'cmd-stdin': { type: 'boolean' },
         dir: { type: 'string' },
       },
     });
@@ -105,6 +121,8 @@ export function parseCli(argv: string[]): ParsedCommand {
         apiKey: values['api-key'],
         persona: values.persona,
         apiBase: values['api-base'] ?? process.env.ACL_API_URL,
+        cmd: values.cmd,
+        cmdStdin: values['cmd-stdin'],
         dir: values.dir,
       },
     };
@@ -122,6 +140,8 @@ export function parseCli(argv: string[]): ParsedCommand {
         persona: { type: 'string' },
         'api-base': { type: 'string' },
         'max-rounds': { type: 'string' },
+        cmd: { type: 'string' },
+        'cmd-stdin': { type: 'boolean' },
         dir: { type: 'string' },
       },
     });
@@ -137,6 +157,8 @@ export function parseCli(argv: string[]): ParsedCommand {
         persona: values.persona,
         apiBase: values['api-base'] ?? process.env.ACL_API_URL,
         maxRounds: values['max-rounds'] ? Number(values['max-rounds']) : undefined,
+        cmd: values.cmd,
+        cmdStdin: values['cmd-stdin'],
         dir: values.dir,
       },
     };
@@ -147,8 +169,8 @@ export function parseCli(argv: string[]): ParsedCommand {
 
 /** 校验 test 参数。返回错误信息，或 null 表示通过。 */
 export function validateTestOptions(t: TestOptions): string | null {
-  if (!t.url && !t.model) {
-    return '缺少被测对象：--url <endpoint> 或 --model <model> --base-url <url> --api-key <key>';
+  if (!t.url && !t.model && !t.cmd) {
+    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
   }
   if (t.model && (!t.baseUrl || !t.apiKey)) {
     return '--model 模式需要同时提供 --base-url 和 --api-key';
@@ -158,8 +180,8 @@ export function validateTestOptions(t: TestOptions): string | null {
 
 /** 校验 join 参数。返回错误信息，或 null 表示通过。 */
 export function validateJoinOptions(j: JoinCliOptions): string | null {
-  if (!j.url && !j.model) {
-    return '缺少被测对象：--url <endpoint> 或 --model <model> --base-url <url> --api-key <key>';
+  if (!j.url && !j.model && !j.cmd) {
+    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
   }
   if (j.model && (!j.baseUrl || !j.apiKey)) {
     return '--model 模式需要同时提供 --base-url 和 --api-key';
@@ -184,14 +206,17 @@ async function main(): Promise<void> {
       const name = ((t.name ?? config.agentName ?? hostname().replace(/\..*$/, '')) || 'my-agent').slice(0, 60);
       const agent = t.url
         ? new EndpointAgent(t.url)
-        : new ModelAgent({
-            model: t.model!,
-            baseUrl: t.baseUrl!,
-            apiKey: t.apiKey!,
-            persona: t.persona,
-          });
+        : t.cmd
+          ? new CmdAgent({ cmd: t.cmd, stdin: t.cmdStdin })
+          : new ModelAgent({
+              model: t.model!,
+              baseUrl: t.baseUrl!,
+              apiKey: t.apiKey!,
+              persona: t.persona,
+            });
 
-      console.log(`[acl] 考场 v${BENCHMARK_VERSION} · ${t.url ? `endpoint ${t.url}` : `model ${t.model}`}`);
+      const target = t.url ? `endpoint ${t.url}` : t.cmd ? `cmd ${t.cmd}` : `model ${t.model}`;
+      console.log(`[acl] 考场 v${BENCHMARK_VERSION} · ${target}`);
       console.log('[acl] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
 
       const suite = await runSuite(agent);
@@ -212,7 +237,7 @@ async function main(): Promise<void> {
         const res = await uploadResults(suite, {
           meta: {
             name,
-            endpoint: t.url,
+            endpoint: t.url ?? (t.cmd ? `cmd:${t.cmd.slice(0, 120)}` : undefined),
             modelMeta: t.model
               ? { model: t.model, baseUrl: t.baseUrl!, persona: t.persona }
               : undefined,
@@ -242,16 +267,19 @@ async function main(): Promise<void> {
       const name = ((j.name ?? config.agentName ?? hostname().replace(/\..*$/, '')) || 'my-agent').slice(0, 60);
       const agent = j.url
         ? new EndpointAgent(j.url)
-        : new ModelAgent({
-            model: j.model!,
-            baseUrl: j.baseUrl!,
-            apiKey: j.apiKey!,
-            persona: j.persona,
-          });
+        : j.cmd
+          ? new CmdAgent({ cmd: j.cmd, stdin: j.cmdStdin })
+          : new ModelAgent({
+              model: j.model!,
+              baseUrl: j.baseUrl!,
+              apiKey: j.apiKey!,
+              persona: j.persona,
+            });
       const apiBase = j.apiBase ?? config.apiBase ?? 'https://reeftavern.cc/credit/api';
 
+      const target = j.url ? `endpoint ${j.url}` : j.cmd ? `cmd ${j.cmd}` : `model ${j.model}`;
       console.log(
-        `[acl] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${j.url ? `endpoint ${j.url}` : `model ${j.model}`}`,
+        `[acl] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${target}`,
       );
       try {
         const result = await runJoinLoop({
