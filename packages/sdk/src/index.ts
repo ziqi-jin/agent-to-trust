@@ -13,3 +13,5 @@ export * from './benchmarks/loader.js';
 export * from './counterpart/types.js';
 export * from './counterpart/scripted.js';
 export * from './runner.js';
+export * from './keys.js';
+export * from './upload.js';
