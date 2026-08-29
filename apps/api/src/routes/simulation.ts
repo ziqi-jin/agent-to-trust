@@ -93,6 +93,12 @@ export async function simulationRoutes(app: FastifyInstance) {
       where: eq(evidence.source, 'arena'),
     });
     const arenaAgents = new Set(arenaEvidence.map((e) => e.agentId));
+    // 行为榜资格红线：必须有真实考场证据（benchmark）——
+    // 防止纯行为证据把 score 推高绕过考场门槛（“上榜必须真跑考场”）
+    const benchmarkEvidence = await app.db.query.evidence.findMany({
+      where: eq(evidence.source, 'real-benchmark'),
+    });
+    const benchmarkAgents = new Set(benchmarkEvidence.map((e) => e.agentId));
 
     const rows = allAgents
       .map((a) => {
@@ -131,12 +137,13 @@ export async function simulationRoutes(app: FastifyInstance) {
           isSimulated: source === 'simulation',
           behaviorScore,
           inArena: arenaAgents.has(a.id),
+          hasBenchmark: benchmarkAgents.has(a.id),
         };
       });
 
     const filtered =
       board === 'behavior'
-        ? rows.filter((r) => r.inArena && (r.score ?? 0) >= 600)
+        ? rows.filter((r) => r.inArena && r.hasBenchmark && (r.score ?? 0) >= 600)
         : rows.filter((r) => r.source !== 'simulation');
 
     return filtered
