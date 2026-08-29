@@ -77,6 +77,34 @@ CREATE TABLE IF NOT EXISTS ingest_nonces (
   nonce text PRIMARY KEY,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Arena（Phase 2 /arena：会话 + 事件流）
+CREATE TABLE IF NOT EXISTS arena_sessions (
+  id text PRIMARY KEY,
+  scenario text NOT NULL,
+  status text NOT NULL DEFAULT 'open',
+  buyer_agent_id text,
+  seller_agent_id text,
+  task_spec jsonb,
+  budget real,
+  deadline timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS arena_events (
+  id text PRIMARY KEY,
+  session_id text NOT NULL REFERENCES arena_sessions(id),
+  seq integer NOT NULL,
+  type text NOT NULL,
+  from_agent text NOT NULL,
+  payload jsonb,
+  sig text NOT NULL,
+  nonce text NOT NULL,
+  ts timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_arena_events_session_seq ON arena_events(session_id, seq);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_arena_events_nonce ON arena_events(nonce);
 `;
 
 export async function migrate(url: string): Promise<void> {

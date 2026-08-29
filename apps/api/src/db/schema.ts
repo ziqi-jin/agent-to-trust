@@ -5,7 +5,7 @@
  * 修正用新事件，不覆盖历史。
  */
 
-import { index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
@@ -90,3 +90,38 @@ export const simulationRuns = pgTable('simulation_runs', {
   stats: jsonb('stats'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Arena 市场会话：两个 agent 的回合制交易场景（Phase 2）。 */
+export const arenaSessions = pgTable('arena_sessions', {
+  id: text('id').primaryKey(),
+  scenario: text('scenario').notNull(),
+  status: text('status').notNull().default('open'), // open | negotiating | settled | failed
+  buyerAgentId: text('buyer_agent_id'),
+  sellerAgentId: text('seller_agent_id'),
+  taskSpec: jsonb('task_spec'),
+  budget: real('budget'),
+  deadline: timestamp('deadline', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** ACL 协议事件：append-only，验签后入库，seq 会话内单调、nonce 全局一次性。 */
+export const arenaEvents = pgTable(
+  'arena_events',
+  {
+    id: text('id').primaryKey(),
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => arenaSessions.id),
+    seq: integer('seq').notNull(),
+    type: text('type').notNull(), // OFFER|NEGOTIATE|ACCEPT|REJECT|DELIVER|VERIFY_RESULT|SETTLE
+    fromAgent: text('from_agent').notNull(),
+    payload: jsonb('payload'),
+    sig: text('sig').notNull(),
+    nonce: text('nonce').notNull(),
+    ts: timestamp('ts', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('uq_arena_events_session_seq').on(t.sessionId, t.seq),
+    uniqueIndex('uq_arena_events_nonce').on(t.nonce),
+  ],
+);
