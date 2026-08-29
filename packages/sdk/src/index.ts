@@ -16,3 +16,4 @@ export * from './counterpart/scripted.js';
 export * from './runner.js';
 export * from './keys.js';
 export * from './upload.js';
+export * from './arena.js';

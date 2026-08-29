@@ -16,6 +16,7 @@ import { loadConfig } from './config.js';
 import { BENCHMARK_VERSION, loadSuite } from './benchmarks/loader.js';
 import { runSuite } from './runner.js';
 import { uploadResults } from './upload.js';
+import { runJoinLoop } from './arena.js';
 
 export interface TestOptions {
   name?: string;
@@ -27,9 +28,24 @@ export interface TestOptions {
   apiBase?: string;
 }
 
+export interface JoinCliOptions {
+  session: string;
+  name?: string;
+  url?: string;
+  model?: string;
+  baseUrl?: string;
+  apiKey?: string;
+  persona?: string;
+  apiBase?: string;
+  maxRounds?: number;
+  /** 密钥目录（多身份/测试用，默认 ~/.acl）。 */
+  dir?: string;
+}
+
 export interface ParsedCommand {
   command: 'test' | 'join' | 'init' | 'help';
   test?: TestOptions;
+  join?: JoinCliOptions;
 }
 
 const USAGE = `@acl/sdk — Agent Credit Lab 本地考场
@@ -46,7 +62,9 @@ const USAGE = `@acl/sdk — Agent Credit Lab 本地考场
   --api-base <url>    平台 API 地址（默认 env ACL_API_URL）
 
 其他命令:
-  acl join    进入 Arena 模拟考场（Phase 2）
+  acl join --session <会话id> --url <endpoint> [--name <agent名>]
+      加入 Arena 市场会话（buyer/seller 回合制交易，跑到结算为止）
+    [--max-rounds <n>]  最大回合数（默认 20）
   acl init    埋点初始化（后续版本）
   acl help    显示本帮助
 `;
@@ -82,7 +100,38 @@ export function parseCli(argv: string[]): ParsedCommand {
       },
     };
   }
-  if (command === 'join') return { command: 'join' };
+  if (command === 'join') {
+    const { values } = parseArgs({
+      args: rest,
+      options: {
+        session: { type: 'string' },
+        name: { type: 'string' },
+        url: { type: 'string' },
+        model: { type: 'string' },
+        'base-url': { type: 'string' },
+        'api-key': { type: 'string' },
+        persona: { type: 'string' },
+        'api-base': { type: 'string' },
+        'max-rounds': { type: 'string' },
+        dir: { type: 'string' },
+      },
+    });
+    return {
+      command: 'join',
+      join: {
+        session: values.session ?? '',
+        name: values.name,
+        url: values.url,
+        model: values.model,
+        baseUrl: values['base-url'],
+        apiKey: values['api-key'],
+        persona: values.persona,
+        apiBase: values['api-base'] ?? process.env.ACL_API_URL,
+        maxRounds: values['max-rounds'] ? Number(values['max-rounds']) : undefined,
+        dir: values.dir,
+      },
+    };
+  }
   if (command === 'init') return { command: 'init' };
   throw new Error(`未知命令: ${command}（可用: test | join | init | help）`);
 }
@@ -93,6 +142,18 @@ export function validateTestOptions(t: TestOptions): string | null {
     return '缺少被测对象：--url <endpoint> 或 --model <model> --base-url <url> --api-key <key>';
   }
   if (t.model && (!t.baseUrl || !t.apiKey)) {
+    return '--model 模式需要同时提供 --base-url 和 --api-key';
+  }
+  return null;
+}
+
+/** 校验 join 参数。返回错误信息，或 null 表示通过。 */
+export function validateJoinOptions(j: JoinCliOptions): string | null {
+  if (!j.session) return '缺少 --session <会话id>（向会话创建方索要 as-xxxx）';
+  if (!j.url && !j.model) {
+    return '缺少被测对象：--url <endpoint> 或 --model <model> --base-url <url> --api-key <key>';
+  }
+  if (j.model && (!j.baseUrl || !j.apiKey)) {
     return '--model 模式需要同时提供 --base-url 和 --api-key';
   }
   return null;
@@ -161,9 +222,48 @@ async function main(): Promise<void> {
       }
       return;
     }
-    case 'join':
-      console.error('[acl] Arena 会话桥将在 Phase 2 提供');
-      process.exit(2);
+    case 'join': {
+      const j = parsed.join!;
+      const err = validateJoinOptions(j);
+      if (err) {
+        console.error(`[acl] ${err}`);
+        process.exit(1);
+      }
+      const config = loadConfig();
+      const name = ((j.name ?? config.agentName ?? hostname().replace(/\..*$/, '')) || 'my-agent').slice(0, 60);
+      const agent = j.url
+        ? new EndpointAgent(j.url)
+        : new ModelAgent({
+            model: j.model!,
+            baseUrl: j.baseUrl!,
+            apiKey: j.apiKey!,
+            persona: j.persona,
+          });
+      const apiBase = j.apiBase ?? config.apiBase ?? 'https://reeftavern.cc/credit/api';
+
+      console.log(`[acl] Arena 会话 ${j.session} · ${j.url ? `endpoint ${j.url}` : `model ${j.model}`}`);
+      try {
+        const result = await runJoinLoop({
+          agent,
+          apiBase,
+          sessionId: j.session,
+          name,
+          maxRounds: j.maxRounds,
+          dir: j.dir,
+          log: console.log,
+        });
+        console.log(
+          `[acl] ✓ 结束：${result.stoppedReason} · 状态=${result.finalStatus} · 角色=${result.role} · 发出 ${result.eventsSent} 个事件（${result.rounds} 回合）`,
+        );
+        if (result.finalStatus === 'settled') {
+          console.log('[acl] 会话已结算，行为证据已计入双方信用档案');
+        }
+      } catch (e) {
+        console.error(`[acl] Arena 失败：${(e as Error).message}`);
+        process.exit(1);
+      }
+      return;
+    }
     case 'init':
       console.error('[acl] 埋点初始化将在后续版本提供');
       process.exit(2);
