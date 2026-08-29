@@ -26,6 +26,8 @@ export interface TestOptions {
   apiKey?: string;
   persona?: string;
   apiBase?: string;
+  /** 密钥目录（多身份/测试用，默认 ~/.acl）。 */
+  dir?: string;
 }
 
 export interface JoinCliOptions {
@@ -85,6 +87,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         'api-key': { type: 'string' },
         persona: { type: 'string' },
         'api-base': { type: 'string' },
+        dir: { type: 'string' },
       },
     });
     return {
@@ -97,6 +100,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         apiKey: values['api-key'],
         persona: values.persona,
         apiBase: values['api-base'] ?? process.env.ACL_API_URL,
+        dir: values.dir,
       },
     };
   }
@@ -210,6 +214,7 @@ async function main(): Promise<void> {
               : undefined,
           },
           apiBase,
+          dir: t.dir,
         });
         console.log(`[acl] ✓ 上榜成功 agentId=${res.agentId} score=${res.score}`);
         console.log(
