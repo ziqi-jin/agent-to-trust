@@ -13,7 +13,8 @@ import { hostname } from 'node:os';
 import { EndpointAgent } from './agent/endpoint.js';
 import { ModelAgent } from './agent/model.js';
 import { loadConfig } from './config.js';
-import { BENCHMARK_VERSION, runSuite } from './runner.js';
+import { BENCHMARK_VERSION, loadSuite } from './benchmarks/loader.js';
+import { runSuite } from './runner.js';
 import { uploadResults } from './upload.js';
 
 export interface TestOptions {
@@ -111,7 +112,7 @@ async function main(): Promise<void> {
       }
       const t = parsed.test!;
       const config = loadConfig();
-      const name = (t.name ?? config.agentName ?? hostname().replace(/\..*$/, '') || 'my-agent').slice(0, 60);
+      const name = ((t.name ?? config.agentName ?? hostname().replace(/\..*$/, '')) || 'my-agent').slice(0, 60);
       const agent = t.url
         ? new EndpointAgent(t.url)
         : new ModelAgent({

@@ -8,6 +8,9 @@ export interface IngestResponse {
   verified: boolean;
   /** 同钥重复上报（更新分数）。 */
   reuse?: boolean;
+  /** 服务端重算后的信用分。 */
+  score?: number | null;
+  verificationLevel?: string;
 }
 
 export interface UploadOptions {
