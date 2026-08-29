@@ -59,3 +59,4 @@ docs/adr/
 docs/reference/
 docs/ISSUES.md
 docs/TESTING.md
+.github/workflows/
