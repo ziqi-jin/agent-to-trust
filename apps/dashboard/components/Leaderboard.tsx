@@ -19,20 +19,17 @@ function scoreBarColor(score: number | null) {
 export function Leaderboard({
   entries,
   onSelect,
-  newName,
-  setNewName,
-  onCreate,
-  busy,
+  board,
+  setBoard,
 }: {
   entries: LeaderboardEntry[];
   onSelect: (id: string) => void;
-  newName: string;
-  setNewName: (s: string) => void;
-  onCreate: () => void;
-  busy: boolean;
+  board: 'capability' | 'behavior';
+  setBoard: (b: 'capability' | 'behavior') => void;
 }) {
   const top10 = entries.slice(0, 10);
   const rest = entries.slice(10);
+  const isBehavior = board === 'behavior';
 
   return (
     <section id="leaderboard" className="mx-auto max-w-6xl px-6 py-16 md:py-20">
@@ -42,25 +39,33 @@ export function Leaderboard({
             🏆 榜单 <span className="text-dim">/ Leaderboard</span>
           </h2>
           <p className="mt-2 text-sm text-dim">
-            每个分数都可追溯到 evidence，点击任意 Agent 查看完整信用报告。
+            {isBehavior
+              ? '行为榜：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。'
+              : '每个分数都可追溯到 evidence，点击任意 Agent 查看完整信用报告。上榜唯一方式：真跑考场。'}
           </p>
         </div>
 
-        {/* 送你的 Agent 上榜 */}
-        <div className="flex w-full max-w-sm gap-2">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onCreate()}
-            placeholder="给你的 Agent 起个名字…"
-            className="flex-1 rounded-lg bg-abyss border border-edge px-3 py-2.5 text-sm text-bright placeholder:text-dim focus:outline-none focus:border-accent/50"
-          />
+        {/* 双榜切换 */}
+        <div className="flex gap-1 self-start rounded-lg border border-edge bg-surface p-1">
           <button
-            onClick={onCreate}
-            disabled={busy || !newName.trim()}
-            className="rounded-lg bg-accent/90 px-4 py-2.5 text-sm font-semibold text-abyss hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+            onClick={() => setBoard('capability')}
+            className={`rounded-md px-4 py-2 text-sm font-mono transition ${
+              !isBehavior
+                ? 'bg-accent/20 font-bold text-accent'
+                : 'text-dim hover:text-bright'
+            }`}
           >
-            上榜
+            考场榜
+          </button>
+          <button
+            onClick={() => setBoard('behavior')}
+            className={`rounded-md px-4 py-2 text-sm font-mono transition ${
+              isBehavior
+                ? 'bg-accent/20 font-bold text-accent'
+                : 'text-dim hover:text-bright'
+            }`}
+          >
+            行为榜
           </button>
         </div>
       </div>
@@ -69,34 +74,54 @@ export function Leaderboard({
       <div className="hidden grid-cols-[3rem_1fr_8rem_7rem_6rem] gap-4 border-b border-edge px-4 pb-2 text-[11px] font-mono uppercase tracking-wider text-dim md:grid">
         <span>排名</span>
         <span>Agent</span>
-        <span className="text-right">信用分</span>
+        <span className="text-right">{isBehavior ? '行为分' : '信用分'}</span>
         <span className="text-right">置信度</span>
         <span className="text-right">证据</span>
       </div>
 
-      <ol className="divide-y divide-edge">
-        {top10.map((e) => (
-          <Row key={e.agentId} e={e} onSelect={onSelect} showRing={e.rank <= 3} />
-        ))}
-      </ol>
-
-      {rest.length > 0 && (
-        <details className="mt-2">
-          <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-mono text-dim hover:text-bright">
-            展开其余 {rest.length} 个 Agent…
-          </summary>
+      {entries.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-edge px-6 py-14 text-center">
+          <p className="text-sm text-dim">
+            {isBehavior
+              ? '还没有 Agent 进入行为场。考场信用分 ≥600 后即可加入 Arena（市场行为评测开发中）。'
+              : '还没有真实评测数据。跑一次 npx @acl/sdk test 即可上榜。'}
+          </p>
+        </div>
+      ) : (
+        <>
           <ol className="divide-y divide-edge">
-            {rest.map((e) => (
-              <Row key={e.agentId} e={e} onSelect={onSelect} showRing={false} />
+            {top10.map((e) => (
+              <Row key={e.agentId} e={e} onSelect={onSelect} showRing={e.rank <= 3} board={board} />
             ))}
           </ol>
-        </details>
+
+          {rest.length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-mono text-dim hover:text-bright">
+                展开其余 {rest.length} 个 Agent…
+              </summary>
+              <ol className="divide-y divide-edge">
+                {rest.map((e) => (
+                  <Row key={e.agentId} e={e} onSelect={onSelect} showRing={false} board={board} />
+                ))}
+              </ol>
+            </details>
+          )}
+        </>
       )}
+
+      {/* 上榜方式（替代旧的一键注册）*/}
+      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-surface px-4 py-3">
+        <span className="text-xs text-dim">上榜 / 更新分数（同钥即同身份，重跑即更新）：</span>
+        <code className="rounded bg-abyss px-2.5 py-1.5 text-xs font-mono text-accent">
+          npx @acl/sdk test --url http://localhost:3000/agent
+        </code>
+      </div>
 
       <p className="mt-6 text-[11px] font-mono text-dim/70">
         ⚠️ 数据分三类：<span className="text-accent">SDK 考场</span>（source=real-benchmark，外部开发者 npx 接入，Ed25519 签名上报）、
-        <span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑）与
-        <span className="text-dim">仿真</span>（source=simulation，seed=42 确定性生成）。仿真数据绝不伪装成真实数据；SDK 数据经签名验证后才可升级 verified。
+        <span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑）。
+        仿真数据仅用于引擎自测，不在榜单展示；SDK 数据经签名验证后才可升级 verified。
       </p>
     </section>
   );
@@ -131,13 +156,16 @@ function Row({
   e,
   onSelect,
   showRing,
+  board,
 }: {
   e: LeaderboardEntry;
   onSelect: (id: string) => void;
   showRing: boolean;
+  board: 'capability' | 'behavior';
 }) {
-  const barColor = scoreBarColor(e.score);
-  const barWidth = e.score != null ? `${Math.max(2, Math.round((e.score / 1000) * 100))}%` : '0%';
+  const val = board === 'behavior' ? e.behaviorScore : e.score;
+  const barColor = scoreBarColor(val);
+  const barWidth = val != null ? `${Math.max(2, Math.round((val / 1000) * 100))}%` : '0%';
 
   return (
     <li>
@@ -152,7 +180,7 @@ function Row({
 
         {/* Agent */}
         <span className="flex items-center gap-3 min-w-0">
-          <GradeBadge score={e.score} size="sm" />
+          <GradeBadge score={val} size="sm" />
           <span className="truncate font-mono text-sm text-bright">{e.name}</span>
           <SourceBadge source={e.source} />
           {e.verificationLevel === 'verified' && (
@@ -165,10 +193,10 @@ function Row({
           </span>
         </span>
 
-        {/* 信用分 */}
+        {/* 分数（考场榜=信用分 / 行为榜=行为分）*/}
         <span className="text-right">
           <span className="font-mono text-lg font-700 text-bright tabular-nums">
-            {e.score ?? <span className="text-dim">—</span>}
+            {val ?? <span className="text-dim">—</span>}
           </span>
           <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-abyss">
             <span className="block h-full rounded-full" style={{ width: barWidth, background: barColor }} />

@@ -72,6 +72,10 @@ export interface LeaderboardEntry {
   coverage: number;
   evidenceCount: number;
   isSimulated: boolean;
+  /** 行为分（非能力维度加权和，1000 制）。 */
+  behaviorScore: number | null;
+  /** 是否已进入 Arena（有行为证据）。 */
+  inArena: boolean;
   rank: number;
 }
 
@@ -169,7 +173,8 @@ export const api = {
   getScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`),
 
   // 榜单 / 统计 / 证据流
-  leaderboard: () => http<LeaderboardEntry[]>('/leaderboard'),
+  leaderboard: (board: 'capability' | 'behavior' = 'capability') =>
+    http<LeaderboardEntry[]>(`/leaderboard?board=${board}`),
   stats: () => http<StatsResponse>('/stats'),
   events: () => http<Evidence[]>('/events'),
   runSimulation: (cfg?: Record<string, unknown>) =>

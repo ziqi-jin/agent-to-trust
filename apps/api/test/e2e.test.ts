@@ -37,24 +37,24 @@ describe('[正确性] P0-10 Vertical Slice 全链路', () => {
     const runBody = run.json();
     expect(runBody.seeded).toBe(true);
 
-    // 2. 榜单有分数
+    // 2. 考场榜不再展示仿真数据（双榜改造：simulation 只作引擎自测）
     const lb = await app.inject({ method: 'GET', url: '/leaderboard' });
     expect(lb.statusCode).toBe(200);
     const rows = lb.json();
-    expect(rows).toHaveLength(10);
-    const scored = rows.filter((r: { score: number | null }) => r.score !== null);
-    expect(scored.length).toBeGreaterThan(0);
-    // 每个仿真 agent 都显式标记 simulated
-    for (const r of rows) expect(r.isSimulated).toBe(true);
+    for (const r of rows) expect(r.source).not.toBe('simulation');
 
-    // 3. 榜单分数与 agent 详情一致，且可解释（evidenceRefs 非空）
+    // 2b. 仿真数据仍在库中可溯（append-only，证据流可查）
+    const ev0 = await app.inject({ method: 'GET', url: '/events' });
+    expect(ev0.json().length).toBeGreaterThan(0);
+    const simAgentId = ev0.json()[0].agentId as string;
+
+    // 3. 详情分数与证据可解释（evidenceRefs 非空）
     const detail = await app.inject({
       method: 'GET',
-      url: `/agents/${scored[0].agentId}/score`,
+      url: `/agents/${simAgentId}/score`,
     });
     expect(detail.statusCode).toBe(200);
     const detailBody = detail.json();
-    expect(detailBody.score).toBe(scored[0].score);
     expect(detailBody.evidenceRefs.length).toBeGreaterThan(0);
 
     // 4. 统计数字与落库数据一致
@@ -75,11 +75,11 @@ describe('[正确性] P0-10 Vertical Slice 全链路', () => {
 describe('[确定性] P0-10 可稳定复算', () => {
   it('同 seed 落库后，重复查询分数结果一致', async () => {
     await app.inject({ method: 'POST', url: '/simulation/run', payload: SMALL_CONFIG });
-    const lb = await app.inject({ method: 'GET', url: '/leaderboard' });
-    const scored = lb.json().filter((r: { score: number | null }) => r.score !== null);
+    const ev = await app.inject({ method: 'GET', url: '/events' });
+    const agentId = ev.json()[0].agentId as string;
 
-    const a = await app.inject({ method: 'GET', url: `/agents/${scored[0].agentId}/score` });
-    const b = await app.inject({ method: 'GET', url: `/agents/${scored[0].agentId}/score` });
+    const a = await app.inject({ method: 'GET', url: `/agents/${agentId}/score` });
+    const b = await app.inject({ method: 'GET', url: `/agents/${agentId}/score` });
     expect(b.json()).toEqual(a.json());
   });
 });

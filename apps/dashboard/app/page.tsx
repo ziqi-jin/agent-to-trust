@@ -14,20 +14,19 @@ export default function Page() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [events, setEvents] = useState<Evidence[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [newName, setNewName] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [board, setBoard] = useState<'capability' | 'behavior'>('capability');
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [s, lb, ev] = await Promise.all([api.stats(), api.leaderboard(), api.events()]);
+      const [s, lb, ev] = await Promise.all([api.stats(), api.leaderboard(board), api.events()]);
       setStats(s);
       setEntries(lb);
       setEvents(ev);
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [board]);
 
   useEffect(() => {
     refresh();
@@ -38,22 +37,6 @@ export default function Page() {
     for (const e of entries) m[e.agentId] = e.name;
     return m;
   }, [entries]);
-
-  const createAgent = async () => {
-    if (!newName.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const agent = await api.createAgent(newName.trim());
-      setNewName('');
-      await refresh();
-      setSelectedId(agent.id);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const scrollToLeaderboard = () => {
     document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
@@ -113,10 +96,8 @@ export default function Page() {
           <Leaderboard
             entries={entries}
             onSelect={setSelectedId}
-            newName={newName}
-            setNewName={setNewName}
-            onCreate={createAgent}
-            busy={busy}
+            board={board}
+            setBoard={setBoard}
           />
           <Ticker events={events} nameMap={nameMap} />
         </>

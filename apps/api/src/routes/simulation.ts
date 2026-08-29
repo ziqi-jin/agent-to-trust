@@ -5,7 +5,7 @@
  * 让前端榜单有真实（但 source=simulation，绝不伪装真实交易）的数据可展示。
  */
 import { randomUUID } from 'node:crypto';
-import { like } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
@@ -78,15 +78,23 @@ export async function simulationRoutes(app: FastifyInstance) {
   });
 
   // GET /leaderboard — 全量排名（含分数、置信度、证据数）
-  app.get('/leaderboard', async () => {
+  // ?board=capability（默认）考场榜：只收真实数据（simulation 隐藏，append-only 不删）
+  // ?board=behavior  行为榜：资格 = 考场信用分 ≥600 且已进入 Arena（有行为证据）；行为分 = 行为维度加权和
+  app.get('/leaderboard', async (req) => {
+    const q = req.query as { board?: string };
+    const board = q.board === 'behavior' ? 'behavior' : 'capability';
     const allAgents = await app.db.query.agents.findMany();
     const allScores = await app.db.query.creditScores.findMany({
       orderBy: (s, { desc }) => [desc(s.createdAt)],
     });
     const latest = new Map<string, (typeof allScores)[number]>();
     for (const s of allScores) if (!latest.has(s.agentId)) latest.set(s.agentId, s);
+    const arenaEvidence = await app.db.query.evidence.findMany({
+      where: eq(evidence.source, 'arena'),
+    });
+    const arenaAgents = new Set(arenaEvidence.map((e) => e.agentId));
 
-    return allAgents
+    const rows = allAgents
       .map((a) => {
         const sc = latest.get(a.id);
         const source = a.name.startsWith('sim-agent-')
@@ -96,6 +104,18 @@ export async function simulationRoutes(app: FastifyInstance) {
             : a.name.startsWith('real-')
               ? 'benchmark'
               : 'manual';
+        // 行为分：非能力维度加权和归一 ×10（对齐 1000 制）
+        let behaviorScore: number | null = null;
+        const dims = (sc?.dimensions ?? null) as Array<{ dimension: string; score: number | null; weight: number }> | null;
+        if (dims) {
+          const behavior = dims.filter((d) => d.dimension !== 'capability' && d.score !== null);
+          if (behavior.length > 0) {
+            const wsum = behavior.reduce((s, d) => s + d.weight, 0);
+            behaviorScore = Math.round(
+              (behavior.reduce((s, d) => s + (d.score ?? 0) * d.weight, 0) / wsum) * 10,
+            );
+          }
+        }
         return {
           agentId: a.id,
           name: a.name,
@@ -109,9 +129,22 @@ export async function simulationRoutes(app: FastifyInstance) {
           coverage: sc?.coverage ?? 0,
           evidenceCount: (sc?.evidenceRefs ?? []).length,
           isSimulated: source === 'simulation',
+          behaviorScore,
+          inArena: arenaAgents.has(a.id),
         };
+      });
+
+    const filtered =
+      board === 'behavior'
+        ? rows.filter((r) => r.inArena && (r.score ?? 0) >= 600)
+        : rows.filter((r) => r.source !== 'simulation');
+
+    return filtered
+      .sort((x, y) => {
+        const xv = board === 'behavior' ? (x.behaviorScore ?? -1) : (x.score ?? -1);
+        const yv = board === 'behavior' ? (y.behaviorScore ?? -1) : (y.score ?? -1);
+        return yv - xv;
       })
-      .sort((x, y) => (y.score ?? -1) - (x.score ?? -1))
       .map((row, i) => ({ ...row, rank: i + 1 }));
   });
 
