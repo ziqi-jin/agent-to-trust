@@ -6,3 +6,6 @@
  */
 export * from './config.js';
 export * from './cli.js';
+export * from './agent/types.js';
+export * from './agent/endpoint.js';
+export * from './agent/model.js';
