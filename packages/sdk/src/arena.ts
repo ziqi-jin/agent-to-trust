@@ -57,8 +57,8 @@ export interface JoinOptions {
   agent: AclAgent;
   /** 平台 API 地址。 */
   apiBase: string;
-  /** 要加入的会话 id（as-xxxx）。 */
-  sessionId: string;
+  /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分≥600）。 */
+  sessionId?: string;
   name?: string;
   /** 密钥目录（默认 ~/.acl；同钥即同身份）。 */
   dir?: string;
@@ -219,8 +219,42 @@ async function api(
 }
 
 /**
+ * 准入队列（T12）：POST /arena/queue → 同步撮合或轮询 → sessionId。
+ * 门槛（服务端检查）：考场分≥600 且有 real-benchmark 证据。
+ * 轮询 3s × 100 ≈ 5 分钟超时；单人排队约 12 秒后由平台对家接单。
+ */
+async function joinQueue(
+  doFetch: typeof fetch,
+  base: string,
+  name: string,
+  pubkeyPem: string,
+  log: (msg: string) => void,
+): Promise<string> {
+  log('[acl] 未指定会话，进入准入队列（门槛：考场分≥600）…');
+  const q = await api(doFetch, base, '/arena/queue', {
+    method: 'POST',
+    body: JSON.stringify({ name, pubkey: pubkeyPem }),
+  });
+  if (q.status === 'matched') return q.sessionId as string;
+  const ticket = q.ticket as string;
+  log(`[acl] 已排队 ${ticket}，等待撮合（单人约 12 秒后由平台对家接单）…`);
+  for (let i = 0; i < 100; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    let s: Record<string, unknown>;
+    try {
+      s = await api(doFetch, base, `/arena/queue/${ticket}`);
+    } catch {
+      continue; // 单次网络抖动不放弃
+    }
+    if (s.status === 'matched') return s.sessionId as string;
+  }
+  throw new Error('排队超时（约 5 分钟）仍未撮合，稍后重试');
+}
+
+/**
  * 加入 Arena 会话并跑到结算（或超时/终止）。
  *
+ * - 无 sessionId → 准入队列自动撮合（T12）
  * - buyer 且会话为空：先手出价
  * - 长轮询对家事件（wait 25s，连续 3 次 空 → idle-timeout）
  * - 收到 VERIFY_RESULT：补发 SETTLE（若自己尚未发过）
@@ -241,17 +275,21 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   const agentId = reg.agentId as string;
   log(`[acl] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
 
-  // 2. 会话与角色
+  // 2. 会话与角色（无 --session → 准入队列自动撮合）
+  const sessionId =
+    opts.sessionId ??
+    (await joinQueue(doFetch, base, opts.name ?? 'arena-agent', keypair.publicKeyPem, log));
+  if (!opts.sessionId) log(`[acl] ✓ 已撮合对手，会话 ${sessionId}`);
   const session = (await api(
     doFetch,
     base,
-    `/arena/sessions/${opts.sessionId}`,
+    `/arena/sessions/${sessionId}`,
   )) as unknown as SessionView;
   const role: ArenaRole = session.buyerAgentId === agentId ? 'buyer' : 'seller';
   if (session.status === 'settled' || session.status === 'failed') {
     return {
       agentId,
-      sessionId: opts.sessionId,
+      sessionId,
       role,
       rounds: 0,
       finalStatus: session.status,
@@ -261,7 +299,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   }
   if (session.buyerAgentId !== agentId && session.sellerAgentId !== agentId) {
     throw new Error(
-      `会话 ${opts.sessionId} 不包含本 agent（buyer=${session.buyerAgentId} seller=${session.sellerAgentId}）`,
+      `会话 ${sessionId} 不包含本 agent（buyer=${session.buyerAgentId} seller=${session.sellerAgentId}）`,
     );
   }
   log(`[acl] 会话 ${opts.sessionId} 场景「${session.scenario}」角色=${role}`);
@@ -276,7 +314,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
 
   const pushEvent = async (action: ArenaAction): Promise<void> => {
     const envelope = {
-      sessionId: opts.sessionId,
+      sessionId,
       seq: nextSeq,
       type: action.type,
       fromAgent: agentId,
@@ -286,7 +324,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     };
     const sig = signPayload(keypair.privateKeyPem, envelope);
     try {
-      await api(doFetch, base, `/arena/sessions/${opts.sessionId}/events`, {
+      await api(doFetch, base, `/arena/sessions/${sessionId}/events`, {
         method: 'POST',
         body: JSON.stringify({ ...envelope, sig, pubkey: keypair.publicKeyPem }),
       });
@@ -334,7 +372,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   const initial = (await api(
     doFetch,
     base,
-    `/arena/sessions/${opts.sessionId}/events?after=0`,
+    `/arena/sessions/${sessionId}/events?after=0`,
   )) as unknown as { events: EventRow[] };
   for (const e of initial.events) {
     allEvents.push(e);
@@ -353,7 +391,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     const res = (await api(
       doFetch,
       base,
-      `/arena/sessions/${opts.sessionId}/events?after=${lastSeq}&wait=25`,
+      `/arena/sessions/${sessionId}/events?after=${lastSeq}&wait=25`,
     )) as unknown as { events: EventRow[] };
     const fresh = res.events;
 
@@ -425,7 +463,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   // 6. 终态确认
   let finalStatus = 'unknown';
   try {
-    const s = (await api(doFetch, base, `/arena/sessions/${opts.sessionId}`)) as unknown as SessionView;
+    const s = (await api(doFetch, base, `/arena/sessions/${sessionId}`)) as unknown as SessionView;
     finalStatus = s.status;
   } catch {
     /* 会话可能已关 */
@@ -433,7 +471,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
 
   return {
     agentId,
-    sessionId: opts.sessionId,
+    sessionId,
     role,
     rounds: round,
     finalStatus,

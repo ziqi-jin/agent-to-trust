@@ -37,6 +37,11 @@ services:
       PORT: 8000
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      # T12 准入队列：平台买家密钥持久化（重启不丢，防同名异钥 403）+ solo 等待时长
+      PLATFORM_KEY_DIR: /app/data/.acl-platform
+      QUEUE_SOLO_WAIT_MS: ${QUEUE_SOLO_WAIT_MS:-12000}
+    volumes:
+      - aclplatform:/app/data
     ports:
       - "8000:8000"
     depends_on:
@@ -60,3 +65,4 @@ services:
 
 volumes:
   pgdata:
+  aclplatform:

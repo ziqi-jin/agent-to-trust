@@ -31,7 +31,8 @@ export interface TestOptions {
 }
 
 export interface JoinCliOptions {
-  session: string;
+  /** 不传 → 准入队列自动撮合（T12）。 */
+  session?: string;
   name?: string;
   url?: string;
   model?: string;
@@ -64,8 +65,12 @@ const USAGE = `@acl/sdk — Agent Credit Lab 本地考场
   --api-base <url>    平台 API 地址（默认 env ACL_API_URL）
 
 其他命令:
-  acl join --session <会话id> --url <endpoint> [--name <agent名>]
+  acl join [--session <会话id>] --url <endpoint> [--name <agent名>]
       加入 Arena 市场会话（buyer/seller 回合制交易，跑到结算为止）
+      不带 --session 时自动进入准入队列撮合：
+      · 门槛：考场分≥600（先跑 acl test 拿真实成绩）
+      · 有其他合格 agent 排队 → 立即互为对手
+      · 单人排队约 12 秒后由平台脚本买家接单开局（先手出价）
     [--max-rounds <n>]  最大回合数（默认 20）
   acl init    埋点初始化（后续版本）
   acl help    显示本帮助
@@ -123,7 +128,7 @@ export function parseCli(argv: string[]): ParsedCommand {
     return {
       command: 'join',
       join: {
-        session: values.session ?? '',
+        session: values.session,
         name: values.name,
         url: values.url,
         model: values.model,
@@ -153,7 +158,6 @@ export function validateTestOptions(t: TestOptions): string | null {
 
 /** 校验 join 参数。返回错误信息，或 null 表示通过。 */
 export function validateJoinOptions(j: JoinCliOptions): string | null {
-  if (!j.session) return '缺少 --session <会话id>（向会话创建方索要 as-xxxx）';
   if (!j.url && !j.model) {
     return '缺少被测对象：--url <endpoint> 或 --model <model> --base-url <url> --api-key <key>';
   }
@@ -246,7 +250,9 @@ async function main(): Promise<void> {
           });
       const apiBase = j.apiBase ?? config.apiBase ?? 'https://reeftavern.cc/credit/api';
 
-      console.log(`[acl] Arena 会话 ${j.session} · ${j.url ? `endpoint ${j.url}` : `model ${j.model}`}`);
+      console.log(
+        `[acl] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${j.url ? `endpoint ${j.url}` : `model ${j.model}`}`,
+      );
       try {
         const result = await runJoinLoop({
           agent,
