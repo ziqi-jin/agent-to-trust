@@ -14,8 +14,6 @@ import {
 import { GradeBadge } from './GradeBadge';
 import { ScoreRing } from './ScoreRing';
 
-const RESULTS = ['success', 'failure', 'partial'];
-
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString('zh-CN', {
