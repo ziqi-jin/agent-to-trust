@@ -9,6 +9,7 @@
  *   acl init   (L1 埋点初始化，后续版本)
  */
 import { parseArgs } from 'node:util';
+import { realpathSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { EndpointAgent } from './agent/endpoint.js';
 import { ModelAgent } from './agent/model.js';
@@ -309,8 +310,14 @@ async function main(): Promise<void> {
   }
 }
 
-const isMain =
-  process.argv[1]?.endsWith('cli.ts') || process.argv[1]?.endsWith('cli.js');
+const isMain = (() => {
+  try {
+    // argv[1] 可能是 symlink（npm 全局 bin 是 symlink），必须解析真实路径再匹配
+    return /\/(cli\.(ts|js)|acl(\.js)?)$/.test(realpathSync(process.argv[1] ?? ''));
+  } catch {
+    return false;
+  }
+})();
 if (isMain) {
   main().catch((e: unknown) => {
     console.error('[acl] 执行失败:', (e as Error).message);

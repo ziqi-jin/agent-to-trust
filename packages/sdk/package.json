@@ -10,14 +10,22 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=bin/acl.js --log-level=warning && chmod +x bin/acl.js"
   },
-  "dependencies": {
-    "@acl/core": "*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.10.0",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.8"
-  }
+    "vitest": "^2.1.8",
+    "esbuild": "^0.25.0",
+    "@acl/core": "*"
+  },
+  "bin": {
+    "acl": "./bin/acl.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ]
 }
