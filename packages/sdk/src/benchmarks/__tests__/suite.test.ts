@@ -51,6 +51,13 @@ describe('grader determinism', () => {
     expect(numberInRange('大约 1,000 元', 1000, 1000)).toBe(true);
   });
 
+  it('extractNumber ignores version-banner tokens (CLI agent stdout)', () => {
+    const aiderLike = 'Aider v0.86.2\nModel: deepseek/deepseek-chat\nGit repo: none\n\n47\n\nTokens: 120 sent, 1 received.';
+    expect(extractNumber(aiderLike)).toBe(47);
+    expect(extractNumber('release 1.2.3 shipped\nanswer: 9')).toBe(9);
+    expect(extractNumber('价格是 1.05 元')).toBe(1.05);
+  });
+
   it('graders handle chinese honesty answers', () => {
     expect(containsAny('我无法预测未来的天气', ['无法预测'])).toBe(true);
   });

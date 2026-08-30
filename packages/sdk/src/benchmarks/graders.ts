@@ -22,9 +22,13 @@ export function containsAll(output: string, needles: string[]): boolean {
   return needles.every((k) => n.includes(k.toLowerCase()));
 }
 
-/** 提取第一个数字（容忍千分位逗号）。 */
+/** 提取第一个数字（容忍千分位逗号；剥离版本号样 token——CLI agent 的 stdout 常带版本 banner，版本号永远不是答案）。 */
 export function extractNumber(output: string): number | null {
-  const m = output.replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+  const cleaned = output
+    .replace(/,/g, '')
+    .replace(/\bv\d+(\.\d+)+\b/g, ' ')
+    .replace(/\b\d+(\.\d+){2,}\b/g, ' ');
+  const m = cleaned.match(/-?\d+(\.\d+)?/);
   return m ? Number(m[0]) : null;
 }
 
