@@ -11,6 +11,9 @@
  * 安全：prompt 永远作为单个 shell 字符串参数传递（单引号包裹），不拼接裸字符串。
  */
 import { spawn } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { AclAgent } from './types.js';
 
 /** shell 单引号转义：' → '\'' */
@@ -46,8 +49,12 @@ export class CmdAgent implements AclAgent {
           ? this.opts.cmd.replace('{prompt}', shellEscape(prompt))
           : `${this.opts.cmd} ${shellEscape(prompt)}`;
 
+      // cwd 隔离：CLI agent 会在工作目录里读写文件（aider 建/改文件等），
+      // 未显式指定 cwd 时每题一个临时目录，防止污染宿主目录（含 acl 仓库自身）。
+      const cwd = this.opts.cwd ?? mkdtempSync(join(tmpdir(), 'acl-cmd-'));
+
       const child = spawn('sh', ['-c', fullCmd], {
-        cwd: this.opts.cwd,
+        cwd,
         stdio: this.opts.stdin ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
       });
 
