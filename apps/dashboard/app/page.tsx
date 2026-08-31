@@ -1,7 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { api, GITHUB_URL, type Evidence, type LeaderboardEntry, type StatsResponse } from '@/lib/api';
+import {
+  api,
+  GITHUB_URL,
+  type Evidence,
+  type LeaderboardEntry,
+  type StatsResponse,
+  type StatsSummary,
+} from '@/lib/api';
+import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Quickstart } from '@/components/Quickstart';
@@ -11,6 +19,7 @@ import { AgentDetail } from '@/components/AgentDetail';
 
 export default function Page() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [events, setEvents] = useState<Evidence[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -19,10 +28,16 @@ export default function Page() {
 
   const refresh = useCallback(async () => {
     try {
-      const [s, lb, ev] = await Promise.all([api.stats(), api.leaderboard(board), api.events()]);
+      const [s, lb, ev, sum] = await Promise.all([
+        api.stats(),
+        api.leaderboard(board),
+        api.events(),
+        api.statsSummary(),
+      ]);
       setStats(s);
       setEntries(lb);
       setEvents(ev);
+      setSummary(sum);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -98,10 +113,14 @@ export default function Page() {
             onSelect={setSelectedId}
             board={board}
             setBoard={setBoard}
+            summary={summary}
           />
           <Ticker events={events} nameMap={nameMap} />
         </>
       )}
+
+      {/* 反馈入口（隐蔽）：右下角小气泡 */}
+      <FeedbackBubble />
 
       {/* 页脚 */}
       <footer className="mt-auto border-t border-edge px-6 py-6">

@@ -1,0 +1,110 @@
+'use client';
+
+import { useState } from 'react';
+import { api } from '@/lib/api';
+
+/**
+ * 反馈入口（隐蔽但可发现）：右下角低透明度小气泡，hover 变亮。
+ * 点开收集文字反馈 + 可选联系方式，POST /feedback（限速：同 IP 每分钟 3 条）。
+ */
+export function FeedbackBubble() {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [contact, setContact] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    const text = message.trim();
+    if (!text || status === 'sending') return;
+    setStatus('sending');
+    setError(null);
+    try {
+      await api.submitFeedback(text, contact.trim() || undefined, window.location.hash || '/');
+      setStatus('sent');
+      setMessage('');
+      setContact('');
+    } catch (e) {
+      setError((e as Error).message);
+      setStatus('idle');
+    }
+  };
+
+  return (
+    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+      {open && (
+        <div className="w-72 rounded-xl border border-edge bg-surface/95 p-4 shadow-2xl backdrop-blur">
+          {status === 'sent' ? (
+            <div className="py-3 text-center">
+              <p className="text-sm font-500 text-bright">已收到，多谢 🦾</p>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setStatus('idle');
+                }}
+                className="mt-3 rounded-md border border-edge px-3 py-1 text-xs font-mono text-dim transition hover:text-bright"
+              >
+                关闭
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="mb-2 text-[11px] font-mono text-dim">悄悄说两句 · 只有团队看得到</p>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                placeholder="哪里好用、哪里别扭，都可以讲"
+                className="w-full resize-none rounded-md border border-edge bg-abyss px-2.5 py-2 text-sm text-bright placeholder:text-dim/60 focus:border-accent/50 focus:outline-none"
+              />
+              <input
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                maxLength={200}
+                placeholder="联系方式（可选）"
+                className="mt-2 w-full rounded-md border border-edge bg-abyss px-2.5 py-1.5 text-xs text-bright placeholder:text-dim/60 focus:border-accent/50 focus:outline-none"
+              />
+              {error && <p className="mt-1.5 text-xs text-danger">{error}</p>}
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="rounded-md px-2.5 py-1 text-xs font-mono text-dim transition hover:text-bright"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={submit}
+                  disabled={status === 'sending' || !message.trim()}
+                  className="rounded-md bg-accent/20 px-3 py-1 text-xs font-mono font-500 text-accent transition disabled:opacity-40"
+                >
+                  {status === 'sending' ? '发送中…' : '发送'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="反馈"
+        title="反馈"
+        className="flex h-8 w-8 items-center justify-center rounded-full border border-edge/60 bg-surface/50 text-dim/60 opacity-40 backdrop-blur transition-all hover:border-accent/50 hover:text-accent hover:opacity-100"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+      </button>
+    </div>
+  );
+}

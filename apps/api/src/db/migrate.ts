@@ -105,6 +105,29 @@ CREATE TABLE IF NOT EXISTS arena_events (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_arena_events_session_seq ON arena_events(session_id, seq);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_arena_events_nonce ON arena_events(nonce);
+
+-- 测试准入队列（持久化）+ 用户反馈（2026-08-31）
+CREATE TABLE IF NOT EXISTS test_queue (
+  ticket text PRIMARY KEY,
+  agent_id text NOT NULL REFERENCES agents(id),
+  lane text NOT NULL DEFAULT 'arena',
+  status text NOT NULL DEFAULT 'waiting',
+  session_id text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  admitted_at timestamptz,
+  done_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_queue_lane_status ON test_queue(lane, status);
+
+CREATE TABLE IF NOT EXISTS feedback (
+  id text PRIMARY KEY,
+  message text NOT NULL,
+  contact text,
+  page text,
+  user_agent text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 export async function migrate(url: string): Promise<void> {

@@ -1,4 +1,4 @@
-import type { LeaderboardEntry } from '@/lib/api';
+import type { LeaderboardEntry, StatsSummary } from '@/lib/api';
 import { GradeBadge } from './GradeBadge';
 import { ScoreRing } from './ScoreRing';
 
@@ -16,16 +16,46 @@ function scoreBarColor(score: number | null) {
   return '#F87171';
 }
 
+function StatCell({
+  label,
+  value,
+  highlight,
+  pulse,
+}: {
+  label: string;
+  value?: number;
+  highlight?: boolean;
+  pulse?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-lg border px-3 py-2.5 ${
+        highlight ? 'border-accent/40 bg-accent/10' : 'border-edge bg-surface'
+      }`}
+    >
+      <div className="font-display text-xl font-700 text-bright">
+        {value ?? '—'}
+        {pulse && (
+          <span className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent align-middle" />
+        )}
+      </div>
+      <div className="mt-0.5 text-[11px] font-mono text-dim">{label}</div>
+    </div>
+  );
+}
+
 export function Leaderboard({
   entries,
   onSelect,
   board,
   setBoard,
+  summary,
 }: {
   entries: LeaderboardEntry[];
   onSelect: (id: string) => void;
   board: 'capability' | 'behavior';
   setBoard: (b: 'capability' | 'behavior') => void;
+  summary: StatsSummary | null;
 }) {
   const top10 = entries.slice(0, 10);
   const rest = entries.slice(10);
@@ -68,6 +98,25 @@ export function Leaderboard({
             行为榜
           </button>
         </div>
+      </div>
+
+      {/* 参与统计：榜单1 / 榜单2 参与数 + 当前排队 */}
+      <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-md">
+        <StatCell
+          label="考场榜参与"
+          value={summary?.leaderboard1Participants}
+          highlight={!isBehavior}
+        />
+        <StatCell
+          label="行为榜参与"
+          value={summary?.leaderboard2Participants}
+          highlight={isBehavior}
+        />
+        <StatCell
+          label="排队等待"
+          value={summary?.queueWaiting}
+          pulse={(summary?.queueWaiting ?? 0) > 0}
+        />
       </div>
 
       {/* 表头 */}

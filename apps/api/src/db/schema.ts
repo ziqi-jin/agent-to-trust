@@ -83,6 +83,37 @@ export const scoreSnapshots = pgTable(
   (t) => [index('idx_score_snapshots_agent_id').on(t.agentId)],
 );
 
+/** 测试准入队列（持久化）：服务重启不丢，排队可见。 */
+export const testQueue = pgTable(
+  'test_queue',
+  {
+    ticket: text('ticket').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    /** 准入通道：arena（行为榜虚拟环境）| exam（考场资格，预留口子）。 */
+    lane: text('lane').notNull().default('arena'),
+    /** waiting → admitted → active → done / cancelled。 */
+    status: text('status').notNull().default('waiting'),
+    /** 撮合成功后关联的 Arena 会话。 */
+    sessionId: text('session_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    admittedAt: timestamp('admitted_at', { withTimezone: true }),
+    doneAt: timestamp('done_at', { withTimezone: true }),
+  },
+  (t) => [index('idx_test_queue_lane_status').on(t.lane, t.status)],
+);
+
+/** 用户反馈（隐蔽入口收集）：append-only，不做公开查询接口。 */
+export const feedback = pgTable('feedback', {
+  id: text('id').primaryKey(),
+  message: text('message').notNull(),
+  contact: text('contact'),
+  page: text('page'),
+  userAgent: text('user_agent'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const simulationRuns = pgTable('simulation_runs', {
   id: text('id').primaryKey(),
   seed: integer('seed').notNull(),

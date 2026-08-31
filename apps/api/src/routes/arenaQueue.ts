@@ -18,18 +18,23 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, gt } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from '@acl/sdk';
-import { arenaEvents, arenaSessions, creditScores, evidence } from '../db/schema';
+import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 
-const PLATFORM_NAME = 'arena-buyer-platform';
+/** 平台脚本买家的 agent 名（统计口径需剔除，导出复用）。 */
+export const PLATFORM_NAME = 'arena-buyer-platform';
 const PLATFORM_OFFER_PRICE = 80;
 const PLATFORM_MAX_NEGOTIATE_ROUNDS = 3;
 const ENGINE_POLL_MS = 2000;
 /** 引擎兜底：整体 5 分钟无进展则 REJECT 收尾退出，防泄漏。 */
 const ENGINE_MAX_WAIT_MS = 5 * 60 * 1000;
+/** 全局并发上限：活跃（open/negotiating）会话数达到上限即排队（env QUEUE_MAX_ACTIVE 可调）。 */
+const QUEUE_MAX_ACTIVE_DEFAULT = 10;
+/** 放行 tick 间隔：扫持久化队列，有空位即撮合（env QUEUE_TICK_MS 可调）。 */
+const QUEUE_TICK_MS_DEFAULT = 10_000;
 
 interface QueueEntry {
   ticket: string;
@@ -45,11 +50,15 @@ const queue = new Map<string, QueueEntry>();
 
 /** 平台引擎注册表（测试 teardown / 运维兜底用）。 */
 const engines = new Set<{ stop: () => void }>();
+/** 放行 tick 定时器注册表（测试 teardown 用）。 */
+const tickers = new Set<ReturnType<typeof setInterval>>();
 
 /** 停掉所有平台对家引擎并清空未撮合的 solo timer（测试 afterAll 调用）。 */
 export function stopAllQueueEngines(): void {
   for (const e of engines) e.stop();
   engines.clear();
+  for (const t of tickers) clearInterval(t);
+  tickers.clear();
   for (const entry of queue.values()) {
     if (entry.soloTimer) {
       clearTimeout(entry.soloTimer);
@@ -106,6 +115,119 @@ async function createMatchSession(
     sellerAgentId,
   });
   return id;
+}
+
+/** 活跃会话数（open/negotiating）——并发上限的计量口径。 */
+async function activeSessionCount(db: FastifyInstance['db']): Promise<number> {
+  const [row] = await db
+    .select({ n: count() })
+    .from(arenaSessions)
+    .where(inArray(arenaSessions.status, ['open', 'negotiating']));
+  return row?.n ?? 0;
+}
+
+/** 落库排队（幂等）：同 agent 同 lane 已有 waiting 票则复用。 */
+async function enqueueWaitingRow(
+  db: FastifyInstance['db'],
+  agentId: string,
+  lane: 'arena' | 'exam',
+): Promise<{ ticket: string }> {
+  const [existing] = await db
+    .select({ ticket: testQueue.ticket })
+    .from(testQueue)
+    .where(
+      and(
+        eq(testQueue.agentId, agentId),
+        eq(testQueue.lane, lane),
+        eq(testQueue.status, 'waiting'),
+      ),
+    )
+    .limit(1);
+  if (existing) return { ticket: existing.ticket };
+  const ticket = `aq-${randomUUID().slice(0, 8)}`;
+  await db.insert(testQueue).values({ ticket, agentId, lane });
+  return { ticket };
+}
+
+/** 排队位置：同 lane FIFO（按 created_at），position 从 1 起。 */
+async function queuePosition(
+  db: FastifyInstance['db'],
+  ticket: string,
+): Promise<{ position: number; waitingAhead: number }> {
+  const [row] = await db
+    .select({ createdAt: testQueue.createdAt, lane: testQueue.lane })
+    .from(testQueue)
+    .where(eq(testQueue.ticket, ticket))
+    .limit(1);
+  if (!row) return { position: 0, waitingAhead: 0 };
+  const [ahead] = await db
+    .select({ n: count() })
+    .from(testQueue)
+    .where(
+      and(
+        eq(testQueue.lane, row.lane),
+        eq(testQueue.status, 'waiting'),
+        lt(testQueue.createdAt, row.createdAt),
+      ),
+    );
+  const waitingAhead = ahead?.n ?? 0;
+  return { position: waitingAhead + 1, waitingAhead };
+}
+
+/** 撮合成功：标记 admitted + 关联会话。 */
+async function markAdmitted(
+  db: FastifyInstance['db'],
+  ticket: string,
+  sessionId: string,
+): Promise<void> {
+  await db
+    .update(testQueue)
+    .set({ status: 'admitted', sessionId, admittedAt: new Date() })
+    .where(eq(testQueue.ticket, ticket));
+}
+
+/**
+ * 放行等待者（tick / 运维调用）：arena lane FIFO 两两撮合；
+ * 奇数个最后一个配平台脚本买家（等待者已等过真队列，即时可玩优先）。
+ */
+export async function promoteWaiting(app: FastifyInstance): Promise<void> {
+  const max = Number(process.env.QUEUE_MAX_ACTIVE ?? QUEUE_MAX_ACTIVE_DEFAULT);
+  const free = max - (await activeSessionCount(app.db));
+  if (free <= 0) return;
+  const rows = await app.db
+    .select()
+    .from(testQueue)
+    .where(and(eq(testQueue.lane, 'arena'), eq(testQueue.status, 'waiting')))
+    .orderBy(asc(testQueue.createdAt))
+    .limit(free);
+  if (rows.length === 0) return;
+
+  for (let i = 0; i + 1 < rows.length; i += 2) {
+    const sessionId = await createMatchSession(app, rows[i].agentId, rows[i + 1].agentId);
+    await markAdmitted(app.db, rows[i].ticket, sessionId);
+    await markAdmitted(app.db, rows[i + 1].ticket, sessionId);
+  }
+  if (rows.length % 2 === 1) {
+    const solo = rows[rows.length - 1];
+    try {
+      const platformDir = process.env.PLATFORM_KEY_DIR ?? '/app/data/.acl-platform';
+      const keys = ensureKeypair(platformDir);
+      const identity = await upsertAgentIdentity(app.db, {
+        name: PLATFORM_NAME,
+        pubkey: keys.publicKeyPem,
+      });
+      if (identity.error === 'name-taken') {
+        throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
+      }
+      const sessionId = await createMatchSession(app, identity.agentId, solo.agentId);
+      await markAdmitted(app.db, solo.ticket, sessionId);
+      // 引擎异步跑，不阻塞 tick
+      void runPlatformBuyer(app, sessionId, identity.agentId, keys);
+    } catch (e) {
+      console.error(`[arenaQueue] 排队放行（平台撮合）失败 ticket=${solo.ticket}:`, (e as Error).message);
+      // 保守：留在 waiting，下一轮 tick 重试
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,6 +381,10 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     ) {
       return reply.code(400).send({ error: 'name/pubkey 必填（PEM）' });
     }
+    const lane = typeof body.lane === 'string' ? body.lane : 'arena';
+    if (lane !== 'arena' && lane !== 'exam') {
+      return reply.code(400).send({ error: "lane 仅支持 'arena' | 'exam'" });
+    }
     const identity = await upsertAgentIdentity(app.db, { name: name.trim(), pubkey });
     if (identity.error === 'name-taken') {
       return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
@@ -274,6 +400,15 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     );
     if (existing) {
       return reply.code(201).send({ ticket: existing.ticket, status: 'waiting' });
+    }
+
+    // 满载或 exam lane：持久化排队（重启不丢，FIFO 由 tick 放行）
+    const maxActive = Number(process.env.QUEUE_MAX_ACTIVE ?? QUEUE_MAX_ACTIVE_DEFAULT);
+    const active = await activeSessionCount(app.db);
+    if (lane === 'exam' || active >= maxActive) {
+      const { ticket } = await enqueueWaitingRow(app.db, agentId, lane);
+      const { position, waitingAhead } = await queuePosition(app.db, ticket);
+      return reply.code(201).send({ ticket, status: 'waiting', lane, position, waitingAhead });
     }
 
     const ticket = `aq-${randomUUID().slice(0, 8)}`;
@@ -310,16 +445,49 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     return reply.code(201).send({ ticket, status: 'waiting' });
   });
 
-  /** 查排队状态。 */
+  /** 查排队状态。内存未命中 → 读库（重启恢复 / 已放行）。 */
   app.get('/arena/queue/:ticket', async (req, reply) => {
     const { ticket } = req.params as { ticket: string };
     const entry = queue.get(ticket);
     if (!entry) {
-      return reply.code(404).send({ error: '排队票不存在（可能已撮合并清理，或服务重启）' });
+      const [row] = await app.db
+        .select()
+        .from(testQueue)
+        .where(eq(testQueue.ticket, ticket))
+        .limit(1);
+      if (!row) {
+        return reply.code(404).send({ error: '排队票不存在（可能已撮合并清理，或服务重启）' });
+      }
+      if (row.status === 'waiting') {
+        const { position, waitingAhead } = await queuePosition(app.db, ticket);
+        return { status: 'waiting', lane: row.lane, position, waitingAhead };
+      }
+      if (row.sessionId) {
+        const [session] = await app.db
+          .select({ status: arenaSessions.status })
+          .from(arenaSessions)
+          .where(eq(arenaSessions.id, row.sessionId))
+          .limit(1);
+        if (session && (session.status === 'settled' || session.status === 'failed')) {
+          return { status: 'done' };
+        }
+        return { status: 'matched', sessionId: row.sessionId };
+      }
+      return { status: row.status };
     }
     if (entry.status === 'matched') {
       return { status: 'matched', sessionId: entry.sessionId };
     }
     return { status: 'waiting' };
   });
+
+  // 放行 tick：定时扫持久化队列，有空位即撮合（测试可放大 QUEUE_TICK_MS 禁用）
+  const tickMs = Number(process.env.QUEUE_TICK_MS ?? QUEUE_TICK_MS_DEFAULT);
+  const ticker = setInterval(() => {
+    void promoteWaiting(app).catch((e) =>
+      console.error('[arenaQueue] tick 放行失败:', (e as Error).message),
+    );
+  }, tickMs);
+  ticker.unref?.();
+  tickers.add(ticker);
 }

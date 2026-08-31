@@ -7,9 +7,11 @@ import { arenaRoutes } from './routes/arena';
 import { badgeRoutes } from './routes/badge';
 import { benchmarkRoutes } from './routes/benchmark';
 import { evidenceRoutes } from './routes/evidence';
+import { feedbackRoutes } from './routes/feedback';
 import { ingestRoutes } from './routes/ingest';
 import { scoresRoutes } from './routes/scores';
 import { simulationRoutes } from './routes/simulation';
+import { statsRoutes } from './routes/stats';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -28,9 +30,11 @@ export function buildApp(db: Database): FastifyInstance {
   app.register(badgeRoutes);
   app.register(benchmarkRoutes);
   app.register(evidenceRoutes);
+  app.register(feedbackRoutes);
   app.register(ingestRoutes);
   app.register(scoresRoutes);
   app.register(simulationRoutes);
+  app.register(statsRoutes);
   app.get('/health', async () => ({ status: 'ok' }));
   return app;
 }

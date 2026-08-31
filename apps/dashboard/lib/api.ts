@@ -147,6 +147,15 @@ export function scoreTone(score: number | null): string {
   return 'text-danger';
 }
 
+export interface StatsSummary {
+  /** 榜单1（考场榜）：持考场分的去重 agent 数 */
+  leaderboard1Participants: number;
+  /** 榜单2（行为榜）：参与过 Arena 会话的去重 agent 数（剔除平台对家） */
+  leaderboard2Participants: number;
+  /** 当前排队等待数（全部 lane） */
+  queueWaiting: number;
+}
+
 // ── HTTP ─────────────────────────────────────────────────
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -176,6 +185,16 @@ export const api = {
   leaderboard: (board: 'capability' | 'behavior' = 'capability') =>
     http<LeaderboardEntry[]>(`/leaderboard?board=${board}`),
   stats: () => http<StatsResponse>('/stats'),
+  statsSummary: () => http<StatsSummary>('/stats/summary'),
+  submitFeedback: (message: string, contact?: string, page?: string) =>
+    http<{ ok: boolean }>('/feedback', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        ...(contact ? { contact } : {}),
+        ...(page ? { page } : {}),
+      }),
+    }),
   events: () => http<Evidence[]>('/events'),
   runSimulation: (cfg?: Record<string, unknown>) =>
     http<{ seeded: boolean; config: Record<string, unknown>; stats: SimulationStats }>(
