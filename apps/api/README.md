@@ -1,50 +1,50 @@
-# apps/api — Fastify 后端（Node + TypeScript）
+# apps/api — Fastify Backend (Node + TypeScript)
 
-Agent Credit Lab 的核心 API：Agent Registry / Evidence / AgentScore。
+The core API of Agent Credit Lab: Agent Registry / Evidence / AgentScore.
 
-## 本地开发
+## Local development
 
 ```bash
-# 在仓库根目录
+# from the repository root
 npm install
 docker compose up -d postgres
 npm run dev:api
 ```
 
-默认连 `postgres://acl:acl@localhost:5432/acl`（由 docker-compose 提供）。覆盖用 `DATABASE_URL`。
+Defaults to `postgres://acl:acl@localhost:5432/acl` (provided by docker-compose). Override with `DATABASE_URL`.
 
-## 测试
+## Tests
 
 ```bash
-npm test                    # 仓库根，跑 API 集成测试
-npm run test:scoring        # 跑评分引擎单测
+npm test                    # from the repo root: API integration tests
+npm run test:scoring        # scoring engine unit tests
 ```
 
-API 测试会重建 `acl_test` 数据库（需要本地 Postgres 已启动）。
+API tests rebuild the `acl_test` database (local Postgres must be running).
 
-## 关键接口
+## Key endpoints
 
 - `POST /agents` / `GET /agents` / `GET /agents/:id`
 - `POST /agents/:id/evidence` / `GET /agents/:id/evidence`
 - `POST /agents/:id/score` / `GET /agents/:id/score`
 - `GET /health`
 
-## 结构
+## Layout
 
 ```
 src/
-├── index.ts         # 启动入口（migrate + listen）
-├── app.ts           # buildApp(db) 工厂（可测试）
+├── index.ts         # startup entry (migrate + listen)
+├── app.ts           # buildApp(db) factory (testable)
 ├── db/
-│   ├── schema.ts    # Drizzle schema（PostgreSQL）
+│   ├── schema.ts    # Drizzle schema (PostgreSQL)
 │   ├── client.ts    # drizzle client
-│   └── migrate.ts   # 幂等建表（Stage 2 起换 drizzle-kit）
+│   └── migrate.ts   # idempotent table creation (switch to drizzle-kit from Stage 2)
 └── routes/
     ├── agents.ts
     ├── evidence.ts
     └── scores.ts
 ```
 
-## 打分引擎
+## Scoring engine
 
-评分逻辑在 `packages/scoring`（纯函数 `computeScore`，`baseline-v0.1`），API 只做数据读写与编排，保证引擎可独立测试、可被 Dashboard 复用。
+Scoring logic lives in `packages/scoring` (pure function `computeScore`, model `baseline-v0.1`). The API only handles data reads/writes and orchestration, so the engine stays independently testable and reusable by the Dashboard.

@@ -1,33 +1,33 @@
-# SECURITY — Agent Credit Lab
+# Security — Agent Credit Lab
 
-## 上报安全问题
+## Reporting a security issue
 
-如发现安全漏洞，请勿公开 Issue。请联系维护者（待补充渠道）。
+If you discover a security vulnerability, please do not open a public Issue. Contact the maintainers directly instead (reporting channel to be added).
 
-## 安全基线（执行环境）
+## Security baseline (execution environment)
 
-所有可执行 Agent 至少具备：
+Every executable agent must at minimum have:
 
-- timeout
-- CPU / memory 限制
-- tool allowlist
+- a timeout
+- CPU / memory limits
+- a tool allowlist
 - secret isolation
-- 可行的网络控制
-- audit log
+- feasible network controls
+- an audit log
 
-**禁止**为了 Demo 而允许任意 Agent 直接控制宿主机。
+**Never** allow an arbitrary agent to directly control the host machine just for the sake of a demo.
 
-## 数据可信度
+## Data credibility
 
-- simulation / synthetic 数据必须明确标识。
-- 所有对外指标带样本量、时间窗口、来源、版本、局限性。
-- 不把 benchmark / simulation 结果宣称成真实世界普遍规律。
+- Simulation / synthetic data must be clearly labeled.
+- All externally published metrics must carry sample size, time window, source, version, and known limitations.
+- Do not present benchmark / simulation results as real-world general laws.
 
-## 依赖与密钥
+## Dependencies and secrets
 
-- 敏感配置（DB 密码、API key）走环境变量，不提交仓库。
-- 参考 `.env.example` 配置本地环境。
+- Sensitive configuration (DB passwords, API keys) goes through environment variables and is never committed to the repository.
+- See `.env.example` for how to configure your local environment.
 
-## 已知限制（Stage 0）
+## Known limitations
 
-- 尚未实现沙箱化 Agent 执行；当前阶段不运行任意第三方代码。
+- Sandboxed agent execution is not yet implemented; at the current stage, the platform does not run arbitrary third-party code.

@@ -21,7 +21,7 @@ Agent Credit Lab lets you:
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_ORG/agent-credit-lab.git
+git clone https://github.com/ziqi-jin/open-agent-credit-lab.git
 cd agent-credit-lab
 docker compose up
 ```
@@ -29,8 +29,8 @@ docker compose up
 Then open:
 
 ```
-http://localhost:8000/health  # API 健康检查
-http://localhost:8000         # API 根（接口见 apps/api/README.md）
+http://localhost:8000/health  # API health check
+http://localhost:8000         # API root (endpoints: apps/api/README.md)
 http://localhost:3000         # Dashboard
 ```
 
@@ -44,7 +44,11 @@ http://localhost:3000         # Dashboard
 > standard. All scores are evidence-backed, and all simulation data is explicitly labelled
 > `source=simulation`. Nothing here is presented as real-world transaction data.
 
-Current stage: **Stage 0 — Foundation** (see [`ROADMAP.md`](ROADMAP.md)).
+Current stage: **Stage 7 — Open Source Launch** (in preparation — see [`ROADMAP.md`](ROADMAP.md)).
+
+Stages 0–6 are delivered: the simulation engine, credit scoring, attack evaluation,
+the exam-style benchmark, signed SDK score reporting, and the Arena with two-sided
+matching are all live.
 
 ---
 
@@ -90,7 +94,7 @@ agent-credit-lab/
 ├── packages/
 │   ├── core/           # shared domain models
 │   ├── scoring/        # credit engine
-│   ├── sdk/            # python SDK
+│   ├── sdk/            # TypeScript SDK + CLI (npx @acl/sdk)
 │   └── adapters/       # agent adapters (OpenClaw, OpenAI-compatible, HTTP)
 ├── simulator/          # simulation + market + economy engine
 ├── benchmark/          # benchmark lab

@@ -1,31 +1,33 @@
 # Code of Conduct — Agent Credit Lab
 
-## 我们的承诺
+## Our pledge
 
-为了营造一个开放、友善、以研究为导向的环境，我们承诺让每个参与者都获得尊重、免于骚扰的体验。
+To foster an open, friendly, research-driven environment, we as participants and maintainers pledge to make participation in this project a respectful, harassment-free experience for everyone.
 
-## 我们的标准
+## Our standards
 
-鼓励：
-- 尊重不同观点与经验
-- 建设性反馈
-- 诚实、可复现的实验结果
-- 为社区整体利益着想
+Encouraged:
 
-禁止：
-- 骚扰、歧视、仇恨言论
-- 伪造实验数据或把模拟数据当作真实数据
-- 操纵他人评分或破坏信誉系统的完整性
-- 未经授权访问他人系统
+- Respecting different viewpoints and levels of experience
+- Constructive feedback
+- Honest, reproducible experimental results
+- Acting in the interest of the community as a whole
 
-## 适用范围
+Forbidden:
 
-适用于所有项目空间（Issue、PR、讨论区、社区频道）以及代表项目的公开场合。
+- Harassment, discrimination, or hate speech
+- Fabricating experimental data or presenting simulated data as real data
+- Manipulating other agents' scores or undermining the integrity of the reputation system
+- Unauthorized access to other people's systems
 
-## 执行
+## Scope
 
-如遇违规行为，维护者有权移除相关评论/提交/PR 并采取适当措施。
+This code applies to all project spaces (Issues, PRs, discussion forums, community channels) and whenever an individual is representing the project in public.
+
+## Enforcement
+
+Upon violating behavior, maintainers may remove, edit, or reject comments, commits, PRs, and other contributions, and take any further action they deem appropriate.
 
 ---
 
-_本规范参考 Contributor Covenant 精神，简化适配本实验项目。_
+_This code of conduct is adapted in spirit from the Contributor Covenant and simplified to fit this experimental project._

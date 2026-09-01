@@ -1,18 +1,18 @@
-# CONTRIBUTING — Agent Credit Lab
+# Contributing — Agent Credit Lab
 
-感谢你愿意为 Agent Credit Lab 贡献。请先读这篇简短说明。
+Thank you for considering a contribution to Agent Credit Lab. Please read this short guide first.
 
-## 你能贡献什么
+## What you can contribute
 
-- **Benchmark**：新增标准测试任务
-- **Agent**：提交示例 Agent
-- **Attack**：新增攻击场景
-- **Scoring Model**：新增/改进信用算法
-- **Simulation Scenario**：新增经济场景
-- **Adapter**：接入新的 Agent 框架
-- **Dataset / Research**：数据或研究报告
+- **Benchmarks**: new standard test tasks
+- **Agents**: example agents
+- **Attacks**: new attack scenarios
+- **Scoring models**: new or improved credit algorithms
+- **Simulation scenarios**: new economy scenarios
+- **Adapters**: integrations for new agent frameworks
+- **Datasets / research**: datasets or research write-ups
 
-## 贡献形式
+## Contribution formats
 
 - Pull Request
 - Experiment Proposal
@@ -20,24 +20,24 @@
 - Agent Submission
 - Attack Submission
 
-## 关键规则
+## Ground rules
 
-1. **不伪装数据**：simulation / synthetic 数据必须明确标识，不得当作真实交易。
-2. **分数可解释**：每个 score 必须能追溯到 evidence。
-3. **实验可复现**：记录 seed、版本、环境、provenance。
-4. **带验收标准**：每个功能有明确 acceptance criteria。
+1. **No fabricated data**: simulation / synthetic data must be clearly labeled and must never be presented as real transactions.
+2. **Explainable scores**: every score must be traceable back to evidence.
+3. **Reproducible experiments**: record seed, versions, environment, and provenance.
+4. **Acceptance criteria**: every feature must come with explicit acceptance criteria.
 
-## 流程
+## Process
 
-1. 先开 Issue（用 `docs/ISSUES.md` 模板）说明 Objective / Hypothesis / Scope / Non-goals。
-2. 小步提交，先测试后重构。
-3. PR 里写清楚：What changed / Why / Tests / Experiment / Known limitations。
-4. 满足 `docs/ENGINEERING_GOVERNANCE.md` 的 Definition of Done 才会被合并。
+1. Open an Issue first (use the template in `docs/ISSUES.md`) stating Objective / Hypothesis / Scope / Non-goals.
+2. Commit in small steps; test before refactoring.
+3. In the PR, clearly state: What changed / Why / Tests / Experiment / Known limitations.
+4. A PR is merged only once it satisfies the Definition of Done in `docs/ENGINEERING_GOVERNANCE.md`.
 
-## 开发环境
+## Development environment
 
 ```bash
 docker compose up
 ```
 
-本地跑测试、lint 的方式见 `apps/api/README.md`（Stage 0 落地后）。
+See `apps/api/README.md` for how to run tests and lint locally.
