@@ -45,6 +45,9 @@ export async function upsertAgentIdentity(
     await db
       .update(agents)
       .set({
+        // 密钥即身份：无主名字首次绑钥（先到先得）；已有钥不可被覆盖（name-taken 已在上方拦截）
+        pubkey: existing.pubkey ?? input.pubkey,
+        verificationLevel: existing.pubkey ? existing.verificationLevel : 'basic',
         endpoint: input.endpoint !== undefined ? input.endpoint : existing.endpoint,
         lastSeenAt: new Date(),
       })
