@@ -62,41 +62,57 @@ export default function Page() {
     refresh();
   }, [refresh]);
 
+  // 报头版本行：名册的期号 = 真实登记数据（结构即信息）
+  const edition = [
+    `VOL. 2026-09`,
+    `${stats?.agentCount ?? '—'} REGISTERED`,
+    `${summary?.leaderboard1Participants ?? '—'} EXAMINED`,
+    `${summary?.leaderboard2Participants ?? '—'} ARENA-TESTED`,
+    `SEED 42 · DETERMINISTIC`,
+  ].join(' · ');
+
   return (
-    <div className="min-h-screen flex flex-col bg-abyss">
-      {/* 顶栏 */}
-      <header className="sticky top-0 z-10 border-b border-edge bg-abyss/80 backdrop-blur px-6 py-3.5 flex items-center justify-between">
-        <button
-          onClick={() => selectedId && onBack()}
-          className="flex items-center gap-2.5 text-left"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent/15 font-mono text-sm font-700 text-accent">
-            A
-          </span>
-          <span className="font-display text-base font-700 tracking-tight text-bright">
-            Agent Credit Lab
-          </span>
-        </button>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-[11px] font-mono text-dim sm:inline">
-            Don&apos;t trust an Agent. Test it.
-          </span>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-edge px-3 py-1.5 text-xs font-mono text-dim transition hover:border-accent/40 hover:text-bright"
-          >
-            <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-            </svg>
-            Star
-          </a>
+    <div className="min-h-screen flex flex-col bg-paper text-ink">
+      {/* 报头：账簿绿整块，公开名册的刊头 */}
+      <header className="bg-ledger text-paper">
+        <div className="mx-auto max-w-6xl px-6 pt-5 pb-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h1 className="font-display text-xl font-black uppercase tracking-[0.16em] md:text-2xl">
+                Agent Credit Lab
+              </h1>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
+                公开评级档案 · Public Register of Agent Credit
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href="#quickstart"
+                className="hidden font-mono text-[11px] uppercase tracking-widest text-paper/80 transition hover:text-paper sm:inline"
+              >
+                Docs
+              </a>
+              <a
+                href={GITHUB_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 border border-paper/40 px-3 py-1.5 font-mono text-xs text-paper transition hover:border-paper hover:bg-paper/10"
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+                </svg>
+                Star
+              </a>
+            </div>
+          </div>
+          <p className="mt-3 border-t border-paper/25 pt-2 font-mono text-[10px] tracking-[0.14em] text-paper/75">
+            {edition}
+          </p>
         </div>
       </header>
 
       {error && (
-        <div className="mx-6 mt-4 rounded-md border border-danger/40 bg-danger/10 px-4 py-2 text-danger text-sm">
+        <div className="mx-6 mt-4 border border-seal/50 bg-seal/10 px-4 py-2 font-mono text-sm text-seal">
           {error}
         </div>
       )}
@@ -106,8 +122,6 @@ export default function Page() {
       ) : (
         <>
           <Hero stats={stats} onTestAgent={scrollToQuickstart} />
-          <HowItWorks />
-          <Quickstart />
           <Leaderboard
             entries={entries}
             onSelect={setSelectedId}
@@ -116,25 +130,27 @@ export default function Page() {
             summary={summary}
           />
           <Ticker events={events} nameMap={nameMap} />
+          <HowItWorks />
+          <Quickstart />
         </>
       )}
 
       {/* 反馈入口（隐蔽）：右下角小气泡 */}
       <FeedbackBubble />
 
-      {/* 页脚 */}
-      <footer className="mt-auto border-t border-edge px-6 py-6">
+      {/* 页脚：双划线收底 */}
+      <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs font-mono text-dim">
-            Agent Credit Lab · baseline-v0.1 · Don&apos;t trust an Agent. Test it.
+          <p className="font-mono text-xs text-dim">
+            AGENT CREDIT LAB · baseline-v0.1 · 分数皆可反查证据
           </p>
           <a
             href={GITHUB_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs font-mono text-accent/70 hover:text-accent"
+            className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
           >
-            github.com/agent-credit-lab
+            github.com/ziqi-jin/open-agent-credit-lab
           </a>
         </div>
       </footer>

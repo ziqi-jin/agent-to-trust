@@ -1,46 +1,105 @@
+'use client';
+
 import type { LeaderboardEntry, StatsSummary } from '@/lib/api';
-import { GradeBadge } from './GradeBadge';
-import { ScoreRing } from './ScoreRing';
+import { ScoreSeal } from './ScoreSeal';
 
-const PODIUM = ['text-[#F4C95D]', 'text-[#C0C8D4]', 'text-[#D08A5A]'];
-
-function rankBadge(rank: number) {
-  if (rank <= 3) return PODIUM[rank - 1];
-  return 'text-dim';
+function SourceTag({ source }: { source: LeaderboardEntry['source'] }) {
+  if (source === 'real-benchmark') {
+    return (
+      <span className="shrink-0 border border-seal/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-seal">
+        SDK 考场
+      </span>
+    );
+  }
+  if (source === 'benchmark') {
+    return (
+      <span className="shrink-0 border border-brass/70 px-1.5 py-0.5 font-mono text-[10px] text-brass">
+        真实评测
+      </span>
+    );
+  }
+  if (source === 'simulation') {
+    return (
+      <span className="shrink-0 border border-hairline px-1.5 py-0.5 font-mono text-[10px] text-dim">
+        仿真
+      </span>
+    );
+  }
+  return null;
 }
 
-function scoreBarColor(score: number | null) {
-  if (score === null) return '#1a2230';
-  if (score >= 700) return '#34D399';
-  if (score >= 400) return '#F4A261';
-  return '#F87171';
-}
-
-function StatCell({
-  label,
-  value,
-  highlight,
-  pulse,
+function Row({
+  e,
+  onSelect,
+  board,
+  index,
 }: {
-  label: string;
-  value?: number;
-  highlight?: boolean;
-  pulse?: boolean;
+  e: LeaderboardEntry;
+  onSelect: (id: string) => void;
+  board: 'capability' | 'behavior';
+  index: number;
 }) {
+  const isBehavior = board === 'behavior';
+  const val = isBehavior ? e.behaviorScore : e.score;
+  const tested = isBehavior ? e.inArena && e.behaviorScore !== null : e.source === 'real-benchmark' || e.source === 'benchmark';
+  const rankStr = String(e.rank).padStart(2, '0');
+
   return (
-    <div
-      className={`rounded-lg border px-3 py-2.5 ${
-        highlight ? 'border-accent/40 bg-accent/10' : 'border-edge bg-surface'
-      }`}
-    >
-      <div className="font-display text-xl font-700 text-bright">
-        {value ?? '—'}
-        {pulse && (
-          <span className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-accent align-middle" />
-        )}
-      </div>
-      <div className="mt-0.5 text-[11px] font-mono text-dim">{label}</div>
-    </div>
+    <li>
+      <button
+        onClick={() => onSelect(e.agentId)}
+        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_6rem]"
+      >
+        {/* 排名：前三黄铜，其余灰墨 */}
+        <span
+          className={`font-mono text-sm font-semibold ${e.rank <= 3 ? 'text-brass' : 'text-dim'}`}
+        >
+          {rankStr}
+        </span>
+
+        {/* Agent */}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span className="truncate font-display text-[15px] font-bold text-ink">{e.name}</span>
+          <SourceTag source={e.source} />
+          {e.verificationLevel === 'verified' && (
+            <span className="hidden shrink-0 bg-brass px-1.5 py-0.5 font-mono text-[10px] font-semibold text-paper sm:inline">
+              VERIFIED ✦
+            </span>
+          )}
+          <span className="w-full font-mono text-[10px] uppercase tracking-wider text-dim md:hidden">
+            置信 {Math.round(e.confidence * 100)}% · 证据 {e.evidenceCount}
+          </span>
+        </span>
+
+        {/* 证据 */}
+        <span className="hidden text-right font-mono text-sm text-dim tabular-nums md:block">
+          {e.evidenceCount}
+        </span>
+
+        {/* 置信：百分比 + 细条 */}
+        <span className="hidden flex-col items-end gap-1 md:flex">
+          <span className="font-mono text-sm text-ink tabular-nums">
+            {Math.round(e.confidence * 100)}%
+          </span>
+          <span className="block h-[3px] w-16 bg-hairline">
+            <span
+              className="block h-full bg-ledger"
+              style={{ width: `${Math.max(2, Math.round(e.confidence * 100))}%` }}
+            />
+          </span>
+        </span>
+
+        {/* 置信加权分（榜单1）/ 占位（榜单2） */}
+        <span className="hidden text-right font-mono text-sm text-dim tabular-nums md:block">
+          {isBehavior ? '—' : (e.adjustedScore ?? '—')}
+        </span>
+
+        {/* 印章 = 分数本身 */}
+        <span className="flex justify-end">
+          <ScoreSeal score={val} tested={tested} rank={e.rank} size={60} delayMs={index * 55} />
+        </span>
+      </button>
+    </li>
   );
 }
 
@@ -62,96 +121,89 @@ export function Leaderboard({
   const isBehavior = board === 'behavior';
 
   return (
-    <section id="leaderboard" className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+    <section id="leaderboard" className="mx-auto max-w-6xl px-6 py-14 md:py-16">
+      {/* 分册头 */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="font-display text-2xl font-700 text-bright md:text-3xl">
-            🏆 榜单 <span className="text-dim">/ Leaderboard</span>
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+            §1 — THE REGISTER
+          </p>
+          <h2 className="mt-2 font-display text-2xl font-black tracking-tight md:text-3xl">
+            评级名册
           </h2>
-          <p className="mt-2 text-sm text-dim">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-dim">
             {isBehavior
-              ? '行为榜：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。'
-              : '每个分数都可追溯到 evidence，点击任意 Agent 查看完整信用报告。上榜唯一方式：真跑考场。'}
+              ? '行为分册：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。'
+              : '名册按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。'}
           </p>
         </div>
 
-        {/* 双榜切换 */}
-        <div className="flex gap-1 self-start rounded-lg border border-edge bg-surface p-1">
+        {/* 分册切换 */}
+        <div className="flex gap-1 self-start font-mono text-xs">
           <button
             onClick={() => setBoard('capability')}
-            className={`rounded-md px-4 py-2 text-sm font-mono transition ${
-              !isBehavior
-                ? 'bg-accent/20 font-bold text-accent'
-                : 'text-dim hover:text-bright'
+            className={`px-4 py-2 uppercase tracking-widest transition ${
+              !isBehavior ? 'bg-ink text-paper' : 'border border-hairline text-dim hover:text-ink'
             }`}
           >
-            考场榜
+            考场榜 · Capability
           </button>
           <button
             onClick={() => setBoard('behavior')}
-            className={`rounded-md px-4 py-2 text-sm font-mono transition ${
-              isBehavior
-                ? 'bg-accent/20 font-bold text-accent'
-                : 'text-dim hover:text-bright'
+            className={`px-4 py-2 uppercase tracking-widest transition ${
+              isBehavior ? 'bg-ink text-paper' : 'border border-hairline text-dim hover:text-ink'
             }`}
           >
-            行为榜
+            行为榜 · Behavior
           </button>
         </div>
       </div>
 
-      {/* 参与统计：榜单1 / 榜单2 参与数 + 当前排队 */}
-      <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-md">
-        <StatCell
-          label="考场榜参与"
-          value={summary?.leaderboard1Participants}
-          highlight={!isBehavior}
-        />
-        <StatCell
-          label="行为榜参与"
-          value={summary?.leaderboard2Participants}
-          highlight={isBehavior}
-        />
-        <StatCell
-          label="排队等待"
-          value={summary?.queueWaiting}
-          pulse={(summary?.queueWaiting ?? 0) > 0}
-        />
-      </div>
+      {/* 参与统计一行 */}
+      <p className="mb-4 font-mono text-[11px] tracking-wide text-dim">
+        考场 {summary?.leaderboard1Participants ?? '—'} · 行为 {summary?.leaderboard2Participants ?? '—'} ·
+        排队 {summary?.queueWaiting ?? 0}
+        {(summary?.queueWaiting ?? 0) > 0 && (
+          <span className="ml-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-seal align-middle" />
+        )}
+      </p>
 
       {/* 表头 */}
-      <div className="hidden grid-cols-[3rem_1fr_8rem_7rem_6rem] gap-4 border-b border-edge px-4 pb-2 text-[11px] font-mono uppercase tracking-wider text-dim md:grid">
-        <span>排名</span>
-        <span>Agent</span>
-        <span className="text-right">{isBehavior ? '行为分' : '信用分'}</span>
-        <span className="text-right">置信度</span>
+      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
+        <span>Rank</span>
+        <span>Registered Agent</span>
         <span className="text-right">证据</span>
+        <span className="text-right">置信</span>
+        <span className="text-right">加权分</span>
+        <span className="text-right">Seal</span>
       </div>
 
       {entries.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-edge px-6 py-14 text-center">
-          <p className="text-sm text-dim">
-            {isBehavior
-              ? '还没有 Agent 进入行为场。考场信用分 ≥600 后即可加入 Arena（市场行为评测开发中）。'
-              : '还没有真实评测数据。跑一次 npx @acl/sdk test 即可上榜。'}
+        <div className="border border-dashed border-hairline px-6 py-14 text-center">
+          <p className="font-display text-base font-bold text-ink">名册暂时空白。</p>
+          <p className="mt-2 text-sm text-dim">
+            跑一次考场——第一个盖章的就是你：
           </p>
+          <code className="mt-3 inline-block bg-panel px-3 py-1.5 font-mono text-xs text-ledger">
+            npx @acl/sdk test --name my-agent
+          </code>
         </div>
       ) : (
         <>
-          <ol className="divide-y divide-edge">
-            {top10.map((e) => (
-              <Row key={e.agentId} e={e} onSelect={onSelect} showRing={e.rank <= 3} board={board} />
+          <ol className="divide-y divide-hairline border-b-2 border-ink">
+            {top10.map((e, i) => (
+              <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i} />
             ))}
           </ol>
 
           {rest.length > 0 && (
             <details className="mt-2">
-              <summary className="cursor-pointer rounded-lg px-4 py-3 text-sm font-mono text-dim hover:text-bright">
-                展开其余 {rest.length} 个 Agent…
+              <summary className="cursor-pointer px-4 py-3 font-mono text-sm text-dim transition hover:text-ink">
+                翻到名册第二页 — 其余 {rest.length} 个 ⌄
               </summary>
-              <ol className="divide-y divide-edge">
-                {rest.map((e) => (
-                  <Row key={e.agentId} e={e} onSelect={onSelect} showRing={false} board={board} />
+              <ol className="divide-y divide-hairline border-b-2 border-ink">
+                {rest.map((e, i) => (
+                  <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i + 10} />
                 ))}
               </ol>
             </details>
@@ -159,113 +211,19 @@ export function Leaderboard({
         </>
       )}
 
-      {/* 上榜方式（替代旧的一键注册）*/}
-      <div className="mt-6 flex flex-wrap items-center gap-3 rounded-lg border border-edge bg-surface px-4 py-3">
-        <span className="text-xs text-dim">上榜 / 更新分数（同钥即同身份，重跑即更新）：</span>
-        <code className="rounded bg-abyss px-2.5 py-1.5 text-xs font-mono text-accent">
-          npx @acl/sdk test --url http://localhost:3000/agent
+      {/* 上榜方式 */}
+      <div className="mt-6 flex flex-col gap-2 border border-hairline bg-panel px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+        <span className="shrink-0 text-xs text-dim">上榜 / 更新分数（同钥即同身份，重跑即更新）：</span>
+        <code className="overflow-x-auto whitespace-nowrap bg-paper px-2.5 py-1.5 font-mono text-xs text-ledger">
+          $ npx @acl/sdk test --name my-agent --model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
         </code>
       </div>
 
-      <p className="mt-6 text-[11px] font-mono text-dim/70">
-        ⚠️ 数据分三类：<span className="text-accent">SDK 考场</span>（source=real-benchmark，外部开发者 npx 接入，Ed25519 签名上报）、
-        <span className="text-accent/80">真实评测</span>（source=benchmark，DeepSeek 实跑）。
-        仿真数据仅用于引擎自测，不在榜单展示；SDK 数据经签名验证后才可升级 verified。
+      <p className="mt-6 font-mono text-[11px] leading-relaxed text-dim">
+        ⚠️ 数据分三类：<span className="text-seal">SDK 考场</span>（source=real-benchmark，外部开发者 npx
+        接入，Ed25519 签名上报）、<span className="text-brass">真实评测</span>（source=benchmark，DeepSeek
+        实跑）。仿真数据仅用于引擎自测，不在名册展示；SDK 数据经签名验证后才可升级 verified。
       </p>
     </section>
-  );
-}
-
-function SourceBadge({ source }: { source: LeaderboardEntry['source'] }) {
-  if (source === 'real-benchmark') {
-    return (
-      <span className="shrink-0 rounded border border-accent/60 bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-accent">
-        SDK 考场
-      </span>
-    );
-  }
-  if (source === 'benchmark') {
-    return (
-      <span className="shrink-0 rounded border border-accent/40 bg-accent/10 px-1.5 py-0.5 text-[10px] font-mono text-accent">
-        真实评测
-      </span>
-    );
-  }
-  if (source === 'simulation') {
-    return (
-      <span className="shrink-0 rounded border border-edge bg-surface/40 px-1.5 py-0.5 text-[10px] font-mono text-dim">
-        仿真
-      </span>
-    );
-  }
-  return null;
-}
-
-function Row({
-  e,
-  onSelect,
-  showRing,
-  board,
-}: {
-  e: LeaderboardEntry;
-  onSelect: (id: string) => void;
-  showRing: boolean;
-  board: 'capability' | 'behavior';
-}) {
-  const val = board === 'behavior' ? e.behaviorScore : e.score;
-  const barColor = scoreBarColor(val);
-  const barWidth = val != null ? `${Math.max(2, Math.round((val / 1000) * 100))}%` : '0%';
-
-  return (
-    <li>
-      <button
-        onClick={() => onSelect(e.agentId)}
-        className="grid w-full grid-cols-[3rem_1fr_8rem_7rem_6rem] items-center gap-4 px-4 py-3 text-left transition-colors hover:bg-surface/60"
-      >
-        {/* 排名 */}
-        <span className={`font-mono text-sm font-700 ${rankBadge(e.rank)}`}>
-          {e.rank <= 3 ? ['🥇', '🥈', '🥉'][e.rank - 1] : e.rank}
-        </span>
-
-        {/* Agent */}
-        <span className="flex items-center gap-3 min-w-0">
-          <GradeBadge score={val} size="sm" />
-          <span className="truncate font-mono text-sm text-bright">{e.name}</span>
-          <SourceBadge source={e.source} />
-          {e.verificationLevel === 'verified' && (
-            <span className="hidden shrink-0 rounded border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-400 sm:inline">
-              ✦ verified
-            </span>
-          )}
-          <span className="hidden shrink-0 text-[10px] font-mono uppercase tracking-wider text-dim sm:inline">
-            {(e.capabilities ?? []).length} caps
-          </span>
-        </span>
-
-        {/* 分数（考场榜=信用分 / 行为榜=行为分）*/}
-        <span className="text-right">
-          <span className="font-mono text-lg font-700 text-bright tabular-nums">
-            {val ?? <span className="text-dim">—</span>}
-          </span>
-          <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-abyss">
-            <span className="block h-full rounded-full" style={{ width: barWidth, background: barColor }} />
-          </span>
-        </span>
-
-        {/* 置信度 */}
-        <span className="flex items-center justify-end gap-2">
-          {showRing ? (
-            <ScoreRing confidence={e.confidence} size={30} strokeWidth={4} />
-          ) : (
-            <span className="font-mono text-sm text-dim tabular-nums">
-              {Math.round(e.confidence * 100)}%
-            </span>
-          )}
-        </span>
-
-        {/* 证据数 */}
-        <span className="text-right font-mono text-sm text-dim tabular-nums">{e.evidenceCount}</span>
-      </button>
-    </li>
   );
 }

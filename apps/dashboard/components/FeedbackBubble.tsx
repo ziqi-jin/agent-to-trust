@@ -33,50 +33,50 @@ export function FeedbackBubble() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {open && (
-        <div className="w-72 rounded-xl border border-edge bg-surface/95 p-4 shadow-2xl backdrop-blur">
+        <div className="w-72 border border-hairline bg-paper p-4 shadow-xl">
           {status === 'sent' ? (
             <div className="py-3 text-center">
-              <p className="text-sm font-500 text-bright">已收到，多谢 🦾</p>
+              <p className="text-sm font-medium text-ink">已收到，多谢 🦾</p>
               <button
                 onClick={() => {
                   setOpen(false);
                   setStatus('idle');
                 }}
-                className="mt-3 rounded-md border border-edge px-3 py-1 text-xs font-mono text-dim transition hover:text-bright"
+                className="mt-3 border border-hairline px-3 py-1 font-mono text-xs text-dim transition hover:text-ink"
               >
                 关闭
               </button>
             </div>
           ) : (
             <>
-              <p className="mb-2 text-[11px] font-mono text-dim">悄悄说两句 · 只有团队看得到</p>
+              <p className="mb-2 font-mono text-[11px] text-dim">悄悄说两句 · 只有团队看得到</p>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 maxLength={2000}
                 placeholder="哪里好用、哪里别扭，都可以讲"
-                className="w-full resize-none rounded-md border border-edge bg-abyss px-2.5 py-2 text-sm text-bright placeholder:text-dim/60 focus:border-accent/50 focus:outline-none"
+                className="w-full resize-none border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
               <input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 maxLength={200}
                 placeholder="联系方式（可选）"
-                className="mt-2 w-full rounded-md border border-edge bg-abyss px-2.5 py-1.5 text-xs text-bright placeholder:text-dim/60 focus:border-accent/50 focus:outline-none"
+                className="mt-2 w-full border border-hairline bg-panel px-2.5 py-1.5 text-xs text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
-              {error && <p className="mt-1.5 text-xs text-danger">{error}</p>}
+              {error && <p className="mt-1.5 text-xs text-seal">{error}</p>}
               <div className="mt-3 flex justify-end gap-2">
                 <button
                   onClick={() => setOpen(false)}
-                  className="rounded-md px-2.5 py-1 text-xs font-mono text-dim transition hover:text-bright"
+                  className="px-2.5 py-1 font-mono text-xs text-dim transition hover:text-ink"
                 >
                   取消
                 </button>
                 <button
                   onClick={submit}
                   disabled={status === 'sending' || !message.trim()}
-                  className="rounded-md bg-accent/20 px-3 py-1 text-xs font-mono font-500 text-accent transition disabled:opacity-40"
+                  className="bg-ledger px-3 py-1 font-mono text-xs font-medium text-paper transition hover:bg-[#254a3e] disabled:opacity-40"
                 >
                   {status === 'sending' ? '发送中…' : '发送'}
                 </button>
@@ -89,7 +89,7 @@ export function FeedbackBubble() {
         onClick={() => setOpen((v) => !v)}
         aria-label="反馈"
         title="反馈"
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-edge/60 bg-surface/50 text-dim/60 opacity-40 backdrop-blur transition-all hover:border-accent/50 hover:text-accent hover:opacity-100"
+        className="flex h-8 w-8 items-center justify-center border border-hairline bg-paper/80 text-dim/70 opacity-50 transition-all hover:border-ledger hover:text-ledger hover:opacity-100"
       >
         <svg
           width="14"

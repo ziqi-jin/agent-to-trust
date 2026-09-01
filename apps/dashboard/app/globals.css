@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
@@ -12,37 +12,60 @@ body {
 }
 
 body {
-  background: #0b0e14;
-  color: #e6eaf2;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #f5f6f1;
+  color: #17271f;
+  font-family: var(--font-archivo), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* 细滚动条 */
+::selection {
+  background: #17271f;
+  color: #f5f6f1;
+}
+
+/* 细滚动条（划线灰） */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2b3547 transparent;
+  scrollbar-color: #cbd3c1 transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2b3547;
+  background: #cbd3c1;
   border-radius: 4px;
 }
 
-/* 分数大数字等宽 + 微光 */
-.score-glow {
-  text-shadow: 0 0 24px rgba(52, 211, 153, 0.35);
+/* ── 签名元素：印章落下 ─────────────────────────────
+   每枚印章带 --rot（确定性微旋转），错落延迟"盖"到纸上。
+   尊重 prefers-reduced-motion：直接呈现，不播动画。 */
+@keyframes stamp-in {
+  0% {
+    opacity: 0;
+    transform: scale(1.22) rotate(calc(var(--rot, 0deg) - 4deg));
+  }
+  62% {
+    opacity: 1;
+    transform: scale(0.97) rotate(var(--rot, 0deg));
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(var(--rot, 0deg));
+  }
+}
+.stamp-in {
+  animation: stamp-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
-/* 实验室网格背景 */
-.bg-grid {
-  background-image:
-    linear-gradient(rgba(35, 43, 58, 0.5) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(35, 43, 58, 0.5) 1px, transparent 1px);
-  background-size: 48px 48px;
+@media (prefers-reduced-motion: reduce) {
+  .stamp-in {
+    animation: none;
+  }
+  .ticker-track {
+    animation: none;
+  }
 }
 
 /* 证据流 ticker */
@@ -55,7 +78,7 @@ body {
   }
 }
 .ticker-track {
-  animation: ticker-scroll 40s linear infinite;
+  animation: ticker-scroll 44s linear infinite;
 }
 .ticker-track:hover {
   animation-play-state: paused;
