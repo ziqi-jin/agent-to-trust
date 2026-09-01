@@ -148,9 +148,14 @@ export async function simulationRoutes(app: FastifyInstance) {
 
     return filtered
       .sort((x, y) => {
-        const xv = board === 'behavior' ? (x.behaviorScore ?? -1) : (x.score ?? -1);
-        const yv = board === 'behavior' ? (y.behaviorScore ?? -1) : (y.score ?? -1);
-        return yv - xv;
+        if (board === 'behavior') {
+          return (y.behaviorScore ?? -1) - (x.behaviorScore ?? -1);
+        }
+        // 榜单1：置信加权分优先——1000 分低置信不该压过 797 分高置信（dogfood 0901 发现）
+        const xa = x.adjustedScore ?? -1;
+        const ya = y.adjustedScore ?? -1;
+        if (ya !== xa) return ya - xa;
+        return (y.score ?? -1) - (x.score ?? -1);
       })
       .map((row, i) => ({ ...row, rank: i + 1 }));
   });
