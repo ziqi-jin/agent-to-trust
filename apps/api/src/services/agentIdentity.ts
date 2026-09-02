@@ -54,7 +54,7 @@ export async function upsertAgentIdentity(
         verificationLevel: existing.pubkey ? existing.verificationLevel : 'basic',
         endpoint: input.endpoint !== undefined ? input.endpoint : existing.endpoint,
         model: input.model !== undefined ? input.model : existing.model,
-        version: input.version !== undefined ? input.version : existing.version,
+        agentVersion: input.version !== undefined ? input.version : existing.agentVersion,
         lastSeenAt: new Date(),
       })
       .where(eq(agents.id, existing.id));
@@ -73,7 +73,7 @@ export async function upsertAgentIdentity(
       pubkey: input.pubkey,
       endpoint: input.endpoint ?? null,
       model: input.model ?? null,
-      version: input.version ?? null,
+      agentVersion: input.version ?? null,
       lastSeenAt: new Date(),
     })
     .onConflictDoNothing();
