@@ -25,6 +25,10 @@ export interface IdentityInput {
   pubkey: string;
   /** 考场 ingest 携带被测 endpoint；Arena 注册不传则保留原值。 */
   endpoint?: string;
+  /** 展示用：被测 agent 的模型名（显式上报，未提供保留原值/空）。 */
+  model?: string;
+  /** 展示用：被测 agent 软件版本（如 claude-code 2.1.258）。 */
+  version?: string;
 }
 
 export interface IdentityResult {
@@ -49,6 +53,8 @@ export async function upsertAgentIdentity(
         pubkey: existing.pubkey ?? input.pubkey,
         verificationLevel: existing.pubkey ? existing.verificationLevel : 'basic',
         endpoint: input.endpoint !== undefined ? input.endpoint : existing.endpoint,
+        model: input.model !== undefined ? input.model : existing.model,
+        version: input.version !== undefined ? input.version : existing.version,
         lastSeenAt: new Date(),
       })
       .where(eq(agents.id, existing.id));
@@ -66,6 +72,8 @@ export async function upsertAgentIdentity(
       verificationLevel: 'basic',
       pubkey: input.pubkey,
       endpoint: input.endpoint ?? null,
+      model: input.model ?? null,
+      version: input.version ?? null,
       lastSeenAt: new Date(),
     })
     .onConflictDoNothing();

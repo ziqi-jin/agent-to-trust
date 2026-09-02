@@ -72,6 +72,8 @@ ALTER TABLE credit_scores ADD COLUMN IF NOT EXISTS coverage real NOT NULL DEFAUL
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS pubkey text;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS endpoint text;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS model text;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS agent_version text;
 
 CREATE TABLE IF NOT EXISTS ingest_nonces (
   nonce text PRIMARY KEY,

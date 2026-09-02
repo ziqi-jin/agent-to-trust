@@ -20,6 +20,10 @@ export const agents = pgTable('agents', {
   /** 被测 endpoint（endpoint 模式记录，供抽样复算）。 */
   endpoint: text('endpoint'),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  /** 展示用：被测 agent 用的模型名（显式上报，未提供为空）。 */
+  model: text('model'),
+  /** 展示用：被测 agent 软件版本（如 claude-code 2.1.258）。 */
+  agentVersion: text('agent_version'),
 });
 
 /** 上报 nonce（防重放）：一次性，插入冲突即重放。 */

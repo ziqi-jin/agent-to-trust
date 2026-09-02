@@ -130,6 +130,8 @@ export async function simulationRoutes(app: FastifyInstance) {
           verificationLevel: a.verificationLevel,
           capabilities: a.capabilities ?? [],
           source,
+          model: a.model ?? null,
+          agentVersion: a.agentVersion ?? null,
           score: sc?.score ?? null,
           adjustedScore: sc?.adjustedScore ?? null,
           confidence: sc?.confidence ?? 0,

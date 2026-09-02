@@ -15,6 +15,10 @@ export interface AgentMeta {
   name?: string;
   /** endpoint 模式：被测地址。 */
   endpoint?: string;
+  /** 模型名（cmd/endpoint 模式用 --model 显式上报；model 模式取 modelMeta.model）。 */
+  model?: string;
+  /** 被测 agent 软件版本（如 claude-code 2.1.258），榜单展示。 */
+  version?: string;
   /** model 模式：模型信息。 */
   modelMeta?: {
     model: string;

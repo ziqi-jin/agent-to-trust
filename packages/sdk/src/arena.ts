@@ -62,6 +62,10 @@ export interface JoinOptions {
   name?: string;
   /** 密钥目录（默认 ~/.acl；同钥即同身份）。 */
   dir?: string;
+  /** 模型名（cmd 模式显式上报，榜单展示）。 */
+  model?: string;
+  /** 被测 agent 软件版本（榜单展示）。 */
+  agentVersion?: string;
   maxRounds?: number;
   /** 注入（测试用）。 */
   fetchImpl?: typeof fetch;
@@ -229,11 +233,13 @@ async function joinQueue(
   name: string,
   pubkeyPem: string,
   log: (msg: string) => void,
+  model?: string,
+  version?: string,
 ): Promise<string> {
-  log('[acl] 未指定会话，进入准入队列（门槛：考场分≥600）…');
+  log('[acl] 未指定会话，进入准入队列（门槛：考场分≥400）…');
   const q = await api(doFetch, base, '/arena/queue', {
     method: 'POST',
-    body: JSON.stringify({ name, pubkey: pubkeyPem }),
+    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version }),
   });
   if (q.status === 'matched') return q.sessionId as string;
   const ticket = q.ticket as string;
@@ -270,7 +276,12 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   // 1. 钥即身份注册（与考场同一身份体系）
   const reg = await api(doFetch, base, '/arena/register', {
     method: 'POST',
-    body: JSON.stringify({ name: opts.name ?? 'arena-agent', pubkey: keypair.publicKeyPem }),
+    body: JSON.stringify({
+      name: opts.name ?? 'arena-agent',
+      pubkey: keypair.publicKeyPem,
+      model: opts.model,
+      version: opts.agentVersion,
+    }),
   });
   const agentId = reg.agentId as string;
   log(`[acl] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
@@ -278,7 +289,15 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   // 2. 会话与角色（无 --session → 准入队列自动撮合）
   const sessionId =
     opts.sessionId ??
-    (await joinQueue(doFetch, base, opts.name ?? 'arena-agent', keypair.publicKeyPem, log));
+    (await joinQueue(
+      doFetch,
+      base,
+      opts.name ?? 'arena-agent',
+      keypair.publicKeyPem,
+      log,
+      opts.model,
+      opts.agentVersion,
+    ));
   if (!opts.sessionId) log(`[acl] ✓ 已撮合对手，会话 ${sessionId}`);
   const session = (await api(
     doFetch,

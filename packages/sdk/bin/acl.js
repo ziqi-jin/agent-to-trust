@@ -818,6 +818,8 @@ function buildIngestPayload(suite, meta, keypair) {
   const body = {
     agentName: meta.name ?? "unnamed-agent",
     agentEndpoint: meta.endpoint,
+    agentModel: meta.model ?? meta.modelMeta?.model,
+    agentVersion: meta.version,
     modelMeta: meta.modelMeta,
     benchmarkVersion: suite.benchmarkVersion,
     seed: suite.seed,
@@ -952,11 +954,11 @@ async function api(fetchImpl, base, path, init) {
   }
   return body;
 }
-async function joinQueue(doFetch, base, name, pubkeyPem, log) {
-  log("[acl] \u672A\u6307\u5B9A\u4F1A\u8BDD\uFF0C\u8FDB\u5165\u51C6\u5165\u961F\u5217\uFF08\u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265600\uFF09\u2026");
+async function joinQueue(doFetch, base, name, pubkeyPem, log, model, version) {
+  log("[acl] \u672A\u6307\u5B9A\u4F1A\u8BDD\uFF0C\u8FDB\u5165\u51C6\u5165\u961F\u5217\uFF08\u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF09\u2026");
   const q = await api(doFetch, base, "/arena/queue", {
     method: "POST",
-    body: JSON.stringify({ name, pubkey: pubkeyPem })
+    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version })
   });
   if (q.status === "matched") return q.sessionId;
   const ticket = q.ticket;
@@ -982,11 +984,24 @@ async function runJoinLoop(opts) {
   const base = opts.apiBase.replace(/\/+$/, "");
   const reg = await api(doFetch, base, "/arena/register", {
     method: "POST",
-    body: JSON.stringify({ name: opts.name ?? "arena-agent", pubkey: keypair.publicKeyPem })
+    body: JSON.stringify({
+      name: opts.name ?? "arena-agent",
+      pubkey: keypair.publicKeyPem,
+      model: opts.model,
+      version: opts.agentVersion
+    })
   });
   const agentId = reg.agentId;
   log(`[acl] \u5DF2\u6CE8\u518C Arena \u8EAB\u4EFD ${agentId}${reg.reused ? "\uFF08\u540C\u94A5\u590D\u7528\uFF09" : ""}`);
-  const sessionId = opts.sessionId ?? await joinQueue(doFetch, base, opts.name ?? "arena-agent", keypair.publicKeyPem, log);
+  const sessionId = opts.sessionId ?? await joinQueue(
+    doFetch,
+    base,
+    opts.name ?? "arena-agent",
+    keypair.publicKeyPem,
+    log,
+    opts.model,
+    opts.agentVersion
+  );
   if (!opts.sessionId) log(`[acl] \u2713 \u5DF2\u64AE\u5408\u5BF9\u624B\uFF0C\u4F1A\u8BDD ${sessionId}`);
   const session = await api(
     doFetch,
@@ -1199,7 +1214,7 @@ var USAGE = `@acl/sdk \u2014 Agent Credit Lab \u672C\u5730\u8003\u573A
   acl join [--session <\u4F1A\u8BDDid>] --url <endpoint> [--name <agent\u540D>]
       \u52A0\u5165 Arena \u5E02\u573A\u4F1A\u8BDD\uFF08buyer/seller \u56DE\u5408\u5236\u4EA4\u6613\uFF0C\u8DD1\u5230\u7ED3\u7B97\u4E3A\u6B62\uFF09
       \u4E0D\u5E26 --session \u65F6\u81EA\u52A8\u8FDB\u5165\u51C6\u5165\u961F\u5217\u64AE\u5408\uFF1A
-      \xB7 \u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265600\uFF08\u5148\u8DD1 acl test \u62FF\u771F\u5B9E\u6210\u7EE9\uFF09
+      \xB7 \u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF08\u5148\u8DD1 acl test \u62FF\u771F\u5B9E\u6210\u7EE9\uFF09
       \xB7 \u6709\u5176\u4ED6\u5408\u683C agent \u6392\u961F \u2192 \u7ACB\u5373\u4E92\u4E3A\u5BF9\u624B
       \xB7 \u5355\u4EBA\u6392\u961F\u7EA6 12 \u79D2\u540E\u7531\u5E73\u53F0\u811A\u672C\u4E70\u5BB6\u63A5\u5355\u5F00\u5C40\uFF08\u5148\u624B\u51FA\u4EF7\uFF09
     [--max-rounds <n>]  \u6700\u5927\u56DE\u5408\u6570\uFF08\u9ED8\u8BA4 20\uFF09
@@ -1218,6 +1233,7 @@ function parseCli(argv) {
         name: { type: "string" },
         url: { type: "string" },
         model: { type: "string" },
+        "agent-version": { type: "string" },
         "base-url": { type: "string" },
         "api-key": { type: "string" },
         persona: { type: "string" },
@@ -1233,6 +1249,7 @@ function parseCli(argv) {
         name: values.name,
         url: values.url,
         model: values.model,
+        agentVersion: values["agent-version"],
         baseUrl: values["base-url"],
         apiKey: values["api-key"],
         persona: values.persona,
@@ -1251,6 +1268,7 @@ function parseCli(argv) {
         name: { type: "string" },
         url: { type: "string" },
         model: { type: "string" },
+        "agent-version": { type: "string" },
         "base-url": { type: "string" },
         "api-key": { type: "string" },
         persona: { type: "string" },
@@ -1268,6 +1286,7 @@ function parseCli(argv) {
         name: values.name,
         url: values.url,
         model: values.model,
+        agentVersion: values["agent-version"],
         baseUrl: values["base-url"],
         apiKey: values["api-key"],
         persona: values.persona,
@@ -1286,8 +1305,8 @@ function validateTestOptions(t) {
   if (!t.url && !t.model && !t.cmd) {
     return '\u7F3A\u5C11\u88AB\u6D4B\u5BF9\u8C61\uFF1A--url <endpoint> \u6216 --cmd "<\u547D\u4EE4>" \u6216 --model <model> --base-url <url> --api-key <key>';
   }
-  if (t.model && (!t.baseUrl || !t.apiKey)) {
-    return "--model \u6A21\u5F0F\u9700\u8981\u540C\u65F6\u63D0\u4F9B --base-url \u548C --api-key";
+  if (t.model && !t.url && !t.cmd && (!t.baseUrl || !t.apiKey)) {
+    return "--model \u6A21\u5F0F\u9700\u8981\u540C\u65F6\u63D0\u4F9B --base-url \u548C --api-key\uFF08--cmd/--url \u6A21\u5F0F\u4E0B --model \u4EC5\u4F5C\u6A21\u578B\u4E0A\u62A5\uFF09";
   }
   return null;
 }
@@ -1295,8 +1314,8 @@ function validateJoinOptions(j) {
   if (!j.url && !j.model && !j.cmd) {
     return '\u7F3A\u5C11\u88AB\u6D4B\u5BF9\u8C61\uFF1A--url <endpoint> \u6216 --cmd "<\u547D\u4EE4>" \u6216 --model <model> --base-url <url> --api-key <key>';
   }
-  if (j.model && (!j.baseUrl || !j.apiKey)) {
-    return "--model \u6A21\u5F0F\u9700\u8981\u540C\u65F6\u63D0\u4F9B --base-url \u548C --api-key";
+  if (j.model && !j.url && !j.cmd && (!j.baseUrl || !j.apiKey)) {
+    return "--model \u6A21\u5F0F\u9700\u8981\u540C\u65F6\u63D0\u4F9B --base-url \u548C --api-key\uFF08--cmd/--url \u6A21\u5F0F\u4E0B --model \u4EC5\u4F5C\u6A21\u578B\u4E0A\u62A5\uFF09";
   }
   return null;
 }
@@ -1342,7 +1361,9 @@ async function main() {
           meta: {
             name,
             endpoint: t.url ?? (t.cmd ? `cmd:${t.cmd.slice(0, 120)}` : void 0),
-            modelMeta: t.model ? { model: t.model, baseUrl: t.baseUrl, persona: t.persona } : void 0
+            model: t.model,
+            version: t.agentVersion,
+            modelMeta: t.model ? { model: t.model, baseUrl: t.baseUrl ?? "", persona: t.persona } : void 0
           },
           apiBase,
           dir: t.dir

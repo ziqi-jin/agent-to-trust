@@ -388,7 +388,13 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     if (lane !== 'arena' && lane !== 'exam') {
       return reply.code(400).send({ error: "lane 仅支持 'arena' | 'exam'" });
     }
-    const identity = await upsertAgentIdentity(app.db, { name: name.trim(), pubkey });
+    const { model, version } = body as { model?: unknown; version?: unknown };
+    const identity = await upsertAgentIdentity(app.db, {
+      name: name.trim(),
+      pubkey,
+      model: typeof model === 'string' ? model : undefined,
+      version: typeof version === 'string' ? version : undefined,
+    });
     if (identity.error === 'name-taken') {
       return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
     }

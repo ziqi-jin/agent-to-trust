@@ -24,6 +24,8 @@ export interface TestOptions {
   name?: string;
   url?: string;
   model?: string;
+  /** 被测 agent 软件版本（榜单展示，如 2.1.258）。 */
+  agentVersion?: string;
   baseUrl?: string;
   apiKey?: string;
   persona?: string;
@@ -42,6 +44,8 @@ export interface JoinCliOptions {
   name?: string;
   url?: string;
   model?: string;
+  /** 被测 agent 软件版本（榜单展示，如 2.1.258）。 */
+  agentVersion?: string;
   baseUrl?: string;
   apiKey?: string;
   persona?: string;
@@ -83,7 +87,7 @@ const USAGE = `@acl/sdk — Agent Credit Lab 本地考场
   acl join [--session <会话id>] --url <endpoint> [--name <agent名>]
       加入 Arena 市场会话（buyer/seller 回合制交易，跑到结算为止）
       不带 --session 时自动进入准入队列撮合：
-      · 门槛：考场分≥600（先跑 acl test 拿真实成绩）
+      · 门槛：考场分≥400（先跑 acl test 拿真实成绩）
       · 有其他合格 agent 排队 → 立即互为对手
       · 单人排队约 12 秒后由平台脚本买家接单开局（先手出价）
     [--max-rounds <n>]  最大回合数（默认 20）
@@ -103,6 +107,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: { type: 'string' },
         url: { type: 'string' },
         model: { type: 'string' },
+        'agent-version': { type: 'string' },
         'base-url': { type: 'string' },
         'api-key': { type: 'string' },
         persona: { type: 'string' },
@@ -118,6 +123,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: values.name,
         url: values.url,
         model: values.model,
+        agentVersion: values['agent-version'],
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
         persona: values.persona,
@@ -136,6 +142,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: { type: 'string' },
         url: { type: 'string' },
         model: { type: 'string' },
+        'agent-version': { type: 'string' },
         'base-url': { type: 'string' },
         'api-key': { type: 'string' },
         persona: { type: 'string' },
@@ -153,6 +160,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: values.name,
         url: values.url,
         model: values.model,
+        agentVersion: values['agent-version'],
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
         persona: values.persona,
@@ -173,8 +181,8 @@ export function validateTestOptions(t: TestOptions): string | null {
   if (!t.url && !t.model && !t.cmd) {
     return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
   }
-  if (t.model && (!t.baseUrl || !t.apiKey)) {
-    return '--model 模式需要同时提供 --base-url 和 --api-key';
+  if (t.model && !t.url && !t.cmd && (!t.baseUrl || !t.apiKey)) {
+    return '--model 模式需要同时提供 --base-url 和 --api-key（--cmd/--url 模式下 --model 仅作模型上报）';
   }
   return null;
 }
@@ -184,8 +192,8 @@ export function validateJoinOptions(j: JoinCliOptions): string | null {
   if (!j.url && !j.model && !j.cmd) {
     return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
   }
-  if (j.model && (!j.baseUrl || !j.apiKey)) {
-    return '--model 模式需要同时提供 --base-url 和 --api-key';
+  if (j.model && !j.url && !j.cmd && (!j.baseUrl || !j.apiKey)) {
+    return '--model 模式需要同时提供 --base-url 和 --api-key（--cmd/--url 模式下 --model 仅作模型上报）';
   }
   return null;
 }
@@ -239,8 +247,10 @@ async function main(): Promise<void> {
           meta: {
             name,
             endpoint: t.url ?? (t.cmd ? `cmd:${t.cmd.slice(0, 120)}` : undefined),
+            model: t.model,
+            version: t.agentVersion,
             modelMeta: t.model
-              ? { model: t.model, baseUrl: t.baseUrl!, persona: t.persona }
+              ? { model: t.model, baseUrl: t.baseUrl ?? '', persona: t.persona }
               : undefined,
           },
           apiBase,

@@ -83,7 +83,13 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
     ) {
       return reply.code(400).send({ error: 'name/pubkey 必填（PEM）' });
     }
-    const identity = await upsertAgentIdentity(app.db, { name: name.trim(), pubkey });
+    const { model, version } = body as { model?: unknown; version?: unknown };
+    const identity = await upsertAgentIdentity(app.db, {
+      name: name.trim(),
+      pubkey,
+      model: typeof model === 'string' ? model : undefined,
+      version: typeof version === 'string' ? version : undefined,
+    });
     if (identity.error === 'name-taken') {
       return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });
     }

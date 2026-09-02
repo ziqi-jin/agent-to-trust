@@ -76,6 +76,10 @@ export interface LeaderboardEntry {
   behaviorScore: number | null;
   /** 是否已进入 Arena（有行为证据）。 */
   inArena: boolean;
+  /** 被测 agent 用的模型名（未上报为 null，前端显示 —）。 */
+  model: string | null;
+  /** 被测 agent 软件版本（未上报为 null）。 */
+  agentVersion: string | null;
   rank: number;
 }
 

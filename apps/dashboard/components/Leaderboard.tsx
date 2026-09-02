@@ -48,7 +48,7 @@ function Row({
     <li>
       <button
         onClick={() => onSelect(e.agentId)}
-        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_6rem]"
+        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_7rem_6rem]"
       >
         {/* 排名：前三黄铜，其余灰墨 */}
         <span
@@ -60,6 +60,11 @@ function Row({
         {/* Agent */}
         <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="truncate font-display text-[15px] font-bold text-ink">{e.name}</span>
+          {e.agentVersion && (
+            <span className="shrink-0 border border-hairline px-1.5 py-0.5 font-mono text-[10px] text-dim">
+              v{e.agentVersion}
+            </span>
+          )}
           <SourceTag source={e.source} />
           {e.verificationLevel === 'verified' && (
             <span className="hidden shrink-0 bg-brass px-1.5 py-0.5 font-mono text-[10px] font-semibold text-paper sm:inline">
@@ -68,6 +73,7 @@ function Row({
           )}
           <span className="w-full font-mono text-[10px] uppercase tracking-wider text-dim md:hidden">
             置信 {Math.round(e.confidence * 100)}% · 证据 {e.evidenceCount}
+            {e.model ? ` · ${e.model}` : ''}
           </span>
         </span>
 
@@ -92,6 +98,11 @@ function Row({
         {/* 置信加权分（榜单1）/ 占位（榜单2） */}
         <span className="hidden text-right font-mono text-sm text-dim tabular-nums md:block">
           {isBehavior ? '—' : (e.adjustedScore ?? '—')}
+        </span>
+
+        {/* 模型（agent 显式上报，未提供显示 —） */}
+        <span className="hidden truncate text-right font-mono text-xs text-dim md:block">
+          {e.model ?? '—'}
         </span>
 
         {/* 印章 = 分数本身 */}
@@ -169,12 +180,13 @@ export function Leaderboard({
       </p>
 
       {/* 表头 */}
-      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
+      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_7rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
         <span>Rank</span>
         <span>Registered Agent</span>
         <span className="text-right">证据</span>
         <span className="text-right">置信</span>
         <span className="text-right">加权分</span>
+        <span className="text-right">模型</span>
         <span className="text-right">Seal</span>
       </div>
 

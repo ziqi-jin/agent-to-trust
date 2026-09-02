@@ -77,6 +77,8 @@ export async function ingestRoutes(app: FastifyInstance) {
     const {
       agentName,
       agentEndpoint,
+      agentModel,
+      agentVersion,
       benchmarkVersion,
       results,
       pubkey,
@@ -86,6 +88,8 @@ export async function ingestRoutes(app: FastifyInstance) {
     } = body as Record<string, never> & {
       agentName?: unknown;
       agentEndpoint?: unknown;
+      agentModel?: unknown;
+      agentVersion?: unknown;
       benchmarkVersion?: unknown;
       results?: unknown;
       pubkey?: unknown;
@@ -155,6 +159,8 @@ export async function ingestRoutes(app: FastifyInstance) {
       name: cleanName,
       pubkey,
       endpoint: typeof agentEndpoint === 'string' ? agentEndpoint : undefined,
+      model: typeof agentModel === 'string' ? agentModel : undefined,
+      version: typeof agentVersion === 'string' ? agentVersion : undefined,
     });
     if (identity.error === 'name-taken') {
       return reply.code(403).send({ error: '该 agent 名称已被其他密钥绑定' });

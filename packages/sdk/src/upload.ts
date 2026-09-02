@@ -34,6 +34,8 @@ export function buildIngestPayload(
   const body = {
     agentName: meta.name ?? 'unnamed-agent',
     agentEndpoint: meta.endpoint,
+    agentModel: meta.model ?? meta.modelMeta?.model,
+    agentVersion: meta.version,
     modelMeta: meta.modelMeta,
     benchmarkVersion: suite.benchmarkVersion,
     seed: suite.seed,
