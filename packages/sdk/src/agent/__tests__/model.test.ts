@@ -6,6 +6,7 @@ let server: Server;
 let baseUrl: string;
 let lastAuth: string | undefined;
 let lastBody = '';
+let errorResponse: { status: number; body: string } | null = null;
 
 beforeAll(async () => {
   server = createServer((req, res) => {
@@ -15,6 +16,11 @@ beforeAll(async () => {
       lastAuth = req.headers.authorization;
       lastBody = body;
       res.setHeader('content-type', 'application/json');
+      if (errorResponse) {
+        res.statusCode = errorResponse.status;
+        res.end(errorResponse.body);
+        return;
+      }
       res.end(JSON.stringify({ choices: [{ message: { content: '模型回复' } }] }));
     });
   });
@@ -55,5 +61,19 @@ describe('ModelAgent', () => {
     const body = JSON.parse(lastBody) as { messages: { role: string }[] };
     expect(body.messages).toHaveLength(1);
     expect(body.messages[0].role).toBe('user');
+  });
+
+  it('includes error body digest when API returns non-200', async () => {
+    errorResponse = {
+      status: 500,
+      body: JSON.stringify({ error: { code: '1210', message: '内部异常' } }),
+    };
+    try {
+      const agent = new ModelAgent({ model: 'm', baseUrl, apiKey: 'k' });
+      await expect(agent.reply('x')).rejects.toThrow(/500/);
+      await expect(agent.reply('x')).rejects.toThrow(/内部异常/);
+    } finally {
+      errorResponse = null;
+    }
   });
 });

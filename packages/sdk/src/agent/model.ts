@@ -46,7 +46,10 @@ export class ModelAgent implements AclAgent {
       body: JSON.stringify({ model: this.opts.model, messages }),
     });
     if (!res.ok) {
-      throw new Error(`模型 API 返回 ${res.status}`);
+      // 带上响应体摘要：厂商 5xx/4xx 的真实原因（限流/审核/参数）全在 body 里，不能只报状态码
+      const errBody = await res.text().catch(() => '');
+      const digest = errBody.replace(/\s+/g, ' ').trim().slice(0, 200);
+      throw new Error(`模型 API 返回 ${res.status}${digest ? `：${digest}` : ''}`);
     }
     const json = (await res.json()) as ChatCompletionResponse;
     const content = json.choices?.[0]?.message?.content;
