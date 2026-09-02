@@ -36,8 +36,11 @@ var ModelAgent = class {
   constructor(opts) {
     this.opts = opts;
     this.fetchImpl = opts.fetchImpl ?? fetch;
+    this.timeoutMs = opts.timeoutMs ?? 12e4;
   }
   fetchImpl;
+  fetchImpl;
+  timeoutMs;
   async reply(prompt) {
     const messages = [];
     if (this.opts.persona) {
@@ -45,16 +48,27 @@ var ModelAgent = class {
     }
     messages.push({ role: "user", content: prompt });
     const url = `${this.opts.baseUrl.replace(/\/+$/, "")}/chat/completions`;
-    const res = await this.fetchImpl(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${this.opts.apiKey}`
-      },
-      body: JSON.stringify({ model: this.opts.model, messages })
-    });
+    let res;
+    try {
+      res = await this.fetchImpl(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${this.opts.apiKey}`
+        },
+        body: JSON.stringify({ model: this.opts.model, messages }),
+        signal: AbortSignal.timeout(this.timeoutMs)
+      });
+    } catch (err) {
+      if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+        throw new Error(`\u6A21\u578B\u8BF7\u6C42\u8D85\u65F6\uFF08${Math.round(this.timeoutMs / 1e3)}s \u65E0\u54CD\u5E94\uFF09`);
+      }
+      throw err;
+    }
     if (!res.ok) {
-      throw new Error(`\u6A21\u578B API \u8FD4\u56DE ${res.status}`);
+      const errBody = await res.text().catch(() => "");
+      const digest = errBody.replace(/\s+/g, " ").trim().slice(0, 200);
+      throw new Error(`\u6A21\u578B API \u8FD4\u56DE ${res.status}${digest ? `\uFF1A${digest}` : ""}`);
     }
     const json = await res.json();
     const content = json.choices?.[0]?.message?.content;
@@ -659,8 +673,29 @@ function summarize(results) {
   }
   return [...byDim.entries()].map(([dimension, { total, n }]) => ({ dimension, value: round2(total / n) })).sort((a, b) => a.dimension.localeCompare(b.dimension));
 }
+var AGENT_REPLY_RETRIES = 1;
+async function replyWithRetry(agent, prompt) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await agent.reply(prompt);
+    } catch (err) {
+      if (attempt >= AGENT_REPLY_RETRIES) throw err;
+    }
+  }
+}
+function failureCase(caseId, dimension, scoreDimension, err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  return {
+    caseId,
+    dimension,
+    scoreDimension,
+    value: 0,
+    result: "failure",
+    rawOutput: `[\u6267\u884C\u5931\u8D25] ${msg}`
+  };
+}
 async function runSingleTurn(agent, c) {
-  const rawOutput = await agent.reply(c.prompt);
+  const rawOutput = await replyWithRetry(agent, c.prompt);
   const g = c.grade(rawOutput);
   return {
     caseId: c.id,
@@ -746,11 +781,19 @@ async function runSuite(agent, opts = {}) {
   const keep = opts.filter ?? (() => true);
   for (const c of loadSuite()) {
     if (!keep(c.id, c.dimension)) continue;
-    results.push(await runSingleTurn(agent, c));
+    try {
+      results.push(await runSingleTurn(agent, c));
+    } catch (err) {
+      results.push(failureCase(c.id, c.dimension, DIMENSION_MAP[c.dimension], err));
+    }
   }
   for (const sc of NEGOTIATION_SCENARIOS) {
     if (!keep(sc.id, "negotiation")) continue;
-    results.push(await runNegotiation(agent, sc));
+    try {
+      results.push(await runNegotiation(agent, sc));
+    } catch (err) {
+      results.push(failureCase(sc.id, "negotiation", "negotiation", err));
+    }
   }
   const finishedAt = (/* @__PURE__ */ new Date()).toISOString();
   return {

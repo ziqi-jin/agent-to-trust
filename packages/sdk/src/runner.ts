@@ -54,6 +54,38 @@ function summarize(results: CaseResult[]): SuiteResult['summary'] {
     .sort((a, b) => a.dimension.localeCompare(b.dimension));
 }
 
+/** 单题失败重试次数（厂商 5xx 抖动不应毁整场）。 */
+const AGENT_REPLY_RETRIES = 1;
+
+/** 单次回复，瞬时失败重试 1 次；连续失败上抛由 runSuite 记 failure case。 */
+async function replyWithRetry(agent: AclAgent, prompt: string): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await agent.reply(prompt);
+    } catch (err) {
+      if (attempt >= AGENT_REPLY_RETRIES) throw err;
+    }
+  }
+}
+
+/** agent 彻底失声时的 failure case（value 0，错误原因进 rawOutput 可追溯）。 */
+function failureCase(
+  caseId: string,
+  dimension: CaseResult['dimension'],
+  scoreDimension: CaseResult['scoreDimension'],
+  err: unknown,
+): CaseResult {
+  const msg = err instanceof Error ? err.message : String(err);
+  return {
+    caseId,
+    dimension,
+    scoreDimension,
+    value: 0,
+    result: 'failure',
+    rawOutput: `[执行失败] ${msg}`,
+  };
+}
+
 /** 跑单轮题：prompt 进 → 回复出 → 确定性 grader 打分。 */
 async function runSingleTurn(
   agent: AclAgent,
@@ -64,7 +96,7 @@ async function runSingleTurn(
     grade: (o: string) => { value: number; result: EvidenceResult };
   },
 ): Promise<CaseResult> {
-  const rawOutput = await agent.reply(c.prompt);
+  const rawOutput = await replyWithRetry(agent, c.prompt);
   const g = c.grade(rawOutput);
   return {
     caseId: c.id,
@@ -169,11 +201,19 @@ export async function runSuite(agent: AclAgent, opts: RunOptions = {}): Promise<
 
   for (const c of loadSuite()) {
     if (!keep(c.id, c.dimension)) continue;
-    results.push(await runSingleTurn(agent, c));
+    try {
+      results.push(await runSingleTurn(agent, c));
+    } catch (err) {
+      results.push(failureCase(c.id, c.dimension, DIMENSION_MAP[c.dimension], err));
+    }
   }
   for (const sc of NEGOTIATION_SCENARIOS) {
     if (!keep(sc.id, 'negotiation')) continue;
-    results.push(await runNegotiation(agent, sc));
+    try {
+      results.push(await runNegotiation(agent, sc));
+    } catch (err) {
+      results.push(failureCase(sc.id, 'negotiation', 'negotiation', err));
+    }
   }
 
   const finishedAt = new Date().toISOString();

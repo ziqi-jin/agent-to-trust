@@ -24,6 +24,25 @@ class EchoAgent implements AclAgent {
   }
 }
 
+/** 第一次 reply 报错，之后正常（模拟厂商瞬时 5xx）。 */
+class FlakyAgent implements AclAgent {
+  private failed = false;
+  async reply(prompt: string): Promise<string> {
+    if (!this.failed) {
+      this.failed = true;
+      throw new Error('模型 API 返回 500');
+    }
+    return `echo: ${prompt.slice(0, 10)}`;
+  }
+}
+
+/** 永远报错（模型服务彻底不可用）。 */
+class AlwaysFailAgent implements AclAgent {
+  async reply(_prompt: string): Promise<string> {
+    throw new Error('连接超时');
+  }
+}
+
 describe('runSuite', () => {
   it('runs 33 cases (30 single-turn + 3 negotiation) and summarizes', async () => {
     const res = await runSuite(new EchoAgent());
@@ -40,6 +59,24 @@ describe('runSuite', () => {
     const a = await runSuite(new EchoAgent(), { filter: (id) => id.startsWith('neg') });
     const b = await runSuite(new EchoAgent(), { filter: (id) => id.startsWith('neg') });
     expect(a.results).toEqual(b.results);
+  }, 30000);
+
+  it('retries once when a single reply fails transiently (vendor 5xx)', async () => {
+    const res = await runSuite(new FlakyAgent(), {
+      filter: (_id, dim) => dim === 'coding',
+    });
+    expect(res.results.length).toBeGreaterThan(0);
+    // 重试后成功：不应有「执行失败」标记（区别于正常答题的 partial/failure）
+    expect(res.results.every((r) => !r.rawOutput.startsWith('[执行失败]'))).toBe(true);
+  }, 30000);
+
+  it('records failure cases (value 0) instead of aborting when model is dead', async () => {
+    const res = await runSuite(new AlwaysFailAgent(), {
+      filter: (_id, dim) => dim === 'coding',
+    });
+    expect(res.results.length).toBe(10);
+    expect(res.results.every((r) => r.result === 'failure' && r.value === 0)).toBe(true);
+    expect(res.results[0].rawOutput).toContain('执行失败');
   }, 30000);
 
   it('patient incremental bidding closes near floor (success)', async () => {

@@ -7,14 +7,16 @@ let baseUrl: string;
 let lastAuth: string | undefined;
 let lastBody = '';
 let errorResponse: { status: number; body: string } | null = null;
+let slowResponse = 0;
 
 beforeAll(async () => {
   server = createServer((req, res) => {
     let body = '';
     req.on('data', (c: Buffer) => (body += c));
-    req.on('end', () => {
+    req.on('end', async () => {
       lastAuth = req.headers.authorization;
       lastBody = body;
+      if (slowResponse > 0) await new Promise((r) => setTimeout(r, slowResponse));
       res.setHeader('content-type', 'application/json');
       if (errorResponse) {
         res.statusCode = errorResponse.status;
@@ -74,6 +76,16 @@ describe('ModelAgent', () => {
       await expect(agent.reply('x')).rejects.toThrow(/内部异常/);
     } finally {
       errorResponse = null;
+    }
+  });
+
+  it('aborts and reports a readable error when the request exceeds timeoutMs', async () => {
+    slowResponse = 400;
+    try {
+      const agent = new ModelAgent({ model: 'm', baseUrl, apiKey: 'k', timeoutMs: 50 });
+      await expect(agent.reply('x')).rejects.toThrow(/超时|timeout/i);
+    } finally {
+      slowResponse = 0;
     }
   });
 });
