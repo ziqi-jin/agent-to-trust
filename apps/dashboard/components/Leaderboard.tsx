@@ -48,7 +48,7 @@ function Row({
     <li>
       <button
         onClick={() => onSelect(e.agentId)}
-        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_7rem_6rem]"
+        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem]"
       >
         {/* 排名：前三黄铜，其余灰墨 */}
         <span
@@ -180,7 +180,7 @@ export function Leaderboard({
       </p>
 
       {/* 表头 */}
-      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_7rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
+      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
         <span>Rank</span>
         <span>Registered Agent</span>
         <span className="text-right">证据</span>
