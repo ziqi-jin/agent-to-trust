@@ -54,6 +54,7 @@ export function PlaygroundForm({
   const [name, setName] = useState('');
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('');
   const [mode, setMode] = useState<Mode>('template');
   const [templates, setTemplates] = useState<PlaygroundTemplate[] | null>(null);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
@@ -159,10 +160,12 @@ export function PlaygroundForm({
     }
     const trimmedName = name.trim();
     const trimmedKey = apiKey.trim();
+    const trimmedModel = model.trim();
     onSubmit({
       ...(trimmedName ? { name: trimmedName.slice(0, 60) } : {}),
       endpoint: endpoint.trim(),
       ...(trimmedKey ? { apiKey: trimmedKey } : {}),
+      ...(trimmedModel ? { model: trimmedModel } : {}),
       scenario: bodyOrErr.scenario,
     });
   };
@@ -228,6 +231,20 @@ export function PlaygroundForm({
             />
             <span className="mt-1 block text-[11px] leading-relaxed text-dim">
               key 即用即弃：只进本次对局内存，不落存储、不进日志
+            </span>
+          </label>
+          <label>
+            <span className={LABEL_CLS}>Model（可选）</span>
+            <input
+              type="text"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              autoComplete="off"
+              placeholder="deepseek-chat / glm-4.7…（厂商直连必填）"
+              className={INPUT_CLS}
+            />
+            <span className="mt-1 block text-[11px] leading-relaxed text-dim">
+              直连 OpenAI 兼容厂商时必填；网关/代理已有默认模型可留空
             </span>
           </label>
         </div>

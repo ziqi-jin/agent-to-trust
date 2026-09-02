@@ -226,6 +226,8 @@ export interface PlaygroundSessionBody {
   name?: string;
   endpoint: string;
   apiKey?: string;
+  /** 可选：chat-completions 的 model 字段（DeepSeek/智谱等厂商直连必填）。 */
+  model?: string;
   scenario: {
     templateId?: string;
     custom?: {
