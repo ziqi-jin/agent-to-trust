@@ -10,7 +10,6 @@
  * verified 必须由抽样复算（reverify）升级，绝不伪装。
  */
 import { createHash, randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import type { Dimension } from '@acl/core';
 import {
@@ -19,7 +18,7 @@ import {
   loadSuite,
   verifyPayload,
 } from '@acl/sdk';
-import { agents, evidence, ingestNonces } from '../db/schema';
+import { evidence, ingestNonces } from '../db/schema';
 import { reverifyAgent } from '../services/reverify';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { computeAndPersist } from './scores';
@@ -41,16 +40,6 @@ function versionAtLeast(v: string, min: string): boolean {
   const [a, b, c] = parse(v);
   const [x, y, z] = parse(min);
   return a > x || (a === x && (b > y || (b === y && c >= z)));
-}
-
-function slugify(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 32) || 'agent'
-  );
 }
 
 /** 内存限流（MVP）：按 IP，60 次 / 10 分钟。 */

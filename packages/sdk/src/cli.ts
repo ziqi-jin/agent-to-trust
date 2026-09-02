@@ -15,7 +15,7 @@ import { EndpointAgent } from './agent/endpoint.js';
 import { ModelAgent } from './agent/model.js';
 import { CmdAgent } from './agent/cmd.js';
 import { loadConfig } from './config.js';
-import { BENCHMARK_VERSION, loadSuite } from './benchmarks/loader.js';
+import { BENCHMARK_VERSION } from './benchmarks/loader.js';
 import { runSuite } from './runner.js';
 import { uploadResults } from './upload.js';
 import { runJoinLoop } from './arena.js';

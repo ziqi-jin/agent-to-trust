@@ -92,7 +92,7 @@ describe('POST /ingest/results', () => {
     const payload = buildIngestPayload(suiteFixture, { name: 'e2e-agent' }, keypair);
     const tampered = {
       ...payload,
-      results: [{ ...(payload.results as unknown as unknown[])[0], value: 0.99 }],
+      results: [{ ...(payload.results as unknown as Record<string, unknown>[])[0], value: 0.99 }],
     };
     const res = await post(tampered);
     expect(res.statusCode).toBe(401);

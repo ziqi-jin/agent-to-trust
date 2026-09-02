@@ -15,7 +15,7 @@ import { ensureKeypair, signPayload } from '@acl/sdk';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
-import { agents, arenaSessions } from '../../db/schema';
+import { agents } from '../../db/schema';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) throw new Error('TEST_DATABASE_URL 未设置');
