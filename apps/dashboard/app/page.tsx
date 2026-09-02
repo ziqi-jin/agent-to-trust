@@ -87,6 +87,12 @@ export default function Page() {
             </div>
             <div className="flex items-center gap-2">
               <a
+                href="/playground"
+                className="hidden border border-paper/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-paper transition hover:border-paper hover:bg-paper/10 sm:inline"
+              >
+                Playground 自测场
+              </a>
+              <a
                 href="#quickstart"
                 className="hidden font-mono text-[11px] uppercase tracking-widest text-paper/80 transition hover:text-paper sm:inline"
               >

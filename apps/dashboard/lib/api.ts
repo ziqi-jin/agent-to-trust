@@ -160,6 +160,98 @@ export interface StatsSummary {
   queueWaiting: number;
 }
 
+// ── Playground 自测场（契约：docs/plans/2026-09-02-playground-p1.md Task 2/4/5）──
+
+export type PgActor = 'system' | 'agent' | 'counterpart';
+export type PgEventType =
+  | 'scenario'
+  | 'offer'
+  | 'accept'
+  | 'concede'
+  | 'deal'
+  | 'breakdown'
+  | 'timeout';
+export type PgStatus = 'running' | 'done' | 'failed';
+export type PgResult = 'success' | 'partial' | 'failure';
+
+/** 事件流单条（按 seq 升序）。 */
+export interface PgEvent {
+  seq: number;
+  round: number;
+  actor: PgActor;
+  type: PgEventType;
+  text: string;
+  value?: number;
+}
+
+/** 终局评分卡。 */
+export interface PgScorecard {
+  result: PgResult;
+  dealValue: number | null;
+  /** 0..1，前端渲染为百分比。 */
+  dealQuality: number;
+  /** 0..1，前端渲染为百分比。 */
+  protocolCompliance: number;
+  roundsUsed: number;
+}
+
+/** 轮询返回的会话对象（apiKey 绝不出现）。 */
+export interface PgSession {
+  id: string;
+  name: string;
+  endpoint: string;
+  status: PgStatus;
+  events: PgEvent[];
+  scorecard?: PgScorecard;
+  error?: string;
+  createdAt: string;
+}
+
+/** 官方场景模板（GET /playground/templates）。 */
+export interface PlaygroundTemplate {
+  id: string;
+  name: string;
+  desc: string;
+  scenario: {
+    brief: string;
+    agentRole: string;
+    counterpartRole: string;
+    metricLabel: string;
+    maxRounds: number;
+    strategy: { opening: number; floor: number; step: number; target: number };
+  };
+}
+
+export interface PlaygroundSessionBody {
+  name?: string;
+  endpoint: string;
+  apiKey?: string;
+  scenario: {
+    templateId?: string;
+    custom?: {
+      brief: string;
+      agentRole: string;
+      counterpartRole: string;
+      metricLabel: string;
+      opening: number;
+      floor: number;
+      target: number;
+      maxRounds?: number;
+      style: 'tough' | 'balanced' | 'gentle';
+    };
+  };
+}
+
+/** 429 限流：带 Retry-After 秒数，UI 显示「太频繁，请 X 秒后再试」。 */
+export class RateLimitError extends Error {
+  retryAfterSeconds: number;
+  constructor(seconds: number) {
+    super(`太频繁，请 ${seconds} 秒后再试`);
+    this.name = 'RateLimitError';
+    this.retryAfterSeconds = seconds;
+  }
+}
+
 // ── HTTP ─────────────────────────────────────────────────
 
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -167,6 +259,23 @@ async function http<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Playground 专用：与 http() 同款，但 429 读 Retry-After 折算成秒。 */
+async function playgroundHttp<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+  });
+  if (res.status === 429) {
+    const raw = Number(res.headers.get('retry-after') ?? '60');
+    throw new RateLimitError(Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 60);
+  }
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -210,4 +319,29 @@ export const api = {
       '/benchmark/run',
       { method: 'POST', body: '{}' },
     ),
+
+  // Playground 自测场
+  playgroundTemplates: () =>
+    playgroundHttp<{ templates: PlaygroundTemplate[] }>('/playground/templates'),
+  createPlaygroundSession: (body: PlaygroundSessionBody) =>
+    playgroundHttp<{ id: string }>('/playground/sessions', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  /** 轮询用：会话不存在/已过期（TTL 1h）返回 null 而非抛错，便于停止轮询。 */
+  getPlaygroundSession: async (id: string): Promise<PgSession | null> => {
+    const res = await fetch(`${API_BASE}/playground/sessions/${encodeURIComponent(id)}`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (res.status === 404) return null;
+    if (res.status === 429) {
+      const raw = Number(res.headers.get('retry-after') ?? '60');
+      throw new RateLimitError(Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 60);
+    }
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `HTTP ${res.status}`);
+    }
+    return (await res.json()) as PgSession;
+  },
 };
