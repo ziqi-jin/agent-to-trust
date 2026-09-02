@@ -11,6 +11,7 @@ export * from './agent/endpoint.js';
 export * from './agent/cmd.js';
 export * from './agent/model.js';
 export * from './benchmarks/loader.js';
+export * from './benchmarks/graders.js';
 export * from './counterpart/types.js';
 export * from './counterpart/scenarios.js';
 export * from './counterpart/scripted.js';
