@@ -32,6 +32,8 @@ export interface SessionInput {
   name?: string;
   endpoint: string;
   apiKey?: string;
+  /** 可选：chat-completions 的 model 字段（DeepSeek/智谱等厂商直连必填）。 */
+  model?: string;
   scenario: { templateId?: string; custom?: CustomScenario };
 }
 
@@ -40,6 +42,7 @@ export interface ValidatedSessionInput {
   name: string;
   endpoint: string;
   apiKey?: string;
+  model?: string;
   scenario: NegotiationScenario;
 }
 
@@ -124,6 +127,7 @@ export function validateSessionInput(body: unknown): Validated {
   }
   const name = typeof b.name === 'string' && b.name.trim() ? b.name.trim().slice(0, 60) : 'anonymous';
   const apiKey = typeof b.apiKey === 'string' && b.apiKey.trim() ? b.apiKey.trim() : undefined;
+  const model = typeof b.model === 'string' && b.model.trim() ? b.model.trim().slice(0, 120) : undefined;
   const sc = b.scenario;
   if (typeof sc !== 'object' || sc === null) return { ok: false, error: 'scenario 必填' };
   const s = sc as { templateId?: unknown; custom?: unknown };
@@ -131,12 +135,12 @@ export function validateSessionInput(body: unknown): Validated {
   if (typeof s.templateId === 'string' && s.templateId) {
     const tpl = NEGOTIATION_SCENARIOS.find((t) => t.id === s.templateId);
     if (!tpl) return { ok: false, error: `未知模板：${s.templateId}` };
-    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, scenario: { ...tpl } } };
+    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, model, scenario: { ...tpl } } };
   }
   if (s.custom !== undefined && s.custom !== null) {
     const r = validateCustom(s.custom as CustomScenario);
     if (!r.ok) return r;
-    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, scenario: r.scenario } };
+    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, model, scenario: r.scenario } };
   }
   return { ok: false, error: 'scenario.templateId 与 scenario.custom 至少给一个' };
 }

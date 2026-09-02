@@ -146,4 +146,32 @@ describe('runSession', () => {
     const agentEvent = s.events.find((e) => e.actor === 'agent');
     expect((agentEvent?.text ?? '').length).toBeLessThanOrEqual(200);
   });
+
+  it('请求体携带 model（给了就带，没给就不带字段）', async () => {
+    const bodies: string[] = [];
+    const capture = async (_url: unknown, init?: { body?: string }) => {
+      bodies.push(init?.body ?? '');
+      return {
+        ok: true,
+        text: async () => JSON.stringify({ choices: [{ message: { content: 'accept' } }] }),
+      } as unknown as Response;
+    };
+    await runSession(makeSession(), undefined, scenario, capture as unknown as typeof fetch, 'deepseek-chat');
+    await runSession(makeSession(), undefined, scenario, capture as unknown as typeof fetch);
+    expect(JSON.parse(bodies[0]).model).toBe('deepseek-chat');
+    expect(JSON.parse(bodies[1])).not.toHaveProperty('model');
+  });
+
+  it('非 2xx 错误消息带响应体摘要（厂商真实原因在 body 里）', async () => {
+    const s = makeSession();
+    const bad = async () =>
+      ({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: { message: 'model is required' } }),
+      }) as unknown as Response;
+    await runSession(s, undefined, scenario, bad as unknown as typeof fetch);
+    expect(s.status).toBe('failed');
+    expect(s.error).toContain('model is required');
+  });
 });

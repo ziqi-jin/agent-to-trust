@@ -23,6 +23,7 @@ const AGENT_TEXT_MAX = 200;
 async function callAgent(
   endpoint: string,
   apiKey: string | undefined,
+  model: string | undefined,
   prompt: string,
   fetchImpl: typeof fetch,
 ): Promise<string> {
@@ -32,10 +33,21 @@ async function callAgent(
       'content-type': 'application/json',
       ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
     },
-    body: JSON.stringify({ messages: [{ role: 'user', content: prompt }] }),
+    body: JSON.stringify({
+      messages: [{ role: 'user', content: prompt }],
+      ...(model ? { model } : {}),
+    }),
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
-  if (!res.ok) throw new Error(`endpoint 返回 ${res.status}`);
+  if (!res.ok) {
+    let detail = '';
+    try {
+      detail = `：${(await res.text()).slice(0, 200)}`;
+    } catch {
+      // 读不到 body 就只报状态码
+    }
+    throw new Error(`endpoint 返回 ${res.status}${detail}`);
+  }
   const body = await res.text();
   try {
     const json = JSON.parse(body) as { choices?: { message?: { content?: string } }[] };
@@ -52,6 +64,7 @@ export async function runSession(
   apiKey: string | undefined,
   scenario: NegotiationScenario,
   fetchImpl: typeof fetch = fetch,
+  model?: string,
 ): Promise<void> {
   const cp = new ScriptedCounterpart(scenario);
   let counterpartValue = cp.open().value;
@@ -89,7 +102,7 @@ export async function runSession(
     roundsUsed = round;
     let agentText: string;
     try {
-      agentText = await callAgent(session.endpoint, apiKey, buildPrompt(round), fetchImpl);
+      agentText = await callAgent(session.endpoint, apiKey, model, buildPrompt(round), fetchImpl);
       callFailures = 0;
     } catch (e) {
       const err = e as Error;

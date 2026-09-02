@@ -54,7 +54,7 @@ export async function playgroundRoutes(
     }
 
     const session = store.create(v.value);
-    void runSession(session, v.value.apiKey, v.value.scenario, fetchImpl)
+    void runSession(session, v.value.apiKey, v.value.scenario, fetchImpl, v.value.model)
       .catch((e) => {
         session.status = 'failed';
         session.error = `runner 异常：${String((e as Error)?.message ?? e).slice(0, 200)}`;
