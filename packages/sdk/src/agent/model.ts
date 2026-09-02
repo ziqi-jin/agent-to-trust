@@ -32,7 +32,6 @@ export class ModelAgent implements AclAgent {
     this.timeoutMs = opts.timeoutMs ?? 120_000;
   }
 
-  private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
 
   async reply(prompt: string): Promise<string> {
