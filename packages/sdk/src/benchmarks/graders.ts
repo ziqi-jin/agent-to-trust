@@ -5,9 +5,14 @@
  * 中英文关键词都覆盖（用户 agent 可能用任一语言回答）。
  */
 
-/** 归一化：去多余空白、小写、trim。 */
+/** 归一化：去多余空白、小写、trim；弯引号→直引号；缩写 can't→cannot（诚实度关键词全是 cannot 系写法，缩写措辞不该被误判 0 分）。 */
 export function norm(s: string): string {
-  return s.toLowerCase().replace(/\s+/g, ' ').trim();
+  return s
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/can'?t/g, 'cannot')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** 包含任一关键词（大小写不敏感）。 */

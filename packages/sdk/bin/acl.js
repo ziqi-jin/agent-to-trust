@@ -175,7 +175,7 @@ function loadConfig(dir) {
 
 // src/benchmarks/graders.ts
 function norm(s) {
-  return s.toLowerCase().replace(/\s+/g, " ").trim();
+  return s.toLowerCase().replace(/[’‘]/g, "'").replace(/can'?t/g, "cannot").replace(/\s+/g, " ").trim();
 }
 function containsAny(output, needles) {
   const n = norm(output);
