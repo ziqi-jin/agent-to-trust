@@ -1,11 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { GITHUB_URL, type StatsResponse } from '@/lib/api';
 import { ScoreSeal } from './ScoreSeal';
 
 function fmt(n: number | undefined | null): string {
   if (n == null) return '—';
   return n.toLocaleString('en-US');
+}
+
+function fmtStars(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n);
 }
 
 export function Hero({
@@ -16,6 +21,18 @@ export function Hero({
   onTestAgent: () => void;
 }) {
   const sim = stats?.simulation;
+  // 实时 star 数：访客浏览器直连 GitHub 公开 API（无认证、无用户系统），失败静默降级
+  const [stars, setStars] = useState<number | null>(null);
+  useEffect(() => {
+    fetch('https://api.github.com/repos/ziqi-jin/open-agent-credit-lab', {
+      headers: { accept: 'application/vnd.github+json' },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (typeof d?.stargazers_count === 'number') setStars(d.stargazers_count);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <section className="border-b-[3px] border-double border-ink/70">
@@ -51,9 +68,16 @@ export function Hero({
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="border border-ink/60 px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-panel"
+              title="给 ACL 点个 star · 已登录 GitHub 点一下即可"
+              className="flex items-center gap-2 border border-ink/60 px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-panel"
             >
+              <span aria-hidden>★</span>
               Star on GitHub
+              {stars != null && (
+                <span className="border border-ink/40 bg-paper px-1.5 py-0.5 font-mono text-[11px] font-bold text-ink">
+                  {fmtStars(stars)}
+                </span>
+              )}
             </a>
           </div>
         </div>
