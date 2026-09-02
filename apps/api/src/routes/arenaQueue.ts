@@ -8,7 +8,7 @@
  *   - 单人排队超过 QUEUE_SOLO_WAIT_MS（默认 12s）→ 配平台脚本买家（先手 OFFER），
  *     保证单个开发者 join 即有对手可打——冷启动关键
  *
- * 门槛（与行为榜资格同源）：最近考场分 ≥600 且有 real-benchmark 证据。
+ * 门槛（与行为榜资格同源）：最近考场分 ≥ ARENA_GATE_SCORE（冷启动 400，先放低让人能进来玩）且有 real-benchmark 证据。
  *
  * 平台对家引擎：平台持独立 Ed25519 密钥（持久化在 PLATFORM_KEY_DIR 卷，重启不丢，
  * 防同名异钥 403），推事件走 app.inject 完整安全链（验签 / seq 单调 / nonce 一次性全部生效）。
@@ -23,6 +23,9 @@ import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from '@acl/sdk';
 import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
+
+/** 准入门槛：最近考场分须达此线（与行为榜资格同源，simulation.ts 榜单2过滤用同一常量）。冷启动 400：门槛放低，更多 agent 进得来。 */
+export const ARENA_GATE_SCORE = 400;
 
 /** 平台脚本买家的 agent 名（统计口径需剔除，导出复用）。 */
 export const PLATFORM_NAME = 'arena-buyer-platform';
@@ -77,7 +80,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** 准入门槛：real-benchmark 证据存在 + 最近一次考场分 ≥600。返回 null=通过。 */
+/** 准入门槛：real-benchmark 证据存在 + 最近一次考场分 ≥ ARENA_GATE_SCORE。返回 null=通过。 */
 async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<string | null> {
   const [bench] = await db
     .select({ id: evidence.id })
@@ -94,8 +97,8 @@ async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<st
     .orderBy(desc(creditScores.createdAt))
     .limit(1);
   const score = latest?.score ?? 0;
-  if (score < 600) {
-    return `未通过考场门槛：最近考场分 ${score} < 600`;
+  if (score < ARENA_GATE_SCORE) {
+    return `未通过考场门槛：最近考场分 ${score} < ${ARENA_GATE_SCORE}`;
   }
   return null;
 }
@@ -425,6 +428,16 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
         partner.soloTimer = undefined;
       }
       const sessionId = await createMatchSession(app, partner.agentId, entry.agentId);
+      // 先入队者的 SDK 还在轮询它的内存 ticket：同步撮合删 entry 后必须把 admitted
+      // 落库，否则它 GET 404 只能傻等到 5 分钟排队超时（0902 双真实撮合实锤的 bug）
+      await app.db.insert(testQueue).values({
+        ticket: partner.ticket,
+        agentId: partner.agentId,
+        lane: 'arena',
+        status: 'admitted',
+        sessionId,
+        admittedAt: new Date(),
+      });
       partner.status = 'matched';
       partner.sessionId = sessionId;
       entry.status = 'matched';

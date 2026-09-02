@@ -57,7 +57,7 @@ export interface JoinOptions {
   agent: AclAgent;
   /** 平台 API 地址。 */
   apiBase: string;
-  /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分≥600）。 */
+  /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，冷启动 400）。 */
   sessionId?: string;
   name?: string;
   /** 密钥目录（默认 ~/.acl；同钥即同身份）。 */

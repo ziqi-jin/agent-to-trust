@@ -10,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
 import { agents, evidence, simulationRuns } from '../db/schema';
+import { ARENA_GATE_SCORE } from './arenaQueue';
 import { computeAndPersist } from './scores';
 
 export async function simulationRoutes(app: FastifyInstance) {
@@ -79,7 +80,7 @@ export async function simulationRoutes(app: FastifyInstance) {
 
   // GET /leaderboard — 全量排名（含分数、置信度、证据数）
   // ?board=capability（默认）考场榜：只收真实数据（simulation 隐藏，append-only 不删）
-  // ?board=behavior  行为榜：资格 = 考场信用分 ≥600 且已进入 Arena（有行为证据）；行为分 = 行为维度加权和
+  // ?board=behavior  行为榜：资格 = 考场信用分 ≥ ARENA_GATE_SCORE（与 arenaQueue 门槛同源）且已进入 Arena（有行为证据）；行为分 = 行为维度加权和
   app.get('/leaderboard', async (req) => {
     const q = req.query as { board?: string };
     const board = q.board === 'behavior' ? 'behavior' : 'capability';
@@ -143,7 +144,7 @@ export async function simulationRoutes(app: FastifyInstance) {
 
     const filtered =
       board === 'behavior'
-        ? rows.filter((r) => r.inArena && r.hasBenchmark && (r.score ?? 0) >= 600)
+        ? rows.filter((r) => r.inArena && r.hasBenchmark && (r.score ?? 0) >= ARENA_GATE_SCORE)
         : rows.filter((r) => r.source !== 'simulation');
 
     return filtered

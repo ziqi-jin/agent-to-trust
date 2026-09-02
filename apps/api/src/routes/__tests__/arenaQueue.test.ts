@@ -17,7 +17,7 @@ import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
 import { arenaSessions, creditScores, evidence } from '../../db/schema';
-import { resetQueueForTests, stopAllQueueEngines } from '../arenaQueue';
+import { ARENA_GATE_SCORE, resetQueueForTests, stopAllQueueEngines } from '../arenaQueue';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) throw new Error('TEST_DATABASE_URL 未设置');
@@ -34,6 +34,12 @@ beforeAll(async () => {
   platformDir = mkdtempSync(join(tmpdir(), 'aclq-platform-'));
   dirs.push(platformDir);
   process.env.PLATFORM_KEY_DIR = platformDir;
+  // 平台买家身份（arena-buyer-platform）同名异钥会 403：清掉上一轮跑遗留的身份与会话，
+  // 保证每轮测试从干净库开始（与 queuePersistence.test 同款清库模式）
+  await db.execute(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ('TRUNCATE TABLE test_queue, arena_events, arena_sessions, credit_scores, score_snapshots, evidence, ingest_nonces, agents CASCADE' as any),
+  );
 });
 
 afterAll(() => {
@@ -48,8 +54,8 @@ beforeEach(() => {
   resetQueueForTests();
 });
 
-/** 造一个合格身份：用外部钥注册 + real-benchmark 证据 + score≥800。 */
-async function makeQualifiedAgent(name: string, pubkey: string): Promise<void> {
+/** 造一个合格身份：用外部钥注册 + real-benchmark 证据 + 指定考场分（默认 800）。 */
+async function makeQualifiedAgent(name: string, pubkey: string, score = 800): Promise<void> {
   const reg = await app.inject({
     method: 'POST',
     url: '/arena/register',
@@ -70,7 +76,7 @@ async function makeQualifiedAgent(name: string, pubkey: string): Promise<void> {
   await db.insert(creditScores).values({
     id: `cs-${randomUUID().slice(0, 8)}`,
     agentId,
-    score: 800,
+    score,
     modelVersion: 'test',
   });
 }
@@ -86,6 +92,27 @@ async function enqueue(name: string, pubkey: string) {
 }
 
 describe('POST /arena/queue — 准入门槛', () => {
+  it('边界：考场分恰好等于门槛（400）通过', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
+    dirs.push(dir);
+    const keys = ensureKeypair(dir);
+    const name = `gate-eq-${randomUUID().slice(0, 6)}`;
+    await makeQualifiedAgent(name, keys.publicKeyPem, ARENA_GATE_SCORE);
+    const res = await enqueue(name, keys.publicKeyPem);
+    expect(res.statusCode).toBe(201);
+  });
+
+  it('边界：考场分差 1 分被拒（403）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
+    dirs.push(dir);
+    const keys = ensureKeypair(dir);
+    const name = `gate-lt-${randomUUID().slice(0, 6)}`;
+    await makeQualifiedAgent(name, keys.publicKeyPem, ARENA_GATE_SCORE - 1);
+    const res = await enqueue(name, keys.publicKeyPem);
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toContain('考场门槛');
+  });
+
   it('无考场证据的 agent 被拒（403）', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
     dirs.push(dir);
@@ -128,6 +155,12 @@ describe('POST /arena/queue — 两人撮合', () => {
     expect(resB.statusCode).toBe(201);
     expect(resB.json().status).toBe('matched');
     const sessionId = resB.json().sessionId as string;
+
+    // 先入队者的 SDK 还在轮询自己的票：同步撮合后必须能拿到 matched（否则 404 傻等 5 分钟）
+    const pollA = await app.inject({ method: 'GET', url: `/arena/queue/${resA.json().ticket}` });
+    expect(pollA.statusCode).toBe(200);
+    expect(pollA.json().status).toBe('matched');
+    expect(pollA.json().sessionId).toBe(sessionId);
 
     // 会话角色：先入队者 = buyer
     const [session] = await db
