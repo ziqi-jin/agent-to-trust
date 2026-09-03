@@ -449,7 +449,7 @@ export function PlaygroundForm({
           {submitting ? '开跑中…' : '开跑 ▸'}
         </button>
         <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">
-          自测场结果不进官方榜，只出评分卡 · 每 IP 同时 2 局 / 每小时 10 局
+          自测场结果不进官方榜，只出评分卡 · 每 IP 同时 2 局 / 每小时 10 局 · 高峰期自动排队
         </p>
       </section>
     </div>

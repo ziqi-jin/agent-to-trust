@@ -13,6 +13,7 @@ import { playgroundRoutes } from './routes/playground';
 import { scoresRoutes } from './routes/scores';
 import { simulationRoutes } from './routes/simulation';
 import { statsRoutes } from './routes/stats';
+import type { PlaygroundQueueOpts } from './playground/queue';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -22,9 +23,12 @@ declare module 'fastify' {
 
 export function buildApp(
   db: Database,
-  opts: { playgroundFetchImpl?: typeof fetch } = {},
+  opts: { playgroundFetchImpl?: typeof fetch; playgroundQueueOpts?: PlaygroundQueueOpts } = {},
 ): FastifyInstance {
-  const app = Fastify({ logger: false });
+  // trustProxy：线上 API 藏在 nginx 反代后面，X-Forwarded-For 由 nginx 注入。
+  // 不设的话所有用户 req.ip 都是网关 IP，per-IP 限流退化成全站共一个桶（0903 实锤）。
+  // 只信任私网段对端（docker/nginx），公网直连伪造 XFF 无效。
+  const app = Fastify({ logger: false, trustProxy: 'uniquelocal' });
   app.decorate('db', db);
   // dev 跨域（dashboard 本地 localhost:3001 → API localhost:8000）
   app.register(cors, { origin: true });
@@ -36,7 +40,10 @@ export function buildApp(
   app.register(evidenceRoutes);
   app.register(feedbackRoutes);
   app.register(ingestRoutes);
-  app.register(playgroundRoutes, { fetchImpl: opts.playgroundFetchImpl });
+  app.register(playgroundRoutes, {
+    fetchImpl: opts.playgroundFetchImpl,
+    queueOpts: opts.playgroundQueueOpts,
+  });
   app.register(scoresRoutes);
   app.register(simulationRoutes);
   app.register(statsRoutes);

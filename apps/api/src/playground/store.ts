@@ -4,6 +4,7 @@
  * 红线：apiKey 绝不入 StoredSession——调用方把 key 从 ValidatedSessionInput 里
  * 拿走传给 runner 闭包，store 只存可公开序列化的会话状态。
  * TTL 1h：sweep(now) 就地清除过期会话，由路由层周期调用（unref 不阻塞退出）。
+ * 初始状态 queued（全局队列占满时等待）：由 PlaygroundQueue dispatch 时翻成 running。
  */
 import { randomUUID } from 'node:crypto';
 import type { ValidatedSessionInput } from './scenario';
@@ -43,7 +44,7 @@ export interface StoredSession {
   id: string;
   name: string;
   endpoint: string;
-  status: 'running' | 'done' | 'failed';
+  status: 'queued' | 'running' | 'done' | 'failed';
   events: PgEvent[];
   scorecard?: Scorecard;
   error?: string;
@@ -60,7 +61,7 @@ export class PlaygroundStore {
       id: `pg-${randomUUID()}`,
       name: input.name,
       endpoint: input.endpoint,
-      status: 'running',
+      status: 'queued',
       events: [],
       createdAt: Date.now(),
     };

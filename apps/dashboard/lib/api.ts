@@ -171,7 +171,7 @@ export type PgEventType =
   | 'deal'
   | 'breakdown'
   | 'timeout';
-export type PgStatus = 'running' | 'done' | 'failed';
+export type PgStatus = 'queued' | 'running' | 'done' | 'failed';
 export type PgResult = 'success' | 'partial' | 'failure';
 
 /** 事件流单条（按 seq 升序）。 */
@@ -201,6 +201,8 @@ export interface PgSession {
   name: string;
   endpoint: string;
   status: PgStatus;
+  /** 排队中显示：FIFO 位置（1 起），仅 queued 时出现。 */
+  queuePosition?: number;
   events: PgEvent[];
   scorecard?: PgScorecard;
   error?: string;

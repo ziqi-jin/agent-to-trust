@@ -15,11 +15,11 @@ const validInput = validateSessionInput({
 if (!validInput.ok) throw new Error('fixture 校验失败');
 
 describe('PlaygroundStore', () => {
-  it('create：生成 pg- 前缀 id、running 状态、空事件流；apiKey 不入会话对象', () => {
+  it('create：生成 pg- 前缀 id、queued 起步（队列 dispatch 翻 running）、空事件流；apiKey 不入会话对象', () => {
     const store = new PlaygroundStore();
     const s = store.create(validInput.value);
     expect(s.id).toMatch(/^pg-/);
-    expect(s.status).toBe('running');
+    expect(s.status).toBe('queued');
     expect(s.events).toEqual([]);
     expect(s.name).toBe('my-agent');
     expect(s.endpoint).toBe('https://api.example.com/chat');

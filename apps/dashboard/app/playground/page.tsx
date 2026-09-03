@@ -50,7 +50,8 @@ export default function PlaygroundPage() {
           return;
         }
         setSession(s);
-        if (s.status !== 'running') setSessionId(null); // 终局，停轮询
+        // 终局（done/failed）才停轮询；queued → running 还要继续看
+        if (s.status === 'done' || s.status === 'failed') setSessionId(null);
       } catch {
         // 单次网络抖动不打断轮询，下一轮重试
       } finally {
@@ -66,7 +67,8 @@ export default function PlaygroundPage() {
     };
   }, [sessionId]);
 
-  const running = sessionId !== null || session?.status === 'running';
+  const running =
+    sessionId !== null || session?.status === 'running' || session?.status === 'queued';
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
@@ -125,6 +127,21 @@ export default function PlaygroundPage() {
                 </p>
                 <p className="mt-2 text-[13px] text-dim">
                   检查 endpoint 是否公网可达（http(s) 地址）、key 是否有效，再试一局。
+                </p>
+              </div>
+            )}
+
+            {session?.status === 'queued' && (
+              <div
+                className="stamp-in mb-8 border-2 border-hairline bg-panel p-5"
+                style={{ '--rot': '0.6deg', transform: 'rotate(0.6deg)' } as React.CSSProperties}
+              >
+                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
+                  排队中 · QUEUED
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-ink">
+                  当前开局较多，你的对局已进入队列——前面还有 {session.queuePosition ?? 1} 局。
+                  排到后自动开跑，无需刷新页面。
                 </p>
               </div>
             )}
