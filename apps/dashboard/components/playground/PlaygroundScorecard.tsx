@@ -70,7 +70,7 @@ export function PlaygroundScorecard({ session }: { session: PgSession }) {
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hairline pt-4">
         <a
           href="/"
-          className="bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#254a3e]"
+          className="bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#9A3412]"
         >
           去考场上榜 →
         </a>

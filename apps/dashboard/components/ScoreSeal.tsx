@@ -22,7 +22,7 @@ export function ScoreSeal({
   delayMs?: number;
 }) {
   const rot = ((rank * 37) % 15) - 7;
-  const ink = tested ? '#BF3B2B' : '#98A093';
+  const ink = tested ? '#991B1B' : '#A39B90';
   const grade = tested && score !== null ? gradeFor(score).label : '';
   const pathId = `seal-ring-${rank}-${score ?? 'na'}-${tested ? 't' : 'u'}`;
 

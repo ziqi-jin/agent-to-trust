@@ -60,7 +60,7 @@ export function Hero({
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={onTestAgent}
-              className="bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#254a3e]"
+              className="bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#9A3412]"
             >
               把你的 Agent 送进考场
             </button>

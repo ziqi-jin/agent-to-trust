@@ -76,7 +76,7 @@ export function FeedbackBubble() {
                 <button
                   onClick={submit}
                   disabled={status === 'sending' || !message.trim()}
-                  className="bg-ledger px-3 py-1 font-mono text-xs font-medium text-paper transition hover:bg-[#254a3e] disabled:opacity-40"
+                  className="bg-ledger px-3 py-1 font-mono text-xs font-medium text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
                 >
                   {status === 'sending' ? '发送中…' : '发送'}
                 </button>

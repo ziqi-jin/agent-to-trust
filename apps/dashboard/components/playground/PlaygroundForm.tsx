@@ -444,7 +444,7 @@ export function PlaygroundForm({
           type="button"
           onClick={submit}
           disabled={submitting}
-          className="w-full bg-ledger px-5 py-3 text-sm font-bold text-paper transition hover:bg-[#254a3e] disabled:opacity-40"
+          className="w-full bg-ledger px-5 py-3 text-sm font-bold text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
         >
           {submitting ? '开跑中…' : '开跑 ▸'}
         </button>

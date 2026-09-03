@@ -176,7 +176,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                           className="h-full w-full"
                           style={{
                             background:
-                              'repeating-linear-gradient(90deg,#CBD3C1 0 5px,#ECEFE6 5px 10px)',
+                              'repeating-linear-gradient(90deg,#D8CEBC 0 5px,#F2ECDF 5px 10px)',
                           }}
                         />
                       )}

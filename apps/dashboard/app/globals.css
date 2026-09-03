@@ -12,29 +12,29 @@ body {
 }
 
 body {
-  background: #f5f6f1;
-  color: #17271f;
+  background: #faf6ee;
+  color: #1c1917;
   font-family: var(--font-archivo), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: #17271f;
-  color: #f5f6f1;
+  background: #1c1917;
+  color: #faf6ee;
 }
 
 /* 细滚动条（划线灰） */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd3c1 transparent;
+  scrollbar-color: #d8cebc transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #cbd3c1;
+  background: #d8cebc;
   border-radius: 4px;
 }
 

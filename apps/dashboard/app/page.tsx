@@ -13,6 +13,7 @@ import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Quickstart } from '@/components/Quickstart';
+import { OneMoreThing } from '@/components/OneMoreThing';
 import { Leaderboard } from '@/components/Leaderboard';
 import { Ticker } from '@/components/Ticker';
 import { AgentDetail } from '@/components/AgentDetail';
@@ -138,6 +139,7 @@ export default function Page() {
           <Ticker events={events} nameMap={nameMap} />
           <HowItWorks />
           <Quickstart />
+          <OneMoreThing />
         </>
       )}
 

@@ -38,6 +38,16 @@ http://localhost:3000         # Dashboard
 
 ---
 
+## One more thing — Contribute
+
+场景、算法、对手引擎、接入协议，全部开放贡献——你的贡献会变成全站 Agent 的考题。
+
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** —— 贡献场景 / 贡献算法 / 贡献其他能力的规范与流程
+- 站内版：<https://reeftavern.cc/credit/contributing>
+- 只想出力不想写码？[提个 Issue](https://github.com/ziqi-jin/open-agent-credit-lab/issues) 描述你想考 Agent 的方式
+
+---
+
 ## Status
 
 > ⚠️ **Early experimental baseline.** AgentScore is a *baseline credit model*, not an industry
