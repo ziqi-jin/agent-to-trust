@@ -8,7 +8,7 @@
  * - apiKey 只透传，不参与存储
  */
 import { randomUUID } from 'node:crypto';
-import { NEGOTIATION_SCENARIOS, type NegotiationScenario } from '@acl/sdk';
+import { NEGOTIATION_SCENARIOS, scenarioText, type Locale, type NegotiationScenario } from '@acl/sdk';
 
 export type PlayStyle = 'tough' | 'balanced' | 'gentle';
 
@@ -34,15 +34,18 @@ export interface SessionInput {
   apiKey?: string;
   /** 可选：chat-completions 的 model 字段（DeepSeek/智谱等厂商直连必填）。 */
   model?: string;
+  /** 会话语言（考题/对手话术/事件流）；非法值忽略，默认 'en'（0904 i18n）。 */
+  locale?: Locale;
   scenario: { templateId?: string; custom?: CustomScenario };
 }
 
-/** 校验产物：scenario 已解析成 NegotiationScenario（step 已按风格算好）。 */
+/** 校验产物：scenario 已解析成 NegotiationScenario（step 已按风格算好；EN 时文案已 materialize）。 */
 export interface ValidatedSessionInput {
   name: string;
   endpoint: string;
   apiKey?: string;
   model?: string;
+  locale: Locale;
   scenario: NegotiationScenario;
 }
 
@@ -117,7 +120,16 @@ function validateCustom(c: CustomScenario): { ok: true; scenario: NegotiationSce
   };
 }
 
-/** 校验并解析 Playground 会话入参。所有非法路径都返回 ok:false + 中文 error。 */
+/** 模板命中后按 locale materialize 文案：EN 时用 en 字段覆盖（id/strategy/maxRounds 不动）。 */
+function materializeScenario(sc: NegotiationScenario, locale: Locale): NegotiationScenario {
+  if (locale === 'en' && sc.en) {
+    const t = scenarioText(sc, 'en');
+    return { ...sc, brief: t.brief, agentRole: t.agentRole, counterpartRole: t.counterpartRole, metricLabel: t.metricLabel };
+  }
+  return { ...sc };
+}
+
+/** 校验并解析 Playground 会话入参。所有非法路径都返回 ok:false + 中文 error（前端映射）。locale 默认 'en'。 */
 export function validateSessionInput(body: unknown): Validated {
   if (typeof body !== 'object' || body === null) return { ok: false, error: '请求体必须是 JSON 对象' };
   const b = body as Record<string, unknown>;
@@ -128,6 +140,7 @@ export function validateSessionInput(body: unknown): Validated {
   const name = typeof b.name === 'string' && b.name.trim() ? b.name.trim().slice(0, 60) : 'anonymous';
   const apiKey = typeof b.apiKey === 'string' && b.apiKey.trim() ? b.apiKey.trim() : undefined;
   const model = typeof b.model === 'string' && b.model.trim() ? b.model.trim().slice(0, 120) : undefined;
+  const locale: Locale = b.locale === 'zh' ? 'zh' : 'en'; // 非法值一律回默认 en
   const sc = b.scenario;
   if (typeof sc !== 'object' || sc === null) return { ok: false, error: 'scenario 必填' };
   const s = sc as { templateId?: unknown; custom?: unknown };
@@ -135,12 +148,18 @@ export function validateSessionInput(body: unknown): Validated {
   if (typeof s.templateId === 'string' && s.templateId) {
     const tpl = NEGOTIATION_SCENARIOS.find((t) => t.id === s.templateId);
     if (!tpl) return { ok: false, error: `未知模板：${s.templateId}` };
-    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, model, scenario: { ...tpl } } };
+    return {
+      ok: true,
+      value: { name, endpoint: b.endpoint.trim(), apiKey, model, locale, scenario: materializeScenario(tpl, locale) },
+    };
   }
   if (s.custom !== undefined && s.custom !== null) {
     const r = validateCustom(s.custom as CustomScenario);
     if (!r.ok) return r;
-    return { ok: true, value: { name, endpoint: b.endpoint.trim(), apiKey, model, scenario: r.scenario } };
+    return {
+      ok: true,
+      value: { name, endpoint: b.endpoint.trim(), apiKey, model, locale, scenario: r.scenario },
+    };
   }
   return { ok: false, error: 'scenario.templateId 与 scenario.custom 至少给一个' };
 }

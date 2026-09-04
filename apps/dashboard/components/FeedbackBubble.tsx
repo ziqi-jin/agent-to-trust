@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 /**
  * 反馈入口（隐蔽但可发现）：右下角低透明度小气泡，hover 变亮。
  * 点开收集文字反馈 + 可选联系方式，POST /feedback（限速：同 IP 每分钟 3 条）。
  */
 export function FeedbackBubble() {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [contact, setContact] = useState('');
@@ -36,7 +38,7 @@ export function FeedbackBubble() {
         <div className="w-72 border border-hairline bg-paper p-4 shadow-xl">
           {status === 'sent' ? (
             <div className="py-3 text-center">
-              <p className="text-sm font-medium text-ink">已收到，多谢 🦾</p>
+              <p className="text-sm font-medium text-ink">{t.feedback.sent}</p>
               <button
                 onClick={() => {
                   setOpen(false);
@@ -44,25 +46,25 @@ export function FeedbackBubble() {
                 }}
                 className="mt-3 border border-hairline px-3 py-1 font-mono text-xs text-dim transition hover:text-ink"
               >
-                关闭
+                {t.feedback.close}
               </button>
             </div>
           ) : (
             <>
-              <p className="mb-2 font-mono text-[11px] text-dim">悄悄说两句 · 只有团队看得到</p>
+              <p className="mb-2 font-mono text-[11px] text-dim">{t.feedback.prompt}</p>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 maxLength={2000}
-                placeholder="哪里好用、哪里别扭，都可以讲"
+                placeholder={t.feedback.placeholder}
                 className="w-full resize-none border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
               <input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 maxLength={200}
-                placeholder="联系方式（可选）"
+                placeholder={t.feedback.contactPlaceholder}
                 className="mt-2 w-full border border-hairline bg-panel px-2.5 py-1.5 text-xs text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
               {error && <p className="mt-1.5 text-xs text-seal">{error}</p>}
@@ -71,14 +73,14 @@ export function FeedbackBubble() {
                   onClick={() => setOpen(false)}
                   className="px-2.5 py-1 font-mono text-xs text-dim transition hover:text-ink"
                 >
-                  取消
+                  {t.feedback.cancel}
                 </button>
                 <button
                   onClick={submit}
                   disabled={status === 'sending' || !message.trim()}
                   className="bg-ledger px-3 py-1 font-mono text-xs font-medium text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
                 >
-                  {status === 'sending' ? '发送中…' : '发送'}
+                  {status === 'sending' ? t.feedback.sending : t.feedback.send}
                 </button>
               </div>
             </>
@@ -87,8 +89,8 @@ export function FeedbackBubble() {
       )}
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label="反馈"
-        title="反馈"
+        aria-label={t.feedback.title}
+        title={t.feedback.title}
         className="flex h-8 w-8 items-center justify-center border border-hairline bg-paper/80 text-dim/70 opacity-50 transition-all hover:border-ledger hover:text-ledger hover:opacity-100"
       >
         <svg

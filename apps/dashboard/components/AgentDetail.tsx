@@ -3,17 +3,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   api,
-  DIMENSION_LABELS,
-  SOURCE_LABELS,
   type Agent,
   type Evidence,
   type ScoreResponse,
 } from '@/lib/api';
+import { useLocale, useT, fill, mapApiError } from '@/lib/i18n';
 import { ScoreSeal } from './ScoreSeal';
 
-function fmtTime(iso: string): string {
+function fmtTime(iso: string, locale: 'en' | 'zh'): string {
   const d = new Date(iso);
-  return d.toLocaleString('zh-CN', {
+  return d.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -38,6 +37,8 @@ const RESULT_TAG: Record<string, string> = {
 };
 
 export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () => void }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [score, setScore] = useState<ScoreResponse | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
@@ -57,11 +58,12 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
       setEvidence(ev);
       setScore(sc);
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(locale === 'zh' ? msg : mapApiError(msg, t.apiError));
     } finally {
       setBusy(false);
     }
-  }, [agentId]);
+  }, [agentId, locale, t]);
 
   useEffect(() => {
     load();
@@ -75,7 +77,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
         onClick={onBack}
         className="mb-6 inline-flex items-center gap-1.5 font-mono text-sm text-dim transition hover:text-ink"
       >
-        ← 返回名册
+        {t.detail.back}
       </button>
 
       {error && (
@@ -85,14 +87,16 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
       )}
 
       {!agent ? (
-        <div className="py-16 text-center text-sm text-dim">{busy ? '调取档案中…' : '档案不存在'}</div>
+        <div className="py-16 text-center text-sm text-dim">
+          {busy ? t.detail.loading : t.detail.notFound}
+        </div>
       ) : (
         <>
           {/* 卷宗头部：名字 + 大印章 */}
           <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-ink pb-6">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-dim">
-                AGENT FILE · 档案编号 {agent.id.slice(0, 8)}
+                {fill(t.detail.fileNo, { id: agent.id.slice(0, 8) })}
               </p>
               <h2 className="mt-2 font-display text-3xl font-black tracking-tight">{agent.name}</h2>
               <div className="mt-2 flex flex-wrap items-center gap-2 font-mono text-xs text-dim">
@@ -100,7 +104,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                 <span>·</span>
                 <span>{agent.status}</span>
                 <span>·</span>
-                <span>注册于 {fmtTime(agent.createdAt)}</span>
+                <span>{fill(t.detail.registered, { t: fmtTime(agent.createdAt, locale) })}</span>
               </div>
               {(agent.capabilities ?? []).length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -125,14 +129,14 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
 
           {/* 评级摘要 */}
           <div className="mt-6">
-            <Panel title="Rating · 评级摘要">
+            <Panel title={t.detail.ratingSummary}>
               <div className="flex items-baseline gap-1.5">
                 <span className="font-mono text-6xl font-semibold text-ink tabular-nums">
                   {score?.score ?? '—'}
                 </span>
                 <span className="font-mono text-sm text-dim">/1000</span>
                 {score?.score === null && (
-                  <span className="font-mono text-xs text-dim">unverified（无证据，未评级）</span>
+                  <span className="font-mono text-xs text-dim">{t.detail.unverified}</span>
                 )}
               </div>
               <div className="mt-5 grid grid-cols-2 gap-4 border-t border-hairline pt-4 sm:grid-cols-4">
@@ -155,15 +159,12 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
 
           {/* 维度分解 */}
           <div className="mt-4">
-            <Panel
-              title="Dimensions · 维度分解"
-              note="只计入有证据的维度——“—” = 暂无证据，不虚高分。COVERAGE = 已覆盖维度的权重占比。"
-            >
+            <Panel title={t.detail.dimensions} note={t.detail.dimsNote}>
               <div className="space-y-3">
                 {dims.map((d) => (
                   <div key={d.dimension} className="flex items-center gap-3">
                     <div className="w-20 shrink-0 font-mono text-xs text-dim">
-                      {DIMENSION_LABELS[d.dimension] ?? d.dimension}
+                      {t.dimensions[d.dimension] ?? d.dimension}
                     </div>
                     <div className="h-2.5 flex-1 bg-panel">
                       {d.score !== null ? (
@@ -185,7 +186,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                       {d.score !== null ? (
                         d.score
                       ) : (
-                        <span className="text-dim" title="暂无证据，不计入分数">—</span>
+                        <span className="text-dim" title={t.detail.noEvidenceDim}>—</span>
                       )}
                     </div>
                     <div className="w-10 shrink-0 text-right font-mono text-[11px] text-dim">
@@ -199,9 +200,9 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
 
           {/* 证据链 */}
           <div className="mt-4">
-            <Panel title={`Evidence Chain · 证据链（${evidence.length}）`}>
+            <Panel title={fill(t.detail.evidenceChain, { n: evidence.length })}>
               {evidence.length === 0 ? (
-                <p className="text-sm text-dim">暂无证据——证据即档案，档案即信用。</p>
+                <p className="text-sm text-dim">{t.detail.noEvidence}</p>
               ) : (
                 <ol className="relative ml-2 space-y-4 border-l border-hairline">
                   {[...evidence].reverse().map((e) => (
@@ -209,10 +210,10 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                       <span className="absolute -left-[4.5px] mt-1.5 h-2 w-2 bg-ink" />
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-sm text-ink">
-                          {DIMENSION_LABELS[e.dimension] ?? e.dimension}
+                          {t.dimensions[e.dimension] ?? e.dimension}
                         </span>
                         <span className="font-mono text-xs text-dim">
-                          {SOURCE_LABELS[e.source] ?? e.source}
+                          {t.sources[e.source] ?? e.source}
                         </span>
                         <span
                           className={`border px-1.5 py-0.5 font-mono text-xs ${
@@ -220,10 +221,10 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                           }`}
                         >
                           {e.result === 'success' ? '✓' : e.result === 'failure' ? '✗' : '◐'}{' '}
-                          {e.result === 'success' ? '成功' : e.result === 'failure' ? '失败' : '部分'}
+                          {t.results[e.result] ?? e.result}
                         </span>
                         <span className="ml-auto font-mono text-[11px] text-dim">
-                          {fmtTime(e.createdAt)}
+                          {fmtTime(e.createdAt, locale)}
                         </span>
                       </div>
                       {e.evidenceUri && (
@@ -248,14 +249,12 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                     (ev.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
-                <span className="font-mono text-[11px] text-dim">← 实时生成，分数更新自动同步</span>
+                <span className="font-mono text-[11px] text-dim">{t.detail.badgeSync}</span>
               </div>
               <div className="overflow-x-auto border border-hairline bg-panel p-3 font-mono text-xs text-ink">
                 {`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
               </div>
-              <p className="mt-2 font-mono text-[11px] text-dim">
-                复制到 README，把你的信用分挂到全世界面前。
-              </p>
+              <p className="mt-2 font-mono text-[11px] text-dim">{t.detail.badgeCopy}</p>
             </Panel>
           </div>
         </>

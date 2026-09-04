@@ -1,4 +1,5 @@
-import { DIMENSION_LABELS, RESULT_LABELS, type Evidence } from '@/lib/api';
+import { type Evidence } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 const RESULT_ICON: Record<string, string> = {
   success: '✓',
@@ -13,13 +14,14 @@ const RESULT_COLOR: Record<string, string> = {
 };
 
 export function Ticker({ events, nameMap }: { events: Evidence[]; nameMap: Record<string, string> }) {
+  const t = useT();
   if (events.length === 0) return null;
 
   const items = events.map((e) => ({
     id: e.id,
     name: nameMap[e.agentId] ?? e.agentId,
-    label: DIMENSION_LABELS[e.dimension] ?? e.dimension,
-    result: RESULT_LABELS[e.result] ?? e.result,
+    label: t.dimensions[e.dimension] ?? e.dimension,
+    result: t.results[e.result] ?? e.result,
     icon: RESULT_ICON[e.result] ?? '·',
     color: RESULT_COLOR[e.result] ?? 'text-dim',
   }));
@@ -30,7 +32,7 @@ export function Ticker({ events, nameMap }: { events: Evidence[]; nameMap: Recor
     <section className="border-y border-hairline bg-panel py-3">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-6">
         <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.2em] text-dim">
-          Evidence Wire · 证据流
+          {t.ticker.label}
         </span>
         <div className="relative flex-1 overflow-hidden">
           <div className="ticker-track flex w-max gap-8">

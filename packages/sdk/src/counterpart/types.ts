@@ -26,6 +26,25 @@ export interface NegotiationScenario {
     /** agent 成功线：成交 ≤ target 记 success。 */
     target: number;
   };
+  /** 可选英文文案（Playground EN 会话 materialize 用；考场路径不读，保确定性）。 */
+  en?: {
+    brief: string;
+    agentRole: string;
+    counterpartRole: string;
+    metricLabel: string;
+  };
+}
+
+/** 会话/文案语言（0904 i18n：Playground 默认 en；zh 保持历史行为）。 */
+export type Locale = 'en' | 'zh';
+
+/** 取场景在指定语言下的文案内容（en 缺失时回退中文源）。 */
+export function scenarioText(
+  sc: NegotiationScenario,
+  locale: Locale,
+): { brief: string; agentRole: string; counterpartRole: string; metricLabel: string } {
+  if (locale === 'en' && sc.en) return { ...sc.en };
+  return { brief: sc.brief, agentRole: sc.agentRole, counterpartRole: sc.counterpartRole, metricLabel: sc.metricLabel };
 }
 
 export interface CounterpartDecision {

@@ -75,7 +75,10 @@ export class PlaygroundQueue {
         const idx = this.waiting.indexOf(entry);
         if (idx >= 0) this.waiting.splice(idx, 1);
         session.status = 'failed';
-        session.error = '排队超时（当前开局较多），请稍后再试';
+        session.error =
+          session.locale === 'en'
+            ? 'Queue timed out (heavy load right now) — please try again later.'
+            : '排队超时（当前开局较多），请稍后再试';
         onAbandon?.();
       }, this.waitTimeoutMs),
     };

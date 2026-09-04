@@ -7,6 +7,7 @@
  * 初始状态 queued（全局队列占满时等待）：由 PlaygroundQueue dispatch 时翻成 running。
  */
 import { randomUUID } from 'node:crypto';
+import type { Locale } from '@acl/sdk';
 import type { ValidatedSessionInput } from './scenario';
 
 export type PgActor = 'system' | 'agent' | 'counterpart';
@@ -45,6 +46,8 @@ export interface StoredSession {
   name: string;
   endpoint: string;
   status: 'queued' | 'running' | 'done' | 'failed';
+  /** 会话语言（考题/事件流/错误文案）；旧测试自建 session 可能不带 → runner 回退 zh。 */
+  locale?: Locale;
   events: PgEvent[];
   scorecard?: Scorecard;
   error?: string;
@@ -61,6 +64,7 @@ export class PlaygroundStore {
       id: `pg-${randomUUID()}`,
       name: input.name,
       endpoint: input.endpoint,
+      locale: input.locale,
       status: 'queued',
       events: [],
       createdAt: Date.now(),

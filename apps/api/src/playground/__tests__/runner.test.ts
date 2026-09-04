@@ -174,4 +174,88 @@ describe('runSession', () => {
     expect(s.status).toBe('failed');
     expect(s.error).toContain('model is required');
   });
+
+  // ── 0904 i18n：EN 会话全程英文 ──
+
+  describe('locale=en', () => {
+    const enFixed = validateSessionInput({
+      endpoint: 'https://api.example.com/chat',
+      scenario: { templateId: 'neg-keyboard-price' }, // 默认 en → materialize 英文文案
+    });
+    if (!enFixed.ok) throw new Error('EN fixture 校验失败');
+    const enScenario = enFixed.value.scenario;
+
+    const enSession = (): StoredSession => ({ ...makeSession(), locale: 'en' });
+
+    it('prompt 全英文（场景/角色/目标/规则/历史/尾行）；事件流全英文', async () => {
+      const prompts: string[] = [];
+      const capture = async (_url: unknown, init?: { body?: string }) => {
+        prompts.push((JSON.parse(init?.body ?? '{}').messages as { content: string }[])[0].content);
+        return {
+          ok: true,
+          text: async () => JSON.stringify({ choices: [{ message: { content: '75' } }] }),
+        } as unknown as Response;
+      };
+      const s = enSession();
+      await runSession(s, undefined, enScenario, capture as unknown as typeof fetch);
+      expect(s.status).toBe('done');
+      // 第 1 轮 prompt：头部四行全英文
+      expect(prompts[0]).toContain(`[Negotiation Scenario] ${enScenario.brief}`);
+      expect(prompts[0]).toContain('[Your Role] Procurement Manager');
+      expect(prompts[0]).toContain('[Objective] Negotiate the Unit price (CNY) down to 65 or below. Do NOT reveal your target or floor to the counterpart.');
+      expect(prompts[0]).toContain('[Rules] Up to 4 rounds.');
+      expect(prompts[0]).toContain("Counterpart's opening offer: 100");
+      expect(prompts[0]).toContain('[Negotiation History]');
+      expect(prompts[0]).toContain('(Round 1/4) Reply with your new numeric offer');
+      expect(prompts[0]).not.toContain('【');
+      // 第 2 轮 prompt 带英文让步历史行
+      expect(prompts[1]).toContain('Round 1: you offered 75; counterpart replied: "');
+      // 事件流：scenario 事件英文；对手让步话术英文；终局 deal 事件是对手台词（英文）
+      expect(s.events[0].text).toBe(`[Scenario] ${enScenario.brief}`);
+      const concede = s.events.find((e) => e.type === 'concede');
+      expect(concede?.text).toBe("Alright, I'll make a move: 85. That's a serious concession.");
+      const deal = s.events.find((e) => e.type === 'deal' && e.actor === 'counterpart');
+      expect(deal?.text).toBe('Alright, 75 it is. Deal.');
+    });
+
+    it('EN：agent 回 accept → 按对手当前价成交，deal 事件用 STRINGS 模板', async () => {
+      const s = enSession();
+      await runSession(s, undefined, enScenario, okFetch('accept') as typeof fetch);
+      expect(s.status).toBe('done');
+      expect(s.scorecard?.dealValue).toBe(100);
+      const deal = s.events.find((e) => e.type === 'deal' && e.actor === 'counterpart');
+      expect(deal?.text).toBe('Counterpart accepted — deal closed at 100 Unit price (CNY).');
+    });
+
+    it('EN 破裂/无效报价/连续失败文案', async () => {
+      const s1 = enSession();
+      await runSession(s1, undefined, enScenario, okFetch('我不知道你在说什么') as typeof fetch);
+      expect(s1.events.at(-1)?.text).toBe('Two consecutive invalid replies — negotiation broke down.');
+      expect(s1.events.some((e) => e.text === 'Your reply is not a valid numeric offer — the counterpart asks you to re-quote.')).toBe(true);
+
+      const s2 = enSession();
+      const boom = async () => {
+        throw new Error('boom: ECONNREFUSED');
+      };
+      await runSession(s2, undefined, enScenario, boom as unknown as typeof fetch);
+      expect(s2.status).toBe('failed');
+      expect(s2.error).toBe('Agent endpoint failed twice in a row: boom: ECONNREFUSED');
+      expect(s2.events.some((e) => e.text === 'Call failed: boom: ECONNREFUSED')).toBe(true);
+    });
+
+    it('对手话术（EN）：ScriptedCounterpart respond 路径英文模板', async () => {
+      const { ScriptedCounterpart } = await import('@acl/sdk');
+      const cp = new ScriptedCounterpart(enScenario, 'en');
+      const d = cp.respond(60, { round: 1, counterpartValue: 100 }); // 60 < max(55, 85) → 拒绝并让步到 85
+      expect(d.accepted).toBe(false);
+      expect(d.text).toBe("Alright, I'll make a move: 85. That's a serious concession.");
+      expect(d.value).toBe(85);
+    });
+
+    it('红线：EN 会话序列化搜不到 apiKey', async () => {
+      const s = enSession();
+      await runSession(s, 'sk-en-secret', enScenario, okFetch('accept') as typeof fetch);
+      expect(JSON.stringify(s)).not.toContain('sk-en-secret');
+    });
+  });
 });

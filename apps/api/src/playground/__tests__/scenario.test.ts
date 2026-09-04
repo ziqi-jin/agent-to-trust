@@ -81,6 +81,41 @@ describe('validateSessionInput', () => {
     expect(r.ok && r.value.name).toHaveLength(60);
     expect(r.ok && r.value.apiKey).toBe('sk-test');
   });
+
+  // ── 0904 i18n：locale 默认 en + 模板 EN materialize ──
+
+  it('locale 缺省/非法 → en；显式 zh 保留', () => {
+    const def = validateSessionInput({ endpoint: 'https://a.com/x', scenario: { templateId: 'neg-keyboard-price' } });
+    expect(def.ok && def.value.locale).toBe('en');
+    const bad = validateSessionInput({ endpoint: 'https://a.com/x', locale: 'fr' as never, scenario: { templateId: 'neg-keyboard-price' } });
+    expect(bad.ok && bad.value.locale).toBe('en');
+    const zh = validateSessionInput({ endpoint: 'https://a.com/x', locale: 'zh', scenario: { templateId: 'neg-keyboard-price' } });
+    expect(zh.ok && zh.value.locale).toBe('zh');
+  });
+
+  it('locale=en → 官方模板 materialize 成英文文案（strategy/id/maxRounds 不动）', () => {
+    const r = validateSessionInput({ endpoint: 'https://a.com/x', scenario: { templateId: 'neg-keyboard-price' } });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.scenario.brief).toMatch(/^You are sourcing 100 custom mechanical keyboards/);
+      expect(r.value.scenario.agentRole).toBe('Procurement Manager');
+      expect(r.value.scenario.counterpartRole).toBe('Supplier Sales Rep');
+      expect(r.value.scenario.metricLabel).toBe('Unit price (CNY)');
+      expect(r.value.scenario.strategy).toEqual({ opening: 100, floor: 55, step: 15, target: 65 });
+      expect(r.value.scenario.maxRounds).toBe(4);
+    }
+  });
+
+  it('locale=zh → 官方模板保持中文源文案', () => {
+    const r = validateSessionInput({ endpoint: 'https://a.com/x', locale: 'zh', scenario: { templateId: 'neg-keyboard-price' } });
+    expect(r.ok && r.value.scenario.brief).toBe('你要为公司采购 100 把定制机械键盘，正在和供应商谈单价。市场参考价约 90 元。');
+  });
+
+  it('custom 场景内容原样（用户自己输的），locale 照带', () => {
+    const r = validateSessionInput({ endpoint: 'https://a.com/x', locale: 'en', scenario: { custom: validCustom } });
+    expect(r.ok && r.value.scenario.brief).toBe(validCustom.brief);
+    expect(r.ok && r.value.locale).toBe('en');
+  });
 });
 
 describe('isPublicEndpoint（SSRF 防护）', () => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { GITHUB_URL, type StatsResponse } from '@/lib/api';
+import { useT, fill } from '@/lib/i18n';
 import { ScoreSeal } from './ScoreSeal';
 
 function fmt(n: number | undefined | null): string {
@@ -20,6 +21,7 @@ export function Hero({
   stats: StatsResponse | null;
   onTestAgent: () => void;
 }) {
+  const t = useT();
   const sim = stats?.simulation;
   // 实时 star 数：访客浏览器直连 GitHub 公开 API（无认证、无用户系统），失败静默降级
   const [stars, setStars] = useState<number | null>(null);
@@ -41,7 +43,7 @@ export function Hero({
         <div className="max-w-3xl">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
             <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-ledger align-middle" />
-            live · seed 42 · 确定性仿真
+            {t.hero.eyebrow}
           </p>
           <h2 className="mt-4 font-display text-[2.6rem] font-black leading-[0.98] tracking-[-0.02em] md:text-6xl">
             Don&apos;t trust an Agent.
@@ -52,23 +54,22 @@ export function Hero({
             What if every AI agent had a credit score?
           </p>
           <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-dim">
-            Agent Credit Lab 是公开的 Agent 信用评级档案室。我们让 100 个 Agent
-            在虚拟市场里自主交易，把每一次成交、准时、诚实与否都变成
-            <b className="text-ink">可追溯的证据</b>
-            ，再据此算出带置信度的信用分。信任不是拍脑袋，是测出来的。
+            {t.hero.descPre}
+            <b className="text-ink">{t.hero.descBold}</b>
+            {t.hero.descPost}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={onTestAgent}
               className="bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#9A3412]"
             >
-              把你的 Agent 送进考场
+              {t.hero.cta}
             </button>
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
-              title="给 ACL 点个 star · 已登录 GitHub 点一下即可"
+              title={t.hero.starTitle}
               className="flex items-center gap-2 border border-ink/60 px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-panel"
             >
               <span aria-hidden>★</span>
@@ -86,7 +87,7 @@ export function Hero({
         <div className="hidden flex-col items-center gap-3 md:flex">
           <ScoreSeal score={797} tested rank={3} size={128} />
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-dim">
-            sample seal · 每一分，盖在证据上
+            {t.hero.sampleSeal}
           </p>
         </div>
       </div>
@@ -95,9 +96,15 @@ export function Hero({
       {sim && (
         <div className="mx-auto max-w-6xl px-6 pb-6">
           <p className="border-t border-hairline pt-3 font-mono text-[11px] tracking-wide text-dim">
-            本期台账 · AGENTS {fmt(stats?.agentCount)} · 交易 {fmt(sim.transactions)}（{fmt(sim.settled)}{' '}
-            成交 / {fmt(sim.failed)} 失败）· 合约 {fmt(sim.contractsCreated)} · 证据{' '}
-            {fmt(stats?.evidenceCount)} · 成交额 {fmt(sim.totalValue)} 信用点
+            {fill(t.hero.ledgerLine, {
+              agents: fmt(stats?.agentCount),
+              tx: fmt(sim.transactions),
+              settled: fmt(sim.settled),
+              failed: fmt(sim.failed),
+              contracts: fmt(sim.contractsCreated),
+              evidence: fmt(stats?.evidenceCount),
+              value: fmt(sim.totalValue),
+            })}
           </p>
         </div>
       )}

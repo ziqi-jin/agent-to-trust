@@ -1,6 +1,7 @@
 'use client';
 
 import { gradeFor } from '@/lib/api';
+import { useT, fill } from '@/lib/i18n';
 
 /**
  * ScoreSeal — 签名元素：圆形信用印章。
@@ -21,6 +22,7 @@ export function ScoreSeal({
   size?: number;
   delayMs?: number;
 }) {
+  const t = useT();
   const rot = ((rank * 37) % 15) - 7;
   const ink = tested ? '#991B1B' : '#A39B90';
   const grade = tested && score !== null ? gradeFor(score).label : '';
@@ -39,10 +41,10 @@ export function ScoreSeal({
       }
       title={
         score === null
-          ? '未测：尚无证据，无评级'
+          ? t.seal.untested
           : tested
-            ? `信用分 ${score}/1000 · 等级 ${grade || '—'}`
-            : `分数 ${score}/1000（待验证）`
+            ? fill(t.seal.credit, { n: score, g: grade || '—' })
+            : fill(t.seal.pending, { n: score })
       }
     >
       <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden>

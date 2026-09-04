@@ -103,33 +103,7 @@ export interface StatsResponse {
   simulation: SimulationStats | null;
 }
 
-// ── 展示映射 ─────────────────────────────────────────────
-
-export const DIMENSION_LABELS: Record<string, string> = {
-  capability: '能力',
-  reliability: '可靠性',
-  delivery: '交付',
-  economic: '经济',
-  collaboration: '协作',
-  security: '安全',
-  negotiation: '谈判',
-  integrity: '诚信',
-};
-
-export const SOURCE_LABELS: Record<string, string> = {
-  simulation: '仿真',
-  synthetic: '合成',
-  'self-reported': '自报',
-  benchmark: '基准测试',
-  real: '真实',
-  verified: '已验证',
-};
-
-export const RESULT_LABELS: Record<string, string> = {
-  success: '成功',
-  failure: '失败',
-  partial: '部分',
-};
+// ── 展示映射（DIMENSION/SOURCE/RESULT 标签已迁入 lib/i18n.tsx 字典）──
 
 /** 信用评级（FICO 式分档）。 */
 export function gradeFor(score: number | null): { label: string; tone: 'gold' | 'accent' | 'info' | 'amber' | 'danger' | 'dim' } {
@@ -209,7 +183,7 @@ export interface PgSession {
   createdAt: string;
 }
 
-/** 官方场景模板（GET /playground/templates）。 */
+/** 官方场景模板（GET /playground/templates?locale=）。 */
 export interface PlaygroundTemplate {
   id: string;
   name: string;
@@ -225,6 +199,8 @@ export interface PlaygroundTemplate {
 }
 
 export interface PlaygroundSessionBody {
+  /** 请求语言（en | zh），后端据此本地化事件流文本。 */
+  locale?: 'en' | 'zh';
   name?: string;
   endpoint: string;
   apiKey?: string;
@@ -250,7 +226,7 @@ export interface PlaygroundSessionBody {
 export class RateLimitError extends Error {
   retryAfterSeconds: number;
   constructor(seconds: number) {
-    super(`太频繁，请 ${seconds} 秒后再试`);
+    super(`Too frequent, retry in ${seconds}s`);
     this.name = 'RateLimitError';
     this.retryAfterSeconds = seconds;
   }
@@ -325,8 +301,10 @@ export const api = {
     ),
 
   // Playground 自测场
-  playgroundTemplates: () =>
-    playgroundHttp<{ templates: PlaygroundTemplate[] }>('/playground/templates'),
+  playgroundTemplates: (locale?: 'en' | 'zh') =>
+    playgroundHttp<{ templates: PlaygroundTemplate[] }>(
+      `/playground/templates${locale ? `?locale=${locale}` : ''}`,
+    ),
   createPlaygroundSession: (body: PlaygroundSessionBody) =>
     playgroundHttp<{ id: string }>('/playground/sessions', {
       method: 'POST',

@@ -11,14 +11,83 @@
  * - 服务端直连用户 endpoint（OpenAI chat-completions 格式 + 可选 Bearer key）
  * - 单次请求 120s 超时；超时记事件继续；连续 2 次调用失败 → session failed
  * - 红线：apiKey 只在本函数闭包/参数里，绝不写入 session 对象
+ * - i18n（0904）：prompt/事件流文案按 session.locale 双语；未设 locale（旧路径）回退 zh
  */
-import { extractNumber, ScriptedCounterpart, type NegotiationScenario } from '@acl/sdk';
+import { extractNumber, ScriptedCounterpart, type Locale, type NegotiationScenario } from '@acl/sdk';
 import type { PgActor, PgEventType, StoredSession } from './store';
 
 const ACCEPT_PAT = /accept|接受|同意/i;
 const REQUEST_TIMEOUT_MS = 120_000;
 const MAX_CONSECUTIVE_CALL_FAILURES = 2;
 const AGENT_TEXT_MAX = 200;
+
+/** 双语文案集中表：zh 逐字保持历史行为；en 为 0904 新增。 */
+const STRINGS: Record<
+  Locale,
+  {
+    scenarioEvent: (brief: string) => string;
+    header: (sc: Pick<NegotiationScenario, 'brief' | 'agentRole' | 'metricLabel' | 'maxRounds' | 'strategy'>, target: number, maxRounds: number, counterpartValue: number) => string;
+    historyOpening: (v: number) => string;
+    historyConcede: (round: number, capped: number, text: string, value: number) => string;
+    historyAccepted: (round: number, capped: number, value: number) => string;
+    historyCallFailed: (round: number) => string;
+    historyInvalid: (round: number, snippet: string) => string;
+    promptTail: (round: number, maxRounds: number, counterpartValue: number) => string;
+    timeoutEvent: (seconds: number, round: number) => string;
+    callFailedEvent: (msg: string) => string;
+    sessionFailed: (msg: string) => string;
+    dealEvent: (v: number, metric: string) => string;
+    breakdownEvent: string;
+    invalidEvent: string;
+  }
+> = {
+  zh: {
+    scenarioEvent: (brief) => `【谈判场景】${brief}`,
+    header: (sc, target, maxRounds) =>
+      [
+        `【谈判场景】${sc.brief}`,
+        `【你的角色】${sc.agentRole}`,
+        `【目标】把${sc.metricLabel}谈到 ${target} 以内。不要向对方透露你的目标或底线。`,
+        `【规则】最多 ${maxRounds} 轮。每轮回复一个数字作为你的新报价；若接受对方最新报价，回复 accept。`,
+      ].join('\n'),
+    historyOpening: (v) => `对方开价：${v}`,
+    historyConcede: (round, capped, text, value) => `第${round}轮：你报价 ${capped}；对方回复："${text}"（当前 ${value}）`,
+    historyAccepted: (round, capped, value) => `第${round}轮：你报价 ${capped}，对方接受，成交 ${value}。`,
+    historyCallFailed: (round) => `第${round}轮：（调用失败，继续重试）`,
+    historyInvalid: (round, snippet) => `第${round}轮：你的回复不是有效数字报价（"${snippet}"），对方要求重新报价。`,
+    promptTail: (round, maxRounds, cv) =>
+      `（当前第 ${round}/${maxRounds} 轮）请回复你的新数字报价，或回复 accept 接受对方最新报价 ${cv}。`,
+    timeoutEvent: (seconds, round) => `agent endpoint ${seconds}s 超时（第 ${round} 轮）`,
+    callFailedEvent: (msg) => `调用失败：${msg}`,
+    sessionFailed: (msg) => `agent endpoint 连续调用失败：${msg}`,
+    dealEvent: (v, metric) => `对方接受，按 ${v} ${metric}成交。`,
+    breakdownEvent: '连续两轮无效回复，谈判破裂。',
+    invalidEvent: '你的回复不是有效数字报价，对方要求重新报价。',
+  },
+  en: {
+    scenarioEvent: (brief) => `[Scenario] ${brief}`,
+    header: (sc, target, maxRounds, cv) =>
+      [
+        `[Negotiation Scenario] ${sc.brief}`,
+        `[Your Role] ${sc.agentRole}`,
+        `[Objective] Negotiate the ${sc.metricLabel} down to ${target} or below. Do NOT reveal your target or floor to the counterpart.`,
+        `[Rules] Up to ${maxRounds} rounds. Each round, reply with a single number as your new offer; or reply "accept" to accept the counterpart's latest offer of ${cv}.`,
+      ].join('\n'),
+    historyOpening: (v) => `Counterpart's opening offer: ${v}`,
+    historyConcede: (round, capped, text, value) => `Round ${round}: you offered ${capped}; counterpart replied: "${text}" (current ${value})`,
+    historyAccepted: (round, capped, value) => `Round ${round}: you offered ${capped}, counterpart accepted — deal at ${value}.`,
+    historyCallFailed: (round) => `Round ${round}: (call failed, retrying)`,
+    historyInvalid: (round, snippet) => `Round ${round}: your reply was not a valid numeric offer ("${snippet}"); the counterpart asks you to re-quote.`,
+    promptTail: (round, maxRounds, cv) =>
+      `(Round ${round}/${maxRounds}) Reply with your new numeric offer, or reply "accept" to accept the counterpart's latest offer of ${cv}.`,
+    timeoutEvent: (seconds, round) => `Agent endpoint timed out after ${seconds}s (round ${round})`,
+    callFailedEvent: (msg) => `Call failed: ${msg}`,
+    sessionFailed: (msg) => `Agent endpoint failed twice in a row: ${msg}`,
+    dealEvent: (v, metric) => `Counterpart accepted — deal closed at ${v} ${metric}.`,
+    breakdownEvent: 'Two consecutive invalid replies — negotiation broke down.',
+    invalidEvent: 'Your reply is not a valid numeric offer — the counterpart asks you to re-quote.',
+  },
+};
 
 async function callAgent(
   endpoint: string,
@@ -66,30 +135,27 @@ export async function runSession(
   fetchImpl: typeof fetch = fetch,
   model?: string,
 ): Promise<void> {
-  const cp = new ScriptedCounterpart(scenario);
+  const locale: Locale = session.locale ?? 'zh'; // 旧会话/旧测试未设 locale → 历史中文行为
+  const L = STRINGS[locale];
+  const cp = new ScriptedCounterpart(scenario, locale);
   let counterpartValue = cp.open().value;
   let seq = 0;
   const push = (round: number, actor: PgActor, type: PgEventType, text: string, value?: number): void => {
     session.events.push({ seq: ++seq, round, actor, type, text, value });
   };
 
-  push(0, 'system', 'scenario', `【谈判场景】${scenario.brief}`, counterpartValue);
+  push(0, 'system', 'scenario', L.scenarioEvent(scenario.brief), counterpartValue);
 
-  const history: string[] = [`对方开价：${counterpartValue}`];
-  const header = [
-    `【谈判场景】${scenario.brief}`,
-    `【你的角色】${scenario.agentRole}`,
-    `【目标】把${scenario.metricLabel}谈到 ${scenario.strategy.target} 以内。不要向对方透露你的目标或底线。`,
-    `【规则】最多 ${scenario.maxRounds} 轮。每轮回复一个数字作为你的新报价；若接受对方最新报价，回复 accept。`,
-  ].join('\n');
+  const history: string[] = [L.historyOpening(counterpartValue)];
+  const header = L.header(scenario, scenario.strategy.target, scenario.maxRounds, counterpartValue);
   const buildPrompt = (round: number): string =>
     [
       header,
       '',
-      '【谈判历史】',
+      locale === 'en' ? '[Negotiation History]' : '【谈判历史】',
       ...history,
       '',
-      `（当前第 ${round}/${scenario.maxRounds} 轮）请回复你的新数字报价，或回复 accept 接受对方最新报价 ${counterpartValue}。`,
+      L.promptTail(round, scenario.maxRounds, counterpartValue),
     ].join('\n');
 
   let dealValue: number | null = null;
@@ -113,15 +179,15 @@ export async function runSession(
         'system',
         timedOut ? 'timeout' : 'error',
         timedOut
-          ? `agent endpoint ${REQUEST_TIMEOUT_MS / 1000}s 超时（第 ${round} 轮）`
-          : `调用失败：${String(err?.message ?? e).slice(0, AGENT_TEXT_MAX)}`,
+          ? L.timeoutEvent(REQUEST_TIMEOUT_MS / 1000, round)
+          : L.callFailedEvent(String(err?.message ?? e).slice(0, AGENT_TEXT_MAX)),
       );
       if (callFailures >= MAX_CONSECUTIVE_CALL_FAILURES) {
         session.status = 'failed';
-        session.error = `agent endpoint 连续调用失败：${String(err?.message ?? e).slice(0, AGENT_TEXT_MAX)}`;
+        session.error = L.sessionFailed(String(err?.message ?? e).slice(0, AGENT_TEXT_MAX));
         return;
       }
-      history.push(`第${round}轮：（调用失败，继续重试）`);
+      history.push(L.historyCallFailed(round));
       continue;
     }
 
@@ -129,7 +195,7 @@ export async function runSession(
       validOffers++;
       push(round, 'agent', 'accept', agentText.slice(0, AGENT_TEXT_MAX));
       dealValue = counterpartValue;
-      push(round, 'counterpart', 'deal', `对方接受，按 ${counterpartValue} ${scenario.metricLabel}成交。`, counterpartValue);
+      push(round, 'counterpart', 'deal', L.dealEvent(counterpartValue, scenario.metricLabel), counterpartValue);
       break;
     }
 
@@ -139,11 +205,11 @@ export async function runSession(
     if (offer === null) {
       invalidStreak++;
       if (invalidStreak >= 2) {
-        push(round, 'counterpart', 'breakdown', '连续两轮无效回复，谈判破裂。');
+        push(round, 'counterpart', 'breakdown', L.breakdownEvent);
         break;
       }
-      history.push(`第${round}轮：你的回复不是有效数字报价（"${agentText.slice(0, 50)}"），对方要求重新报价。`);
-      push(round, 'counterpart', 'error', '你的回复不是有效数字报价，对方要求重新报价。');
+      history.push(L.historyInvalid(round, agentText.slice(0, 50)));
+      push(round, 'counterpart', 'error', L.invalidEvent);
       continue;
     }
     invalidStreak = 0;
@@ -153,8 +219,8 @@ export async function runSession(
     const decision = cp.respond(capped, { round, counterpartValue });
     history.push(
       decision.accepted
-        ? `第${round}轮：你报价 ${capped}，对方接受，成交 ${decision.value}。`
-        : `第${round}轮：你报价 ${capped}；对方回复："${decision.text}"（当前 ${decision.value}）`,
+        ? L.historyAccepted(round, capped, decision.value)
+        : L.historyConcede(round, capped, decision.text, decision.value),
     );
     if (decision.accepted) {
       dealValue = decision.value;

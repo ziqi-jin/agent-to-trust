@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   api,
+  RateLimitError,
   type PgSession,
   type PlaygroundSessionBody,
 } from '@/lib/api';
+import { useLocale, useT, fill, mapApiError } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { PlaygroundForm } from '@/components/playground/PlaygroundForm';
 import { EventStream } from '@/components/playground/EventStream';
 import { PlaygroundScorecard } from '@/components/playground/PlaygroundScorecard';
@@ -13,24 +16,40 @@ import { PlaygroundScorecard } from '@/components/playground/PlaygroundScorecard
 const POLL_MS = 1500;
 
 export default function PlaygroundPage() {
+  const t = useT();
+  const { locale } = useLocale();
   const [submitting, setSubmitting] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [session, setSession] = useState<PgSession | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pollLost, setPollLost] = useState(false);
 
-  const handleSubmit = useCallback((body: PlaygroundSessionBody) => {
-    setSubmitError(null);
-    setPollLost(false);
-    setSession(null);
-    setSessionId(null);
-    setSubmitting(true);
-    api
-      .createPlaygroundSession(body)
-      .then(({ id }) => setSessionId(id))
-      .catch((e: unknown) => setSubmitError((e as Error).message))
-      .finally(() => setSubmitting(false));
-  }, []);
+  const handleSubmit = useCallback(
+    (body: PlaygroundSessionBody) => {
+      setSubmitError(null);
+      setPollLost(false);
+      setSession(null);
+      setSessionId(null);
+      setSubmitting(true);
+      api
+        .createPlaygroundSession({ ...body, locale })
+        .then(({ id }) => setSessionId(id))
+        .catch((e: unknown) => {
+          const err = e as Error;
+          if (err.name === 'RateLimitError') {
+            setSubmitError(
+              fill(t.apiError.rateLimitedSeconds, {
+                seconds: (err as RateLimitError).retryAfterSeconds,
+              }),
+            );
+          } else {
+            setSubmitError(locale === 'zh' ? err.message : mapApiError(err.message, t.apiError));
+          }
+        })
+        .finally(() => setSubmitting(false));
+    },
+    [locale, t],
+  );
 
   // 开跑后每 1.5s 轮询；404（TTL 过期/不存在）停止并提示；done/failed 停止。
   useEffect(() => {
@@ -78,30 +97,31 @@ export default function PlaygroundPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
-                Agent Credit Lab · 自测场
+                {t.playground.mastheadLabel}
               </p>
               <h1 className="mt-1 font-display text-xl font-black uppercase tracking-[0.16em] md:text-2xl">
                 Playground
               </h1>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/70">
-                零安装自测场 · 填 endpoint，跑一局，拿评分卡 · 不进官方榜
+                {t.playground.mastheadSub}
               </p>
             </div>
-            <a
-              href="/"
-              className="border border-paper/40 px-3 py-1.5 font-mono text-xs text-paper transition hover:border-paper hover:bg-paper/10"
-            >
-              ← 公开名册
-            </a>
+            <div className="flex items-center gap-2">
+              <LanguageSwitcher />
+              <a
+                href="/"
+                className="border border-paper/40 px-3 py-1.5 font-mono text-xs text-paper transition hover:border-paper hover:bg-paper/10"
+              >
+                {t.playground.back}
+              </a>
+            </div>
           </div>
         </div>
       </header>
 
       {(submitError || pollLost) && (
         <div className="mx-6 mt-4 border border-seal/50 bg-seal/10 px-4 py-2 font-mono text-sm text-seal">
-          {submitError
-            ? submitError
-            : '会话不存在或已过期（自测场会话 1 小时后清除）——重新填好表单，再跑一局。'}
+          {submitError ? submitError : t.playground.sessionExpired}
         </div>
       )}
 
@@ -120,14 +140,12 @@ export default function PlaygroundPage() {
                 style={{ '--rot': '1deg', transform: 'rotate(1deg)' } as React.CSSProperties}
               >
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-seal">
-                  会话失败 · SESSION FAILED
+                  {t.playground.failedLabel}
                 </p>
                 <p className="mt-2 break-words text-sm leading-relaxed text-ink">
-                  {session.error ?? '连续两次调用 endpoint 失败。'}
+                  {session.error ?? t.playground.failedFallback}
                 </p>
-                <p className="mt-2 text-[13px] text-dim">
-                  检查 endpoint 是否公网可达（http(s) 地址）、key 是否有效，再试一局。
-                </p>
+                <p className="mt-2 text-[13px] text-dim">{t.playground.failedHint}</p>
               </div>
             )}
 
@@ -137,17 +155,16 @@ export default function PlaygroundPage() {
                 style={{ '--rot': '0.6deg', transform: 'rotate(0.6deg)' } as React.CSSProperties}
               >
                 <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-                  排队中 · QUEUED
+                  {t.playground.queuedLabel}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-ink">
-                  当前开局较多，你的对局已进入队列——前面还有 {session.queuePosition ?? 1} 局。
-                  排到后自动开跑，无需刷新页面。
+                  {fill(t.playground.queuedLine, { n: session.queuePosition ?? 1 })}
                 </p>
               </div>
             )}
 
             <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-              §PG-3 — 实时证据流 LIVE EVIDENCE
+              {t.playground.streamSection}
             </p>
             <EventStream session={session} running={running} />
           </section>
@@ -157,9 +174,7 @@ export default function PlaygroundPage() {
       {/* 页脚：双划线收底，与名册一致 */}
       <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-xs text-dim">
-            AGENT CREDIT LAB · PLAYGROUND · 分数皆可反查证据
-          </p>
+          <p className="font-mono text-xs text-dim">{t.footer.playground}</p>
           <p className="font-mono text-xs text-dim">Don&apos;t trust an Agent. Test it.</p>
         </div>
       </footer>

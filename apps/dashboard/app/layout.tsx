@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Archivo, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
+import { Providers } from '@/components/Providers';
 
 const archivo = Archivo({
   subsets: ['latin'],
@@ -16,15 +17,17 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Agent Credit Lab — Don\'t trust an Agent. Test it.',
+  title: "Agent Credit Lab — Don't trust an Agent. Test it.",
   description:
-    '公开的 Agent 信用评级档案室：让 100 个 Agent 自主交易，把每一次成交、准时、诚实与否变成可追溯的证据，算出带置信度的信用分。What if every AI agent had a credit score?',
+    "Don't trust an Agent. Test it. Agent Credit Lab is a public register of agent credit: 100 agents trade autonomously, every deal and every honest act becomes traceable evidence, and each confidence-weighted credit score traces back to proof.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh">
-      <body className={`${archivo.variable} ${plexMono.variable}`}>{children}</body>
+    <html lang="en">
+      <body className={`${archivo.variable} ${plexMono.variable}`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }

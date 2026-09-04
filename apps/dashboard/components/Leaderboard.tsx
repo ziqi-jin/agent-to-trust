@@ -1,27 +1,29 @@
 'use client';
 
 import type { LeaderboardEntry, StatsSummary } from '@/lib/api';
+import { useT, fill } from '@/lib/i18n';
 import { ScoreSeal } from './ScoreSeal';
 
 function SourceTag({ source }: { source: LeaderboardEntry['source'] }) {
+  const t = useT();
   if (source === 'real-benchmark') {
     return (
       <span className="shrink-0 border border-seal/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-seal">
-        SDK 考场
+        {t.leaderboard.sourceSdk}
       </span>
     );
   }
   if (source === 'benchmark') {
     return (
       <span className="shrink-0 border border-brass/70 px-1.5 py-0.5 font-mono text-[10px] text-brass">
-        真实评测
+        {t.leaderboard.sourceBenchmark}
       </span>
     );
   }
   if (source === 'simulation') {
     return (
       <span className="shrink-0 border border-hairline px-1.5 py-0.5 font-mono text-[10px] text-dim">
-        仿真
+        {t.leaderboard.sourceSimulation}
       </span>
     );
   }
@@ -39,6 +41,7 @@ function Row({
   board: 'capability' | 'behavior';
   index: number;
 }) {
+  const t = useT();
   const isBehavior = board === 'behavior';
   const val = isBehavior ? e.behaviorScore : e.score;
   const tested = isBehavior ? e.inArena && e.behaviorScore !== null : e.source === 'real-benchmark' || e.source === 'benchmark';
@@ -72,7 +75,10 @@ function Row({
             </span>
           )}
           <span className="w-full font-mono text-[10px] uppercase tracking-wider text-dim md:hidden">
-            置信 {Math.round(e.confidence * 100)}% · 证据 {e.evidenceCount}
+            {fill(t.leaderboard.mobileRow, {
+              confidence: Math.round(e.confidence * 100),
+              evidence: e.evidenceCount,
+            })}
             {e.model ? ` · ${e.model}` : ''}
           </span>
         </span>
@@ -127,6 +133,7 @@ export function Leaderboard({
   setBoard: (b: 'capability' | 'behavior') => void;
   summary: StatsSummary | null;
 }) {
+  const t = useT();
   const top10 = entries.slice(0, 10);
   const rest = entries.slice(10);
   const isBehavior = board === 'behavior';
@@ -140,12 +147,10 @@ export function Leaderboard({
             §1 — THE REGISTER
           </p>
           <h2 className="mt-2 font-display text-2xl font-black tracking-tight md:text-3xl">
-            评级名册
+            {t.leaderboard.title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-dim">
-            {isBehavior
-              ? '行为分册：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。'
-              : '名册按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。'}
+            {isBehavior ? t.leaderboard.subtitleBehavior : t.leaderboard.subtitleCapability}
           </p>
         </div>
 
@@ -157,7 +162,7 @@ export function Leaderboard({
               !isBehavior ? 'bg-ink text-paper' : 'border border-hairline text-dim hover:text-ink'
             }`}
           >
-            考场榜 · Capability
+            {t.leaderboard.tabCapability}
           </button>
           <button
             onClick={() => setBoard('behavior')}
@@ -165,15 +170,18 @@ export function Leaderboard({
               isBehavior ? 'bg-ink text-paper' : 'border border-hairline text-dim hover:text-ink'
             }`}
           >
-            行为榜 · Behavior
+            {t.leaderboard.tabBehavior}
           </button>
         </div>
       </div>
 
       {/* 参与统计一行 */}
       <p className="mb-4 font-mono text-[11px] tracking-wide text-dim">
-        考场 {summary?.leaderboard1Participants ?? '—'} · 行为 {summary?.leaderboard2Participants ?? '—'} ·
-        排队 {summary?.queueWaiting ?? 0}
+        {fill(t.leaderboard.statsLine, {
+          exam: summary?.leaderboard1Participants ?? '—',
+          behavior: summary?.leaderboard2Participants ?? '—',
+          queue: summary?.queueWaiting ?? 0,
+        })}
         {(summary?.queueWaiting ?? 0) > 0 && (
           <span className="ml-2 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-seal align-middle" />
         )}
@@ -183,19 +191,17 @@ export function Leaderboard({
       <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
         <span>Rank</span>
         <span>Registered Agent</span>
-        <span className="text-right">证据</span>
-        <span className="text-right">置信</span>
-        <span className="text-right">加权分</span>
-        <span className="text-right">模型</span>
+        <span className="text-right">{t.leaderboard.colEvidence}</span>
+        <span className="text-right">{t.leaderboard.colConfidence}</span>
+        <span className="text-right">{t.leaderboard.colWeighted}</span>
+        <span className="text-right">{t.leaderboard.colModel}</span>
         <span className="text-right">Seal</span>
       </div>
 
       {entries.length === 0 ? (
         <div className="border border-dashed border-hairline px-6 py-14 text-center">
-          <p className="font-display text-base font-bold text-ink">名册暂时空白。</p>
-          <p className="mt-2 text-sm text-dim">
-            跑一次考场——第一个盖章的就是你：
-          </p>
+          <p className="font-display text-base font-bold text-ink">{t.leaderboard.emptyTitle}</p>
+          <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
           <code className="mt-3 inline-block bg-panel px-3 py-1.5 font-mono text-xs text-ledger">
             npx @acl/sdk test --name my-agent
           </code>
@@ -211,7 +217,7 @@ export function Leaderboard({
           {rest.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer px-4 py-3 font-mono text-sm text-dim transition hover:text-ink">
-                翻到名册第二页 — 其余 {rest.length} 个 ⌄
+                {fill(t.leaderboard.moreRows, { n: rest.length })}
               </summary>
               <ol className="divide-y divide-hairline border-b-2 border-ink">
                 {rest.map((e, i) => (
@@ -225,16 +231,19 @@ export function Leaderboard({
 
       {/* 上榜方式 */}
       <div className="mt-6 flex flex-col gap-2 border border-hairline bg-panel px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
-        <span className="shrink-0 text-xs text-dim">上榜 / 更新分数（同钥即同身份，重跑即更新）：</span>
+        <span className="shrink-0 text-xs text-dim">{t.leaderboard.listHint}</span>
         <code className="overflow-x-auto whitespace-nowrap bg-paper px-2.5 py-1.5 font-mono text-xs text-ledger">
           $ npx @acl/sdk test --name my-agent --model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
         </code>
       </div>
 
       <p className="mt-6 font-mono text-[11px] leading-relaxed text-dim">
-        ⚠️ 数据分三类：<span className="text-seal">SDK 考场</span>（source=real-benchmark，外部开发者 npx
-        接入，Ed25519 签名上报）、<span className="text-brass">真实评测</span>（source=benchmark，DeepSeek
-        实跑）。仿真数据仅用于引擎自测，不在名册展示；SDK 数据经签名验证后才可升级 verified。
+        {t.leaderboard.footnotePre}
+        <span className="text-seal">{t.leaderboard.footnoteSdk}</span>
+        {t.leaderboard.footnoteSdkDetail}
+        <span className="text-brass">{t.leaderboard.footnoteBench}</span>
+        {t.leaderboard.footnoteBenchDetail}
+        {t.leaderboard.footnotePost}
       </p>
     </section>
   );

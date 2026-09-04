@@ -6,18 +6,13 @@ import {
   type PlaygroundSessionBody,
   type PlaygroundTemplate,
 } from '@/lib/api';
+import { useLocale, useT, fill } from '@/lib/i18n';
 
 type Mode = 'template' | 'custom';
 type Style = 'tough' | 'balanced' | 'gentle';
 
 const INPUT_CLS =
   'mt-1.5 w-full border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none';
-
-const STYLE_OPTIONS: Array<{ value: Style; label: string; desc: string }> = [
-  { value: 'tough', label: '强硬', desc: '让步慢 · 每轮 10%' },
-  { value: 'balanced', label: '均衡', desc: '标准节奏 · 每轮 25%' },
-  { value: 'gentle', label: '温和', desc: '让步快 · 每轮 40%' },
-];
 
 const LABEL_CLS = 'block font-mono text-[11px] uppercase tracking-[0.18em] text-dim';
 
@@ -51,6 +46,8 @@ export function PlaygroundForm({
   onSubmit: (body: PlaygroundSessionBody) => void;
   submitting: boolean;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [name, setName] = useState('');
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -63,44 +60,45 @@ export function PlaygroundForm({
   const [style, setStyle] = useState<Style>('balanced');
   const [formError, setFormError] = useState<string | null>(null);
 
-  // 启动即拉官方模板
+  // 启动即拉官方模板（随语言切换重拉，后端按 locale 本地化）
   useEffect(() => {
     let alive = true;
+    setTemplates(null);
+    setTemplatesError(null);
     api
-      .playgroundTemplates()
+      .playgroundTemplates(locale)
       .then((r) => {
         if (alive) setTemplates(r.templates);
       })
       .catch(() => {
-        if (alive)
-          setTemplatesError('模板拉取失败——可切到「自定义参数」手动建场景。');
+        if (alive) setTemplatesError(t.playground.form.templatesError);
       });
     return () => {
       alive = false;
     };
-  }, []);
+  }, [locale, t]);
 
-  const selectedTemplate = templates?.find((t) => t.id === templateId) ?? null;
+  const selectedTemplate = templates?.find((tmpl) => tmpl.id === templateId) ?? null;
 
   /** 选中模板即预填自定义字段：翻到「自定义参数」即可在模板基础上微调。 */
-  const prefillFromTemplate = (t: PlaygroundTemplate) => {
+  const prefillFromTemplate = (tmpl: PlaygroundTemplate) => {
     setCustom({
-      brief: t.scenario.brief,
-      agentRole: t.scenario.agentRole,
-      counterpartRole: t.scenario.counterpartRole,
-      metricLabel: t.scenario.metricLabel,
-      opening: String(t.scenario.strategy.opening),
-      floor: String(t.scenario.strategy.floor),
-      target: String(t.scenario.strategy.target),
-      maxRounds: String(t.scenario.maxRounds),
+      brief: tmpl.scenario.brief,
+      agentRole: tmpl.scenario.agentRole,
+      counterpartRole: tmpl.scenario.counterpartRole,
+      metricLabel: tmpl.scenario.metricLabel,
+      opening: String(tmpl.scenario.strategy.opening),
+      floor: String(tmpl.scenario.strategy.floor),
+      target: String(tmpl.scenario.strategy.target),
+      maxRounds: String(tmpl.scenario.maxRounds),
     });
   };
 
   const onTemplateChange = (id: string) => {
     setTemplateId(id);
     setFormError(null);
-    const t = templates?.find((x) => x.id === id);
-    if (t) prefillFromTemplate(t);
+    const tmpl = templates?.find((x) => x.id === id);
+    if (tmpl) prefillFromTemplate(tmpl);
   };
 
   const setCustomField = (key: keyof CustomDraft, value: string) =>
@@ -108,9 +106,9 @@ export function PlaygroundForm({
 
   const buildBody = (): { scenario: PlaygroundSessionBody['scenario'] } | string => {
     const ep = endpoint.trim();
-    if (!ep) return 'endpoint 必填。';
-    if (!/^https?:\/\//i.test(ep)) return 'endpoint 需以 http(s):// 开头。';
-    if (mode === 'template' && !templateId) return '请选择一个官方模板，或切到自定义参数。';
+    if (!ep) return t.playground.form.validation.endpointRequired;
+    if (!/^https?:\/\//i.test(ep)) return t.playground.form.validation.endpointProtocol;
+    if (mode === 'template' && !templateId) return t.playground.form.validation.chooseTemplate;
 
     if (mode === 'custom') {
       const brief = custom.brief.trim();
@@ -118,18 +116,20 @@ export function PlaygroundForm({
       const counterpartRole = custom.counterpartRole.trim();
       const metricLabel = custom.metricLabel.trim();
       if (!brief || !agentRole || !counterpartRole || !metricLabel)
-        return '自定义场景：brief / 你方角色 / 对手角色 / 指标名 都必填。';
+        return t.playground.form.validation.customRequired;
 
       const opening = Number(custom.opening);
       const floor = Number(custom.floor);
       const target = Number(custom.target);
       const maxRounds = Number(custom.maxRounds);
       if (!Number.isFinite(opening) || !Number.isFinite(floor) || !Number.isFinite(target))
-        return '开价 / 底线 / 目标价必须是数字。';
-      if (opening <= 0 || floor <= 0 || target <= 0) return '数值都必须大于 0。';
-      if (!(floor < target && target <= opening)) return '需满足：底线 < 目标价 ≤ 对手开价。';
+        return t.playground.form.validation.numbersRequired;
+      if (opening <= 0 || floor <= 0 || target <= 0)
+        return t.playground.form.validation.positiveOnly;
+      if (!(floor < target && target <= opening))
+        return t.playground.form.validation.floorTarget;
       if (!Number.isInteger(maxRounds) || maxRounds < 2 || maxRounds > 8)
-        return '回合数取 2–8 的整数。';
+        return t.playground.form.validation.roundsRange;
 
       return {
         scenario: {
@@ -188,16 +188,18 @@ export function PlaygroundForm({
     </button>
   );
 
+  const f = t.playground.form;
+
   return (
     <div className="flex flex-col gap-8">
       {/* 被测 agent */}
       <section>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-          §PG-1 — 被测 AGENT
+          {f.sectionAgent}
         </p>
         <div className="mt-4 flex flex-col gap-4">
           <label>
-            <span className={LABEL_CLS}>显示名 · NAME（可选）</span>
+            <span className={LABEL_CLS}>{f.nameLabel}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -207,44 +209,44 @@ export function PlaygroundForm({
             />
           </label>
           <label>
-            <span className={LABEL_CLS}>Endpoint *</span>
+            <span className={LABEL_CLS}>{f.endpointLabel}</span>
             <input
               value={endpoint}
               onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="https://your-agent.example.com/v1/chat/completions"
+              placeholder={f.endpointPlaceholder}
               spellCheck={false}
               className={INPUT_CLS}
             />
             <span className="mt-1 block text-[11px] leading-relaxed text-dim">
-              OpenAI chat-completions 兼容地址 · agent 零改动，同考场 --url 模式
+              {f.endpointHelper}
             </span>
           </label>
           <label>
-            <span className={LABEL_CLS}>API Key（可选）</span>
+            <span className={LABEL_CLS}>{f.apiKeyLabel}</span>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               autoComplete="off"
-              placeholder="sk-…（Bearer）"
+              placeholder={f.apiKeyPlaceholder}
               className={INPUT_CLS}
             />
             <span className="mt-1 block text-[11px] leading-relaxed text-dim">
-              key 即用即弃：只进本次对局内存，不落存储、不进日志
+              {f.apiKeyHelper}
             </span>
           </label>
           <label>
-            <span className={LABEL_CLS}>Model（可选）</span>
+            <span className={LABEL_CLS}>{f.modelLabel}</span>
             <input
               type="text"
               value={model}
               onChange={(e) => setModel(e.target.value)}
               autoComplete="off"
-              placeholder="deepseek-chat / glm-4.7…（厂商直连必填）"
+              placeholder={f.modelPlaceholder}
               className={INPUT_CLS}
             />
             <span className="mt-1 block text-[11px] leading-relaxed text-dim">
-              直连 OpenAI 兼容厂商时必填；网关/代理已有默认模型可留空
+              {f.modelHelper}
             </span>
           </label>
         </div>
@@ -253,11 +255,11 @@ export function PlaygroundForm({
       {/* 场景来源 */}
       <section>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-          §PG-2 — 场景来源 SCENARIO
+          {f.sectionScenario}
         </p>
         <div className="mt-4 flex gap-1 font-mono text-xs">
-          {modeBtn('template', '官方模板')}
-          {modeBtn('custom', '自定义参数')}
+          {modeBtn('template', f.tabTemplate)}
+          {modeBtn('custom', f.tabCustom)}
         </div>
 
         {mode === 'template' ? (
@@ -268,27 +270,27 @@ export function PlaygroundForm({
               </p>
             ) : templates === null ? (
               <p className="border border-dashed border-hairline px-3 py-3 font-mono text-xs text-dim">
-                正在拉取官方模板…
+                {f.loadingTemplates}
               </p>
             ) : templates.length === 0 ? (
               <p className="border border-dashed border-hairline px-3 py-3 font-mono text-xs text-dim">
-                暂无官方模板——切到「自定义参数」建场景。
+                {f.noTemplates}
               </p>
             ) : (
               <>
                 <label>
-                  <span className={LABEL_CLS}>选择场景</span>
+                  <span className={LABEL_CLS}>{f.chooseScenario}</span>
                   <select
                     value={templateId}
                     onChange={(e) => onTemplateChange(e.target.value)}
                     className={INPUT_CLS}
                   >
                     <option value="" disabled>
-                      选择模板…
+                      {f.chooseTemplate}
                     </option>
-                    {templates.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} — {t.desc}
+                    {templates.map((tmpl) => (
+                      <option key={tmpl.id} value={tmpl.id}>
+                        {tmpl.name} — {tmpl.desc}
                       </option>
                     ))}
                   </select>
@@ -299,13 +301,13 @@ export function PlaygroundForm({
                       {selectedTemplate.scenario.brief}
                     </p>
                     <dl className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[11px] leading-relaxed text-dim">
-                      <div>你方：{selectedTemplate.scenario.agentRole}</div>
-                      <div>对手：{selectedTemplate.scenario.counterpartRole}</div>
-                      <div>指标：{selectedTemplate.scenario.metricLabel}</div>
-                      <div>回合：≤ {selectedTemplate.scenario.maxRounds}</div>
-                      <div>对手开价：{selectedTemplate.scenario.strategy.opening}</div>
-                      <div>对手底线：{selectedTemplate.scenario.strategy.floor}</div>
-                      <div>你的目标：≤ {selectedTemplate.scenario.strategy.target}</div>
+                      <div>{fill(f.detailYou, { v: selectedTemplate.scenario.agentRole })}</div>
+                      <div>{fill(f.detailOpponent, { v: selectedTemplate.scenario.counterpartRole })}</div>
+                      <div>{fill(f.detailMetric, { v: selectedTemplate.scenario.metricLabel })}</div>
+                      <div>{fill(f.detailRounds, { v: selectedTemplate.scenario.maxRounds })}</div>
+                      <div>{fill(f.detailOpening, { v: selectedTemplate.scenario.strategy.opening })}</div>
+                      <div>{fill(f.detailFloor, { v: selectedTemplate.scenario.strategy.floor })}</div>
+                      <div>{fill(f.detailTarget, { v: selectedTemplate.scenario.strategy.target })}</div>
                     </dl>
                   </div>
                 )}
@@ -315,47 +317,47 @@ export function PlaygroundForm({
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <label>
-              <span className={LABEL_CLS}>谈判背景 BRIEF *</span>
+              <span className={LABEL_CLS}>{f.briefLabel}</span>
               <textarea
                 value={custom.brief}
                 onChange={(e) => setCustomField('brief', e.target.value)}
                 rows={3}
-                placeholder="你要为公司采购 100 把定制机械键盘，正在和供应商谈单价…"
+                placeholder={f.briefPlaceholder}
                 className={`${INPUT_CLS} resize-y`}
               />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label>
-                <span className={LABEL_CLS}>你方角色 *</span>
+                <span className={LABEL_CLS}>{f.agentRoleLabel}</span>
                 <input
                   value={custom.agentRole}
                   onChange={(e) => setCustomField('agentRole', e.target.value)}
-                  placeholder="采购经理"
+                  placeholder={f.agentRolePlaceholder}
                   className={INPUT_CLS}
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>对手角色 *</span>
+                <span className={LABEL_CLS}>{f.counterpartRoleLabel}</span>
                 <input
                   value={custom.counterpartRole}
                   onChange={(e) => setCustomField('counterpartRole', e.target.value)}
-                  placeholder="供应商销售"
+                  placeholder={f.counterpartRolePlaceholder}
                   className={INPUT_CLS}
                 />
               </label>
             </div>
             <label>
-              <span className={LABEL_CLS}>指标名 METRIC *</span>
+              <span className={LABEL_CLS}>{f.metricLabel}</span>
               <input
                 value={custom.metricLabel}
                 onChange={(e) => setCustomField('metricLabel', e.target.value)}
-                placeholder="单价（元）"
+                placeholder={f.metricPlaceholder}
                 className={INPUT_CLS}
               />
             </label>
             <div className="grid gap-4 sm:grid-cols-3">
               <label>
-                <span className={LABEL_CLS}>对手开价 *</span>
+                <span className={LABEL_CLS}>{f.openingLabel}</span>
                 <input
                   type="number"
                   min="0"
@@ -367,7 +369,7 @@ export function PlaygroundForm({
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>对手底线 *</span>
+                <span className={LABEL_CLS}>{f.floorLabel}</span>
                 <input
                   type="number"
                   min="0"
@@ -379,7 +381,7 @@ export function PlaygroundForm({
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>你的目标价 *</span>
+                <span className={LABEL_CLS}>{f.targetLabel}</span>
                 <input
                   type="number"
                   min="0"
@@ -391,10 +393,10 @@ export function PlaygroundForm({
                 />
               </label>
             </div>
-            <p className="font-mono text-[11px] text-dim">须满足：底线 &lt; 目标价 ≤ 对手开价</p>
+            <p className="font-mono text-[11px] text-dim">{f.floorTargetHint}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <label>
-                <span className={LABEL_CLS}>回合数（2–8）</span>
+                <span className={LABEL_CLS}>{f.roundsLabel}</span>
                 <input
                   type="number"
                   min="2"
@@ -406,13 +408,13 @@ export function PlaygroundForm({
                 />
               </label>
               <div>
-                <span className={LABEL_CLS}>对手风格</span>
+                <span className={LABEL_CLS}>{f.styleLabel}</span>
                 <div className="mt-1.5 flex gap-1">
-                  {STYLE_OPTIONS.map((s) => (
+                  {f.styles.map((s) => (
                     <button
                       key={s.value}
                       type="button"
-                      onClick={() => setStyle(s.value)}
+                      onClick={() => setStyle(s.value as Style)}
                       title={s.desc}
                       className={
                         style === s.value
@@ -446,11 +448,9 @@ export function PlaygroundForm({
           disabled={submitting}
           className="w-full bg-ledger px-5 py-3 text-sm font-bold text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
         >
-          {submitting ? '开跑中…' : '开跑 ▸'}
+          {submitting ? f.submitting : f.submit}
         </button>
-        <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">
-          自测场结果不进官方榜，只出评分卡 · 每 IP 同时 2 局 / 每小时 10 局 · 高峰期自动排队
-        </p>
+        <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">{f.footnote}</p>
       </section>
     </div>
   );

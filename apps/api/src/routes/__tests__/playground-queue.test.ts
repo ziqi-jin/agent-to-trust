@@ -21,14 +21,15 @@ const payload = {
   name: 'q-agent',
   endpoint: 'https://api.example.com/chat',
   apiKey: 'sk-queue-test-key',
+  locale: 'zh', // 队列文案断言中文 → 固定 zh 会话（0904 i18n 默认 en）
   scenario: { templateId: 'neg-keyboard-price' },
 } as const;
 
-const post = (app: FastifyInstance, ip?: string) =>
+const post = (app: FastifyInstance, ip?: string, override?: Record<string, unknown>) =>
   app.inject({
     method: 'POST',
     url: '/playground/sessions',
-    payload,
+    payload: override ? { ...payload, ...override } : payload,
     // 指定私网 remoteAddress（uniquelocal 信任段）+ XFF → req.ip 取 XFF，模拟不同用户
     ...(ip ? { remoteAddress: '10.0.0.1', headers: { 'x-forwarded-for': ip } } : {}),
   });
@@ -105,9 +106,11 @@ describe('/playground 队列', () => {
 
   it('FIFO 放行：占坑者终局后，等位者按先来后到依次转 running', async () => {
     // 可控 fetch：第 1 次挂起（手动放行），其余立即成功
-    let release1: (() => void) | null = null;
-    const fetchImpl = ((): Promise<Response> => {
-      if (release1 === null) {
+    let release1: () => void = () => {}; // 空实现兑底，首次调用时被真实现覆盖
+    let firstCall = true;
+    const hangOnce = (): Promise<Response> => {
+      if (firstCall) {
+        firstCall = false;
         return new Promise<Response>((resolve) => {
           release1 = () =>
             resolve({
@@ -120,9 +123,9 @@ describe('/playground 队列', () => {
         ok: true,
         text: async () => JSON.stringify({ choices: [{ message: { content: 'accept' } }] }),
       } as unknown as Response);
-    }) as unknown as typeof fetch;
+    };
 
-    const app = mkApp(fetchImpl, { maxActive: 1, maxWaiting: 5, waitTimeoutMs: 60_000 });
+    const app = mkApp(hangOnce as unknown as typeof fetch, { maxActive: 1, maxWaiting: 5, waitTimeoutMs: 60_000 });
 
     const s1 = (await (await post(app, '10.1.0.1')).json()) as { id: string; status: string };
     expect(s1.status).toBe('running');
@@ -131,7 +134,7 @@ describe('/playground 队列', () => {
     expect(s2.status).toBe('queued');
     expect(s3.status).toBe('queued');
 
-    release1?.(); // 第 1 局放行 → 走完 → 空出坑位
+    release1(); // 第 1 局放行 → 走完 → 空出坑位
     const f2 = await pollUntil(app, s2.id, (b) => b.status !== 'queued');
     expect(f2.status).toBe('done'); // accept 一轮成交
 
@@ -146,8 +149,8 @@ describe('/playground 队列', () => {
       waitTimeoutMs: 300,
     });
 
-    const s1 = (await (await post(app)).json()) as { id: string };
-    const s2 = (await (await post(app)).json()) as { id: string };
+    const s1 = (await (await post(app)).json()) as { id: string; status: string };
+    const s2 = (await (await post(app)).json()) as { id: string; status: string };
     expect(s1.status).toBe('running');
     expect(s2.status).toBe('queued');
 
@@ -170,13 +173,17 @@ describe('/playground 队列', () => {
       waitTimeoutMs: 60_000,
     });
 
-    const s1 = (await (await post(app)).json()) as { id: string };
+    const s1 = (await (await post(app)).json()) as { id: string; status: string };
     expect(s1.status).toBe('running');
-    const s2 = (await (await post(app)).json()) as { id: string };
+    const s2 = (await (await post(app)).json()) as { id: string; status: string };
     expect(s2.status).toBe('queued');
 
     const r3 = await post(app);
     expect(r3.statusCode).toBe(503);
     expect((r3.json() as { error: string }).error).toContain('排队');
+    // EN 会话（默认 locale）→ 英文 503 文案（0904 i18n）
+    const rEn = await post(app, undefined, { locale: 'en' });
+    expect(rEn.statusCode).toBe(503);
+    expect((rEn.json() as { error: string }).error).toBe('Queue is full right now — please try again later.');
   });
 });

@@ -1,4 +1,7 @@
+'use client';
+
 import { gradeFor } from '@/lib/api';
+import { useT, fill } from '@/lib/i18n';
 
 const TONE: Record<string, string> = {
   gold: 'text-brass border-brass',
@@ -10,6 +13,7 @@ const TONE: Record<string, string> = {
 };
 
 export function GradeBadge({ score, size = 'md' }: { score: number | null; size?: 'sm' | 'md' | 'lg' }) {
+  const t = useT();
   const { label, tone } = gradeFor(score);
   const cls =
     size === 'lg'
@@ -20,7 +24,7 @@ export function GradeBadge({ score, size = 'md' }: { score: number | null; size?
   return (
     <span
       className={`inline-flex items-center justify-center border bg-paper font-mono font-bold tracking-widest ${cls} ${TONE[tone]}`}
-      title={score === null ? '无证据，未评级' : `信用分 ${score}/1000`}
+      title={score === null ? t.grade.none : fill(t.grade.credit, { n: score })}
     >
       {label}
     </span>

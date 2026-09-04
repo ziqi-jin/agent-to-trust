@@ -46,6 +46,18 @@ describe('/playground', () => {
     expect(body.templates[0].scenario.strategy.opening).toBeGreaterThan(0);
   });
 
+  it('GET templates 默认英文；?locale=zh 中文；scenario 文案同步 materialize（0904 i18n）', async () => {
+    const en = await app.inject({ method: 'GET', url: '/playground/templates' });
+    const enBody = en.json() as { templates: { id: string; name: string; desc: string; scenario: { brief: string; agentRole: string } }[] };
+    expect(enBody.templates[0].name).toBe('Keyboard Sourcing');
+    expect(enBody.templates[0].scenario.brief).toMatch(/^You are sourcing 100 custom mechanical keyboards/);
+    expect(enBody.templates[0].scenario.agentRole).toBe('Procurement Manager');
+    const zh = await app.inject({ method: 'GET', url: '/playground/templates?locale=zh' });
+    const zhBody = zh.json() as { templates: { id: string; name: string; desc: string; scenario: { brief: string } }[] };
+    expect(zhBody.templates[0].name).toBe('键盘采购单价');
+    expect(zhBody.templates[0].scenario.brief).toMatch(/^你要为公司采购 100 把定制机械键盘/);
+  });
+
   it('POST 合法（带 apiKey）→ 201；轮询到 done；响应 JSON 搜不到 key', async () => {
     const post = await app.inject({
       method: 'POST',
@@ -102,21 +114,32 @@ describe('/playground', () => {
     expect(badTpl.statusCode).toBe(400);
   });
 
-  it('限流：并发 2 局后第 3 局 429 + retry-after（hang 的 fetch 不释放）', async () => {
+  it('限流：并发 2 局后第 3 局 429 + retry-after（hang 的 fetch 不释放）；zh/en 文案按 locale', async () => {
     const hangApp = buildApp(db, { playgroundFetchImpl: hangFetch as unknown as typeof fetch });
     const payload = {
       endpoint: 'https://api.example.com/chat',
       scenario: { templateId: 'neg-keyboard-price' },
     };
-    const r1 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload });
-    const r2 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload });
+    const r1 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload: { ...payload, locale: 'zh' } });
+    const r2 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload: { ...payload, locale: 'zh' } });
     expect(r1.statusCode).toBe(201);
     expect(r2.statusCode).toBe(201);
-    const r3 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload });
+    const r3 = await hangApp.inject({ method: 'POST', url: '/playground/sessions', payload: { ...payload, locale: 'zh' } });
     expect(r3.statusCode).toBe(429);
     expect(r3.headers['retry-after']).toBeTruthy();
     expect((r3.json() as { error: string }).error).toContain('频繁');
+
+    // 另一个 IP 段（新 app 实例）默认 en → 英文 429 文案
+    const enApp = buildApp(db, { playgroundFetchImpl: hangFetch as unknown as typeof fetch });
+    const rEn = await enApp.inject({ method: 'POST', url: '/playground/sessions', payload });
+    const rEn2 = await enApp.inject({ method: 'POST', url: '/playground/sessions', payload });
+    const rEn3 = await enApp.inject({ method: 'POST', url: '/playground/sessions', payload });
+    expect(rEn.statusCode).toBe(201);
+    expect(rEn2.statusCode).toBe(201);
+    expect(rEn3.statusCode).toBe(429);
+    expect((rEn3.json() as { error: string }).error).toMatch(/^Too many runs — please retry in \d+s$/);
     await hangApp.close();
+    await enApp.close();
   });
 
   it('GET 不存在的会话 → 404', async () => {

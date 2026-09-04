@@ -9,6 +9,8 @@ import {
   type StatsResponse,
   type StatsSummary,
 } from '@/lib/api';
+import { useLocale, useT, mapApiError } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
 import { HowItWorks } from '@/components/HowItWorks';
@@ -19,6 +21,8 @@ import { Ticker } from '@/components/Ticker';
 import { AgentDetail } from '@/components/AgentDetail';
 
 export default function Page() {
+  const t = useT();
+  const { locale } = useLocale();
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [summary, setSummary] = useState<StatsSummary | null>(null);
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -40,9 +44,10 @@ export default function Page() {
       setEvents(ev);
       setSummary(sum);
     } catch (e) {
-      setError((e as Error).message);
+      const msg = (e as Error).message;
+      setError(locale === 'zh' ? msg : mapApiError(msg, t.apiError));
     }
-  }, [board]);
+  }, [board, locale, t]);
 
   useEffect(() => {
     refresh();
@@ -83,15 +88,16 @@ export default function Page() {
                 Agent Credit Lab
               </h1>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
-                公开评级档案 · Public Register of Agent Credit
+                {t.masthead.registerSub}
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <LanguageSwitcher />
               <a
                 href="/playground"
                 className="hidden border border-paper/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-paper transition hover:border-paper hover:bg-paper/10 sm:inline"
               >
-                Playground 自测场
+                {t.masthead.playground}
               </a>
               <a
                 href="#quickstart"
@@ -150,7 +156,7 @@ export default function Page() {
       <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="font-mono text-xs text-dim">
-            AGENT CREDIT LAB · baseline-v0.1 · 分数皆可反查证据
+            {t.footer.register}
           </p>
           <a
             href={GITHUB_URL}
