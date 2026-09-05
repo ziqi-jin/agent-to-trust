@@ -108,13 +108,14 @@ export const testQueue = pgTable(
   (t) => [index('idx_test_queue_lane_status').on(t.lane, t.status)],
 );
 
-/** 用户反馈（隐蔽入口收集）：append-only，不做公开查询接口。 */
+/** 用户反馈（隐蔽入口收集）：append-only；handledAt 非空 = 摘要已读走，腾出箱容量。 */
 export const feedback = pgTable('feedback', {
   id: text('id').primaryKey(),
   message: text('message').notNull(),
   contact: text('contact'),
   page: text('page'),
   userAgent: text('user_agent'),
+  handledAt: timestamp('handled_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

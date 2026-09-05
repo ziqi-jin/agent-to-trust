@@ -130,6 +130,8 @@ CREATE TABLE IF NOT EXISTS feedback (
   user_agent text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- 2026-09-05 反馈硬化：已读标记（箱满按未处理数计；摘要读走后置 handled_at 腾容量）
+ALTER TABLE feedback ADD COLUMN IF NOT EXISTS handled_at timestamptz;
 `;
 
 export async function migrate(url: string): Promise<void> {

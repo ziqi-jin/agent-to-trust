@@ -279,13 +279,14 @@ export const api = {
     http<LeaderboardEntry[]>(`/leaderboard?board=${board}`),
   stats: () => http<StatsResponse>('/stats'),
   statsSummary: () => http<StatsSummary>('/stats/summary'),
-  submitFeedback: (message: string, contact?: string, page?: string) =>
+  submitFeedback: (message: string, contact?: string, page?: string, website?: string) =>
     http<{ ok: boolean }>('/feedback', {
       method: 'POST',
       body: JSON.stringify({
         message,
         ...(contact ? { contact } : {}),
         ...(page ? { page } : {}),
+        ...(website ? { website } : {}),
       }),
     }),
   events: () => http<Evidence[]>('/events'),

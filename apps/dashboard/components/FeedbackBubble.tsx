@@ -6,13 +6,14 @@ import { useT } from '@/lib/i18n';
 
 /**
  * 反馈入口（隐蔽但可发现）：右下角低透明度小气泡，hover 变亮。
- * 点开收集文字反馈 + 可选联系方式，POST /feedback（限速：同 IP 每分钟 3 条）。
+ * 点开收集文字反馈 + 可选联系方式，POST /feedback（防刷：蜜罐 + 同 IP 每小时 5 条 + 箱满熔断）。
  */
 export function FeedbackBubble() {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [contact, setContact] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +23,12 @@ export function FeedbackBubble() {
     setStatus('sending');
     setError(null);
     try {
-      await api.submitFeedback(text, contact.trim() || undefined, window.location.hash || '/');
+      await api.submitFeedback(
+        text,
+        contact.trim() || undefined,
+        window.location.hash || '/',
+        honeypot.trim() || undefined,
+      );
       setStatus('sent');
       setMessage('');
       setContact('');
@@ -57,6 +63,7 @@ export function FeedbackBubble() {
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 maxLength={2000}
+                aria-label={t.feedback.prompt}
                 placeholder={t.feedback.placeholder}
                 className="w-full resize-none border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
@@ -64,9 +71,21 @@ export function FeedbackBubble() {
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 maxLength={200}
+                aria-label={t.feedback.contactPlaceholder}
                 placeholder={t.feedback.contactPlaceholder}
                 className="mt-2 w-full border border-hairline bg-panel px-2.5 py-1.5 text-xs text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
               />
+              {/* 蜜罐：人类不可见（display:none）；机器人无脑填满所有字段即被后端静默丢弃 */}
+              <div className="hidden" aria-hidden="true">
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </div>
               {error && <p className="mt-1.5 text-xs text-seal">{error}</p>}
               <div className="mt-3 flex justify-end gap-2">
                 <button

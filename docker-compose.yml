@@ -37,6 +37,8 @@ services:
       PORT: 8000
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
+      # 反馈摘要读取令牌（GET /feedback；未设置时接口关闭）
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       # T12 准入队列：平台买家密钥持久化（重启不丢，防同名异钥 403）+ solo 等待时长
       PLATFORM_KEY_DIR: /app/data/.acl-platform
       QUEUE_SOLO_WAIT_MS: ${QUEUE_SOLO_WAIT_MS:-12000}
