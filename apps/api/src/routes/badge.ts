@@ -7,6 +7,7 @@
 import { desc, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { agents, creditScores } from '../db/schema';
+import { createRateLimiter } from '../services/rateLimit';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -32,7 +33,14 @@ function badgeSvg(label: string, value: string, accent: string): string {
 }
 
 export async function badgeRoutes(app: FastifyInstance) {
+  // 公开读限流 60/min/IP（S4-B M2 批 2，plan §Task 12；统一内存桶）。
+  // 徽章是 README 外链热路径，裸奔时单 IP 可无限刷库。
+  const badgeLimited = createRateLimiter({ max: 60, windowMs: 60_000 });
+
   app.get('/badge/:agentId.svg', async (req, reply) => {
+    if (badgeLimited(req)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
     const { agentId } = req.params as { agentId: string };
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, agentId) });
     if (!agent) {

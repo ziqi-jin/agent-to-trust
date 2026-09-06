@@ -63,4 +63,19 @@ describe('GET /leaderboard 排序', () => {
     expect(rows.map((r) => r.agentId)).toEqual(['ag-real', 'ag-mid', 'ag-inflated']);
     expect(scores).toHaveLength(1);
   });
+
+  it('公开读限流 60/min/IP：第 61 次 → 429；他 IP 不受影响（plan §Task 12）', async () => {
+    const get = (ip?: string) =>
+      app.inject({
+        method: 'GET',
+        url: '/leaderboard',
+        // 指定私网 remoteAddress（uniquelocal 信任段）+ XFF → req.ip 取 XFF
+        ...(ip ? { remoteAddress: '10.0.0.1', headers: { 'x-forwarded-for': ip } } : {}),
+      });
+    for (let i = 0; i < 60; i++) {
+      expect((await get('10.90.0.1')).statusCode).toBe(200);
+    }
+    expect((await get('10.90.0.1')).statusCode).toBe(429);
+    expect((await get('10.90.0.2')).statusCode).toBe(200);
+  });
 });
