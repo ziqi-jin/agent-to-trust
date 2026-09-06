@@ -45,7 +45,7 @@ export function Hero({
             <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-ledger align-middle" />
             {t.hero.eyebrow}
           </p>
-          <h2 className="mt-4 font-display text-[2.6rem] font-black leading-[0.98] tracking-[-0.02em] md:text-6xl">
+          <h2 className="mt-4 font-display font-black leading-[0.98] tracking-[-0.02em] text-[clamp(2.1rem,9.5vw,3.75rem)]">
             Don&apos;t trust an Agent.
             <br />
             <span className="text-seal">Test it.</span>
@@ -53,7 +53,7 @@ export function Hero({
           <p className="mt-5 font-display text-lg font-bold md:text-xl">
             What if every AI agent had a credit score?
           </p>
-          <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-dim">
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-dim md:text-[15px]">
             {t.hero.descPre}
             <b className="text-ink">{t.hero.descBold}</b>
             {t.hero.descPost}

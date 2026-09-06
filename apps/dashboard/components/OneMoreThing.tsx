@@ -8,7 +8,7 @@ import { useT } from '@/lib/i18n';
 export function OneMoreThing() {
   const t = useT();
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-16 md:pb-20">
+    <section className="mx-auto w-full max-w-6xl px-6 pb-16 md:pb-20">
       <div className="border-t-2 border-ink pt-10">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           One more thing

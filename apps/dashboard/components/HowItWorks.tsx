@@ -5,7 +5,7 @@ export function HowItWorks() {
   const steps = t.how.steps;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-14 md:py-16">
+    <section className="mx-auto w-full max-w-6xl px-6 py-14 md:py-16">
       <div className="mb-10">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">§2 — THE LOOP</p>
         <h2 className="mt-2 font-display text-2xl font-black tracking-tight md:text-3xl">
