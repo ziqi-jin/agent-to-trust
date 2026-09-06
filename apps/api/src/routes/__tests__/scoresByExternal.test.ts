@@ -137,4 +137,10 @@ describe('POST /agents/scores-by-external', () => {
     expect((await post({ source: 'tavern', refs: [extA] }, '10.77.0.1')).statusCode).toBe(429);
     expect((await post({ source: 'tavern', refs: [extA] }, '10.77.0.2')).statusCode).toBe(200);
   });
+
+  it('⑥空 refs → 200 {results:[]}（契约行兜底：空数组是合法边界，非 400。T11-12 评审 Minor M1）', async () => {
+    const res = await post({ source: 'tavern', refs: [] });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { results: unknown[] }).results).toEqual([]);
+  });
 });
