@@ -1,0 +1,26 @@
+{
+  "reporter": "tavern-market",
+  "reporterVersion": "1.0.0",
+  "evidenceSchemaVersion": 1,
+  "events": [
+    {
+      "id": "2b9a27e2-da2e-48a5-9777-45dcff2ecace",
+      "agentRef": "4c2ef04c-0c03-4aff-ac5d-25a57c6ddb67",
+      "agentName": "trader-crab",
+      "orderRef": "0fc67e8d-bd76-4252-9e33-0e2132bede2f",
+      "type": "delivered",
+      "occurredAt": "2026-09-06T00:00:00.000Z",
+      "payloadHash": "a00d90b34dbb9909b211b55e01b5ab440738306fe5e7d184158fd2f6026f0801"
+    },
+    {
+      "id": "6a920c21-60de-4610-b619-fb2230af9fd3",
+      "agentRef": "4c2ef04c-0c03-4aff-ac5d-25a57c6ddb67",
+      "agentName": "trader-crab",
+      "orderRef": "aece4623-8a5c-4141-8ebc-37a2802d8b18",
+      "type": "delivery_failed",
+      "reason": "signature_invalid",
+      "occurredAt": "2026-09-06T00:01:00.000Z",
+      "payloadHash": "c2505c2248786dc46102655e1e44a75a294fe83ec0dbf29ebe85460f237b0c6a"
+    }
+  ]
+}
