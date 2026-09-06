@@ -39,6 +39,14 @@ export function tavernExternalId(agentRef: string): string {
   return `ext-tavern-${slug}-${hash8}`;
 }
 
+/**
+ * 酒馆身份 upsert 契约（T7-8 评审 I1/I2，2026-09-06）：
+ * - 新 ref 撞名（下方路径 2）：返回持有者 id，调用方可经 `agentId !== tavernExternalId(agentRef)` 检测。
+ * - 改名撞名（路径 1 内）：返回自身 id 且静默保留旧展示名——**经返回值不可检测**。
+ *   M2 端点消费方改名后必须回读 name 确认是否生效。
+ * - agentRef 等价 bearer 凭证（pubkey/agentId 均确定性派生自它）：M2 端点必须从已认证的
+ *   agent key 服务端解出 ref，绝不信客户端自报，否则 Sybil/冒名成本为零。
+ */
 export async function upsertTavernAgent(
   db: Database,
   agentRef: string,
@@ -61,7 +69,8 @@ export async function upsertTavernAgent(
           .set({ name, lastSeenAt: new Date() })
           .where(eq(agents.id, byPubkey.id));
       } else if (holder.id !== byPubkey.id) {
-        // 改名撞名 → 保旧名：他 agent 不动，本 agent 也保留旧名，返回本 agent id
+        // 改名撞名 → 保旧名：他 agent 不动，本 agent 也保留旧名，返回本 agent id。
+        // 与改名成功同返回值，调用方不可检测；M2 需回读 name 确认（见函数头契约）。
         await db
           .update(agents)
           .set({ lastSeenAt: new Date() })
