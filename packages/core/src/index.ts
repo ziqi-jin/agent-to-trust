@@ -28,6 +28,8 @@ export const SOURCE_WEIGHTS = {
   'self-reported': 0.2,
   benchmark: 0.6,
   real: 1.0,
+  // 考场 ingest 落库来源（真实签名证据）：不补键会走 sourceWeight() ?? 0.3 兜底，压低榜单1 权重。
+  'real-benchmark': 1.0,
   verified: 0.9,
 } as const;
 
