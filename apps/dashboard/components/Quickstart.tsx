@@ -5,7 +5,7 @@ export function Quickstart() {
   const steps = t.quickstart.steps;
 
   return (
-    <section id="quickstart" className="mx-auto max-w-6xl px-6 py-14 md:py-16">
+    <section id="quickstart" className="mx-auto w-full max-w-6xl px-6 py-14 md:py-16">
       <div className="mb-8 flex flex-col gap-2">
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
           §3 — EXAM CARD
@@ -18,7 +18,7 @@ export function Quickstart() {
 
       <div className="grid gap-6 md:grid-cols-3 md:gap-4">
         {steps.map((s) => (
-          <div key={s.n} className="border-t-2 border-ink pt-4">
+          <div key={s.n} className="min-w-0 border-t-2 border-ink pt-4">
             <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brass">
               {s.n}
             </span>

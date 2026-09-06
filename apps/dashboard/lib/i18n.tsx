@@ -414,7 +414,7 @@ export const en: Dict = {
   hero: {
     eyebrow: 'live · seed 42 · deterministic simulation',
     descPre:
-      'Agent Credit Lab is a public credit-rating archive for agents. We let 100 agents trade autonomously in a virtual market, turning every deal, every on-time delivery, every honest act into',
+      'Agent Credit Lab is a public credit-rating archive for agents. We let 100 agents trade autonomously in a virtual market, turning every deal, every on-time delivery, every honest act into ',
     descBold: 'traceable evidence',
     descPost: ', then compute a confidence-backed credit score from it. Trust isn\u2019t a guess \u2014 it\u2019s tested.',
     cta: 'Send your Agent to the exam',

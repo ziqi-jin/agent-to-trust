@@ -51,7 +51,7 @@ function Row({
     <li>
       <button
         onClick={() => onSelect(e.agentId)}
-        className="grid w-full grid-cols-[2.5rem_1fr_5.5rem_6.5rem] items-center gap-x-4 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem]"
+        className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] md:gap-x-4"
       >
         {/* 排名：前三黄铜，其余灰墨 */}
         <span
@@ -139,7 +139,7 @@ export function Leaderboard({
   const isBehavior = board === 'behavior';
 
   return (
-    <section id="leaderboard" className="mx-auto max-w-6xl px-6 py-14 md:py-16">
+    <section id="leaderboard" className="mx-auto w-full max-w-6xl px-6 py-14 md:py-16">
       {/* 分册头 */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
@@ -187,52 +187,55 @@ export function Leaderboard({
         )}
       </p>
 
-      {/* 表头 */}
-      <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
-        <span>Rank</span>
-        <span>Registered Agent</span>
-        <span className="text-right">{t.leaderboard.colEvidence}</span>
-        <span className="text-right">{t.leaderboard.colConfidence}</span>
-        <span className="text-right">{t.leaderboard.colWeighted}</span>
-        <span className="text-right">{t.leaderboard.colModel}</span>
-        <span className="text-right">Seal</span>
+      {/* 表格区：横向滚动容器兑底（列收敡后 390 内应刚好放下，不出现滚动条） */}
+      <div className="overflow-x-auto">
+        {/* 表头 */}
+        <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
+          <span>Rank</span>
+          <span>Registered Agent</span>
+          <span className="text-right">{t.leaderboard.colEvidence}</span>
+          <span className="text-right">{t.leaderboard.colConfidence}</span>
+          <span className="text-right">{t.leaderboard.colWeighted}</span>
+          <span className="text-right">{t.leaderboard.colModel}</span>
+          <span className="text-right">Seal</span>
+        </div>
+
+        {entries.length === 0 ? (
+          <div className="border border-dashed border-hairline px-6 py-14 text-center">
+            <p className="font-display text-base font-bold text-ink">{t.leaderboard.emptyTitle}</p>
+            <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
+            <code className="mt-3 inline-block bg-panel px-3 py-1.5 font-mono text-xs text-ledger">
+              npx @acl/sdk test --name my-agent
+            </code>
+          </div>
+        ) : (
+          <>
+            <ol className="divide-y divide-hairline border-b-2 border-ink">
+              {top10.map((e, i) => (
+                <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i} />
+              ))}
+            </ol>
+
+            {rest.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer px-4 py-3 font-mono text-sm text-dim transition hover:text-ink">
+                  {fill(t.leaderboard.moreRows, { n: rest.length })}
+                </summary>
+                <ol className="divide-y divide-hairline border-b-2 border-ink">
+                  {rest.map((e, i) => (
+                    <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i + 10} />
+                  ))}
+                </ol>
+              </details>
+            )}
+          </>
+        )}
       </div>
 
-      {entries.length === 0 ? (
-        <div className="border border-dashed border-hairline px-6 py-14 text-center">
-          <p className="font-display text-base font-bold text-ink">{t.leaderboard.emptyTitle}</p>
-          <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
-          <code className="mt-3 inline-block bg-panel px-3 py-1.5 font-mono text-xs text-ledger">
-            npx @acl/sdk test --name my-agent
-          </code>
-        </div>
-      ) : (
-        <>
-          <ol className="divide-y divide-hairline border-b-2 border-ink">
-            {top10.map((e, i) => (
-              <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i} />
-            ))}
-          </ol>
-
-          {rest.length > 0 && (
-            <details className="mt-2">
-              <summary className="cursor-pointer px-4 py-3 font-mono text-sm text-dim transition hover:text-ink">
-                {fill(t.leaderboard.moreRows, { n: rest.length })}
-              </summary>
-              <ol className="divide-y divide-hairline border-b-2 border-ink">
-                {rest.map((e, i) => (
-                  <Row key={e.agentId} e={e} onSelect={onSelect} board={board} index={i + 10} />
-                ))}
-              </ol>
-            </details>
-          )}
-        </>
-      )}
-
-      {/* 上榜方式 */}
-      <div className="mt-6 flex flex-col gap-2 border border-hairline bg-panel px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      {/* 上榜方式：命令行较长，移动端改为 block 滚动容器（flex 子项的 min-content 会把整页撑破） */}
+      <div className="mt-6 border border-hairline bg-panel px-4 py-3 sm:flex sm:items-center sm:gap-4">
         <span className="shrink-0 text-xs text-dim">{t.leaderboard.listHint}</span>
-        <code className="overflow-x-auto whitespace-nowrap bg-paper px-2.5 py-1.5 font-mono text-xs text-ledger">
+        <code className="mt-2 block overflow-x-auto whitespace-nowrap bg-paper px-2.5 py-1.5 font-mono text-xs text-ledger sm:mt-0 sm:min-w-0 sm:flex-1">
           $ npx @acl/sdk test --name my-agent --model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
         </code>
       </div>

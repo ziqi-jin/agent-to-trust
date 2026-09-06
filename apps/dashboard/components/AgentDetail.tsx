@@ -72,7 +72,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
   const dims = score?.dimensions ?? [];
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-8">
+    <main className="mx-auto w-full max-w-3xl px-6 py-8">
       <button
         onClick={onBack}
         className="mb-6 inline-flex items-center gap-1.5 font-mono text-sm text-dim transition hover:text-ink"

@@ -79,19 +79,19 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink">
-      {/* 报头：账簿绿整块，公开名册的刊头 */}
+      {/* 报头：账簿绿整块，公开名册的刊头（390 下收敛为两行紧凑布局，navH ≤ 88） */}
       <header className="bg-ledger text-paper">
-        <div className="mx-auto max-w-6xl px-6 pt-5 pb-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="mx-auto max-w-6xl px-4 pb-2.5 pt-2.5 sm:px-6 sm:pb-4 sm:pt-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
             <div>
-              <h1 className="font-display text-xl font-black uppercase tracking-[0.16em] md:text-2xl">
+              <h1 className="font-display text-lg font-black uppercase leading-tight tracking-[0.14em] md:text-2xl md:leading-8 md:tracking-[0.16em]">
                 Agent Credit Lab
               </h1>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
+              <p className="mt-1 hidden font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70 sm:block">
                 {t.masthead.registerSub}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 sm:justify-end">
               <LanguageSwitcher />
               <a
                 href="/playground"
@@ -118,7 +118,7 @@ export default function Page() {
               </a>
             </div>
           </div>
-          <p className="mt-3 border-t border-paper/25 pt-2 font-mono text-[10px] tracking-[0.14em] text-paper/75">
+          <p className="mt-3 hidden border-t border-paper/25 pt-2 font-mono text-[10px] tracking-[0.14em] text-paper/75 sm:block">
             {edition}
           </p>
         </div>
