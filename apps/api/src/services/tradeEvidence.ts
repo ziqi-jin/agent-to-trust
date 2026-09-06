@@ -155,6 +155,8 @@ export async function ingestTradeEvidence(
 
   // 评分：accepted 落库后按 agentRef 去重调 computeAndPersist（只调用不修改）
   if (scored.size > 0) {
+    // 契约锚点（T9-10 评审）：computeAndPersist 只消费 app.db —— appLike 仅承诺 db
+    // 字段，不承诺 FastifyInstance 其余能力（路由/装饰器/日志均不可用，也不需要）。
     const appLike = { db } as unknown as FastifyInstance;
     for (const agentId of scored.values()) {
       await computeAndPersist(appLike, agentId);

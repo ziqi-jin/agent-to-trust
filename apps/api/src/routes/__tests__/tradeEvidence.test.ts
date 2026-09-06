@@ -1,9 +1,10 @@
 /**
  * POST /ingest/trade-evidence 路由（S4-B M2 批 1，plan §Task 10）。
  *
- * 覆盖（plan 五断言）：①无/错 bearer → 401（env 缺失/空 = 全部 401）
+ * 覆盖（plan 五断言 + T9-10 评审补强）：①无/错 bearer → 401（env 缺失/空 = 全部 401）
  * ②evidenceSchemaVersion<1 或 reporter≠'tavern-market' → 400 ③events>100 → 400
- * ④正常 → 200 {accepted,duplicates,rejected} ⑤限流 120 批/10min → 429。
+ * ④正常 → 200 {accepted,duplicates,rejected} ⑤duplicates-only 批不触发重算
+ * ⑥限流 120 批/10min → 429。
  *
  * 骨架照 routes/ingest.ts（内存桶限流模式复用，ingest.ts 本体零改动）。
  * 红线：测试库只用 TEST_DATABASE_URL（acl_test），生产库零接触。
@@ -102,7 +103,7 @@ describe('POST /ingest/trade-evidence', () => {
     expect((await post(envelope([ev()]))).statusCode).toBe(401);
     // 恢复
     process.env.ACL_TRADE_INGEST_TOKEN = TOKEN;
-    expect((await post(envelope([ev()]))).statusCode).not.toBe(401);
+    expect((await post(envelope([ev()]))).statusCode).toBe(200);
   });
 
   it('②evidenceSchemaVersion<1 或 reporter≠tavern-market → 400', async () => {
@@ -148,9 +149,29 @@ describe('POST /ingest/trade-evidence', () => {
     // 评分重算已触发
     const score = await db.query.creditScores.findFirst();
     expect(score?.agentId).toBe(tavernExternalId(ref));
+    // T9-10 评审补强：来源 sourceType 也必须为 'real'（与 source 双字段一致）
+    expect(row?.sourceType).toBe('real');
   });
 
-  it('⑤限流 120 批/10min → 429（内存桶，ingest.ts 同模式）', async () => {
+  it('⑤duplicates-only 批（全重复）→ 200 {accepted:[],duplicates}，不触发 computeAndPersist（无新评分行）', async () => {
+    // 先正常摄入一次：accepted → 恰 1 条评分行
+    const first = await post(envelope([ev()]));
+    expect(first.statusCode).toBe(200);
+    const rowsBefore = await db.query.creditScores.findMany();
+    expect(rowsBefore).toHaveLength(1);
+    // 同一批原样重放：全量落 duplicates → scored 集合为空 → 不得重算评分
+    const replay = await post(envelope([ev()]));
+    expect(replay.statusCode).toBe(200);
+    expect(replay.json()).toEqual({
+      accepted: [],
+      duplicates: ['11111111-1111-4111-8111-111111111111'],
+      rejected: [],
+    });
+    const rowsAfter = await db.query.creditScores.findMany();
+    expect(rowsAfter).toHaveLength(rowsBefore.length);
+  });
+
+  it('⑥限流 120 批/10min → 429（内存桶，ingest.ts 同模式）', async () => {
     // 前面的用例已消耗部分桶额度；用合法 bearer + 空体（400 路径，无库写）打满桶
     let saw429 = false;
     for (let i = 0; i < 200; i++) {
