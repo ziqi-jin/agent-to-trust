@@ -12,8 +12,14 @@ import type { SimulationConfig } from '@acl/simulator';
 import { agents, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE } from './arenaQueue';
 import { computeAndPersist } from './scores';
+import { createRateLimiter } from '../services/rateLimit';
 
 export async function simulationRoutes(app: FastifyInstance) {
+  // 公开读限流 60/min/IP（S4-B M2 批 2，plan §Task 12；统一内存桶）。
+  // 只限 GET /leaderboard；POST /simulation/*（触发仿真写库）不在此桶内。
+  // 注：plan §Task 12 写「stats.ts（leaderboard 所在）」，实际 leaderboard 路由在本文件，按实落点。
+  const leaderboardLimited = createRateLimiter({ max: 60, windowMs: 60_000 });
+
   // POST /simulation/run — 跑一次确定性仿真并落库（幂等：已 seeded 则跳过）
   app.post('/simulation/run', async (req, reply) => {
     const body = (req.body ?? {}) as Partial<SimulationConfig>;
@@ -81,7 +87,10 @@ export async function simulationRoutes(app: FastifyInstance) {
   // GET /leaderboard — 全量排名（含分数、置信度、证据数）
   // ?board=capability（默认）考场榜：只收真实数据（simulation 隐藏，append-only 不删）
   // ?board=behavior  行为榜：资格 = 考场信用分 ≥ ARENA_GATE_SCORE（与 arenaQueue 门槛同源）且已进入 Arena（有行为证据）；行为分 = 行为维度加权和
-  app.get('/leaderboard', async (req) => {
+  app.get('/leaderboard', async (req, reply) => {
+    if (leaderboardLimited(req)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
     const q = req.query as { board?: string };
     const board = q.board === 'behavior' ? 'behavior' : 'capability';
     const allAgents = await app.db.query.agents.findMany();

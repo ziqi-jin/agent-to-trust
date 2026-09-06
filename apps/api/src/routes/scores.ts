@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { type Dimension, type Source } from '@acl/core';
 import { computeScore, type EvidencePoint } from '@acl/scoring';
 import { agents, creditScores, evidence, scoreSnapshots } from '../db/schema';
+import { createRateLimiter } from '../services/rateLimit';
 
 export function serialize(s: typeof creditScores.$inferSelect) {
   return {
@@ -60,6 +61,10 @@ export async function computeAndPersist(app: FastifyInstance, agentId: string) {
 }
 
 export async function scoresRoutes(app: FastifyInstance) {
+  // 公开读限流 60/min/IP（S4-B M2 批 2，plan §Task 12；统一内存桶）。只限 GET，
+  // POST（评分触发写路径）不在此桶内。computeAndPersist 本体零改动（红线）。
+  const scoreReadLimited = createRateLimiter({ max: 60, windowMs: 60_000 });
+
   app.post('/agents/:id/score', async (req, reply) => {
     const { id } = req.params as { id: string };
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, id) });
@@ -69,6 +74,9 @@ export async function scoresRoutes(app: FastifyInstance) {
   });
 
   app.get('/agents/:id/score', async (req, reply) => {
+    if (scoreReadLimited(req)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
     const { id } = req.params as { id: string };
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, id) });
     if (!agent) return reply.code(404).send({ error: `Agent 不存在：${id}` });

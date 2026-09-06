@@ -8,7 +8,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   }
 }
