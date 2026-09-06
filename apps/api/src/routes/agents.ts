@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { agents, creditScores } from '../db/schema';
 import { createRateLimiter } from '../services/rateLimit';
+import { tavernExternalId } from '../services/tavernIdentity';
 
 interface AgentBody {
   name?: string;
@@ -60,6 +61,8 @@ export async function agentsRoutes(app: FastifyInstance) {
   //
   // 契约锚点：
   // - externalId ≡ agents.id（T8 身份映射：酒馆 agent 主键即 ext-tavern-*，无独立列）；
+  //   2026-09-06 裁决：tavern source 下 refs 传酒馆原始 uuid 亦可——字面未命中时按
+  //   tavernIdentity.tavernExternalId 推导兜底（推导权威单处在 ACL 仓，零漂移）；
   // - badgeUrl 为根相对路径 /credit/api/badge/{agentId}.svg（badge.ts 头注释的公开嵌入
   //   格式，酒馆 web 同域 <img> 直接可用）；
   // - source 现仅收 'tavern'（前向兼容判别符，扩源时再放宽）；
@@ -75,11 +78,31 @@ export async function agentsRoutes(app: FastifyInstance) {
         .code(400)
         .send({ error: 'body 不合法：' + (parsed.error.issues[0]?.message ?? '') });
     }
-    const { refs } = parsed.data;
+    const { refs, source } = parsed.data;
     if (refs.length === 0) return reply.code(200).send({ results: [] });
 
     const found = await app.db.query.agents.findMany({ where: inArray(agents.id, refs) });
     const byId = new Map(found.map((a) => [a.id, a]));
+
+    // 2026-09-06 裁决兜底（方案乙，T17 E2E 联调缺口修复）：agents.id =
+    // ext-tavern-<slug8>-<hash8>（services/tavernIdentity 确定性推导），酒馆调用方
+    // （v2 web lib/credit.ts）传酒馆原始 uuid（agentRef）时字面未命中 → 推导一次再查，
+    // 命中即用；推导仍未命中 → null 占位（契约不变）。幂等：推导值恰在 refs 里时
+    // 走 byId 字面命中，不重复查询。非 tavern source 被 schema z.literal 门拒（400），
+    // 永不进入推导；source 守卫为 schema 将来放宽时的防御。
+    if (source === 'tavern') {
+      const missDerived = [
+        ...new Set(refs.filter((r) => !byId.has(r)).map((r) => tavernExternalId(r))),
+      ].filter((id) => !byId.has(id));
+      if (missDerived.length > 0) {
+        const extra = await app.db.query.agents.findMany({
+          where: inArray(agents.id, missDerived),
+        });
+        for (const a of extra) byId.set(a.id, a);
+        found.push(...extra);
+      }
+    }
+
     // join latest scores：同 leaderboard 口径（createdAt 降序取每 agent 首条）
     const latestScores = await app.db.query.creditScores.findMany({
       where: inArray(
@@ -92,7 +115,9 @@ export async function agentsRoutes(app: FastifyInstance) {
     for (const s of latestScores) if (!latestByAgent.has(s.agentId)) latestByAgent.set(s.agentId, s);
 
     const results = refs.map((ref) => {
-      const agent = byId.get(ref);
+      const agent =
+        byId.get(ref) ??
+        (source === 'tavern' ? byId.get(tavernExternalId(ref)) : undefined);
       if (!agent) return null;
       const score = latestByAgent.get(agent.id) ?? null;
       return {

@@ -143,4 +143,44 @@ describe('POST /agents/scores-by-external', () => {
     expect(res.statusCode).toBe(200);
     expect((res.json() as { results: unknown[] }).results).toEqual([]);
   });
+
+  // ── 2026-09-06 裁决兜底（方案乙，T17 E2E 联调缺口）：tavern source 传酒馆
+  // 原始 uuid（agentRef）→ 字面未命中时按 tavernExternalId 推导再查。──
+  it('⑦[兜底] tavern 传酒馆原始 uuid → 推导命中（externalId 回显 agents.id，分数完整）', async () => {
+    const extA = tavernExternalId(REF_A);
+    const res = await post({ source: 'tavern', refs: [REF_A] });
+    expect(res.statusCode).toBe(200);
+    const { results } = res.json() as { results: Array<Record<string, unknown> | null> };
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      externalId: extA,
+      agentId: extA,
+      name: 'AgentA·酒馆',
+      score: 640,
+      adjustedScore: 420,
+      badgeUrl: `/credit/api/badge/${extA}.svg`,
+    });
+  });
+
+  it('⑧[兜底] 混合批量：推导值字面命中 + 原始 uuid 推导命中 + 未知 → null（序一致，不交叉污染）', async () => {
+    const extA = tavernExternalId(REF_A);
+    const res = await post({ source: 'tavern', refs: [extA, REF_A, 'ref-never-exists-zz'] });
+    expect(res.statusCode).toBe(200);
+    const { results } = res.json() as { results: Array<Record<string, unknown> | null> };
+    expect(results[0]).toMatchObject({ externalId: extA, score: 640 });
+    expect(results[1]).toMatchObject({ externalId: extA, score: 640 });
+    expect(results[2]).toBeNull();
+  });
+
+  it('⑨[兜底回归] 未知 uuid 推导后仍未命中 → null（②④语义不变）', async () => {
+    const res = await post({ source: 'tavern', refs: ['ref-ghost-never-was'] });
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { results: Array<null> }).results).toEqual([null]);
+  });
+
+  // 非 tavern source 不推导：「永不推导」由 schema z.literal 门保证（400，强于 null 语义）；
+  // 路由内 source 守卫为将来放宽 schema 时的防御，行为不变。
+  it('⑩[兜底边界] 非 tavern source 传 uuid → 400（schema 门拒，不进入推导）', async () => {
+    expect((await post({ source: 'elsewhere', refs: [REF_A] })).statusCode).toBe(400);
+  });
 });
