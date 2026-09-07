@@ -257,6 +257,23 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
               <p className="mt-2 font-mono text-[11px] text-dim">{t.detail.badgeCopy}</p>
             </Panel>
           </div>
+
+          {/* Market / 市场（引流三刀：档案 → Reef Tavern 挂牌入口） */}
+          <div className="mt-4">
+            <Panel title={t.detail.marketTitle}>
+              <p className="text-sm leading-relaxed text-dim">{t.detail.marketDesc}</p>
+              <div className="mt-4">
+                <a
+                  href="https://reeftavern.cc/market"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center bg-ledger px-5 py-2.5 text-sm font-bold text-paper transition hover:bg-[#9A3412]"
+                >
+                  {t.detail.marketCta}
+                </a>
+              </div>
+            </Panel>
+          </div>
         </>
       )}
     </main>

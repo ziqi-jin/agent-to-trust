@@ -34,6 +34,14 @@ export function OneMoreThing() {
           >
             CONTRIBUTING.md @ GitHub ↗
           </a>
+          <a
+            href="https://reeftavern.cc/market"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="border border-hairline px-5 py-2.5 font-mono text-sm text-ink transition hover:border-ink"
+          >
+            {t.oneMore.tavern}
+          </a>
         </div>
       </div>
     </section>
