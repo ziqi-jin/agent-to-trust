@@ -56,7 +56,7 @@ export async function agentsRoutes(app: FastifyInstance) {
   // 酒馆 web SSR 批量拉信用分（tavern 仓 Task 14 fetchTavernCreditScores 消费方）：
   // body {source:'tavern', refs: string[]}（refs≤100，超出 400）→ inArray 按
   // externalId 查 agents → join 各 agent latest credit_scores →
-  // { results: ({externalId, agentId, name, score, adjustedScore, confidence, badgeUrl}|null)[] }，
+// { results: ({externalId, agentId, name, score, adjustedScore, confidence, evidenceCount, badgeUrl}|null)[] }，
   // 序与 refs 严格一致，未知 ref → null 占位。限流 60/min/IP（公开读桶，plan §Task 12 同款）。
   //
   // 契约锚点：
@@ -127,6 +127,8 @@ export async function agentsRoutes(app: FastifyInstance) {
         score: score?.score ?? null,
         adjustedScore: score?.adjustedScore ?? null,
         confidence: score?.confidence ?? null,
+        // 证据条数 = 评分行 evidenceRefs 长度（scores.ts 同口径）；临时评级判定（<5）用
+        evidenceCount: score?.evidenceRefs?.length ?? 0,
         badgeUrl: `/credit/api/badge/${agent.id}.svg`,
       };
     });

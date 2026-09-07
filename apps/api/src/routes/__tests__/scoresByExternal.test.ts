@@ -2,7 +2,7 @@
  * POST /agents/scores-by-external — 批量公开读（S4-B M2 批 2，plan §Task 11）。
  *
  * 覆盖（plan 四断言）：①refs>100 / body 脏 → 400；②已知 externalId →
- * {externalId, agentId, name, score, adjustedScore, confidence, badgeUrl}；
+ * {externalId, agentId, name, score, adjustedScore, confidence, evidenceCount, badgeUrl}；
  * ③未知 ref → null 占位（数组序保持）；④限流 60/min/IP → 429。
  *
  * 契约锚点：
@@ -104,6 +104,7 @@ describe('POST /agents/scores-by-external', () => {
         score: 640,
         adjustedScore: 420,
         confidence: expect.closeTo(0.42, 5),
+        evidenceCount: expect.any(Number),
         badgeUrl: `/credit/api/badge/${extA}.svg`,
       },
     ]);
