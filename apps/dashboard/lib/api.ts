@@ -277,7 +277,8 @@ export const api = {
   // 榜单 / 统计 / 证据流
   leaderboard: (board: 'capability' | 'behavior' = 'capability') =>
     http<LeaderboardEntry[]>(`/leaderboard?board=${board}`),
-  stats: () => http<StatsResponse>('/stats'),
+  // scope=public：门面展示口径（排仿真号/E2E 测试号），api 默认全量保 P0-10 可溯红线
+  stats: () => http<StatsResponse>('/stats?scope=public'),
   statsSummary: () => http<StatsSummary>('/stats/summary'),
   submitFeedback: (message: string, contact?: string, page?: string) =>
     http<{ ok: boolean }>('/feedback', {
@@ -288,7 +289,7 @@ export const api = {
         ...(page ? { page } : {}),
       }),
     }),
-  events: () => http<Evidence[]>('/events'),
+  events: () => http<Evidence[]>('/events?scope=public'),
   runSimulation: (cfg?: Record<string, unknown>) =>
     http<{ seeded: boolean; config: Record<string, unknown>; stats: SimulationStats }>(
       '/simulation/run',

@@ -30,6 +30,14 @@ beforeAll(async () => {
     { id: 'ag-inflated', name: 'inflated-agent', status: 'active', verificationLevel: 'basic' },
     { id: 'ag-real', name: 'real-tested-agent', status: 'active', verificationLevel: 'basic' },
     { id: 'ag-mid', name: 'mid-agent', status: 'active', verificationLevel: 'basic' },
+    // C3 复现场景：E2E 号带 pubkey + verified——修复前会被误判 real-benchmark 挂 SDK 标签进榜
+    {
+      id: 'ag-e2e',
+      name: 'E2E 章鱼队列站 20260905·酒馆',
+      status: 'active',
+      verificationLevel: 'verified',
+      pubkey: 'pk-e2e',
+    },
   ]);
 
   await db.insert(creditScores).values([
@@ -44,6 +52,20 @@ afterAll(async () => {
 });
 
 describe('GET /leaderboard 排序', () => {
+  it('/stats 与 /events 默认全量（P0-10 可溯红线），?scope=public 才走门面口径', async () => {
+    const statsAll = await app.inject({ method: 'GET', url: '/stats' });
+    const statsPublic = await app.inject({ method: 'GET', url: '/stats?scope=public' });
+    expect(statsAll.json().agentCount).toBe(4); // 含 ag-e2e
+    expect(statsPublic.json().agentCount).toBe(3); // 门面口径排除 E2E 号
+  });
+
+  it('E2E 测试号不进 capability 榜（名字 e2e 前缀优先于 pubkey 判定，0907 C3）', async () => {
+    const res = await app.inject({ method: 'GET', url: '/leaderboard' });
+    expect(res.statusCode).toBe(200);
+    const rows = res.json() as Array<{ agentId: string }>;
+    expect(rows.find((r) => r.agentId === 'ag-e2e')).toBeUndefined();
+  });
+
   it('capability 榜按 adjustedScore 降序：797(366) > 500(250) > 1000(135)', async () => {
     const res = await app.inject({ method: 'GET', url: '/leaderboard' });
     expect(res.statusCode).toBe(200);

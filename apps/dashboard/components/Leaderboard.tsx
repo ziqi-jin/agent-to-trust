@@ -43,7 +43,11 @@ function Row({
 }) {
   const t = useT();
   const isBehavior = board === 'behavior';
-  const val = isBehavior ? e.behaviorScore : e.score;
+  // 口径统一（0907 走查）：印章显示排序键——榜单1 加权分（排序键=显示键，根治「1000 压 797」观感）；
+  // 行为榜保持行为分。原始分×置信已在行内可见。
+  const val = isBehavior ? e.behaviorScore : (e.adjustedScore ?? e.score);
+  // 临时评级（对齐酒馆口径）：证据 <5 条灰显混排，不隐藏
+  const provisional = e.evidenceCount < 5;
   const tested = isBehavior ? e.inArena && e.behaviorScore !== null : e.source === 'real-benchmark' || e.source === 'benchmark';
   const rankStr = String(e.rank).padStart(2, '0');
 
@@ -51,7 +55,7 @@ function Row({
     <li>
       <button
         onClick={() => onSelect(e.agentId)}
-        className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] md:gap-x-4"
+        className={`grid w-full grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-3.5 text-left transition-colors hover:bg-panel md:grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] md:gap-x-4 ${provisional ? 'opacity-60' : ''}`}
       >
         {/* 排名：前三黄铜，其余灰墨 */}
         <span
@@ -63,6 +67,11 @@ function Row({
         {/* Agent */}
         <span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="truncate font-display text-[15px] font-bold text-ink">{e.name}</span>
+          {provisional && (
+            <span className="shrink-0 border border-hairline px-1.5 py-0.5 font-mono text-[10px] text-dim">
+              {t.leaderboard.provisional}
+            </span>
+          )}
           {e.agentVersion && (
             <span className="shrink-0 border border-hairline px-1.5 py-0.5 font-mono text-[10px] text-dim">
               v{e.agentVersion}
@@ -101,9 +110,9 @@ function Row({
           </span>
         </span>
 
-        {/* 置信加权分（榜单1）/ 占位（榜单2） */}
+        {/* 置信加权分（榜单1）；行为榜显示考场信用分——上榜资格线可见化，不再全是 "—"（0907 走查 I 级） */}
         <span className="hidden text-right font-mono text-sm text-dim tabular-nums md:block">
-          {isBehavior ? '—' : (e.adjustedScore ?? '—')}
+          {isBehavior ? (e.score ?? '—') : (e.adjustedScore ?? '—')}
         </span>
 
         {/* 模型（agent 显式上报，未提供显示 —） */}
@@ -195,7 +204,9 @@ export function Leaderboard({
           <span>Registered Agent</span>
           <span className="text-right">{t.leaderboard.colEvidence}</span>
           <span className="text-right">{t.leaderboard.colConfidence}</span>
-          <span className="text-right">{t.leaderboard.colWeighted}</span>
+          <span className="text-right">
+            {isBehavior ? t.leaderboard.colExam : t.leaderboard.colWeighted}
+          </span>
           <span className="text-right">{t.leaderboard.colModel}</span>
           <span className="text-right">Seal</span>
         </div>

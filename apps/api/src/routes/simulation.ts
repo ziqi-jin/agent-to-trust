@@ -5,11 +5,11 @@
  * 让前端榜单有真实（但 source=simulation，绝不伪装真实交易）的数据可展示。
  */
 import { randomUUID } from 'node:crypto';
-import { eq, like } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, like, not } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
-import { agents, evidence, simulationRuns } from '../db/schema';
+import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE } from './arenaQueue';
 import { computeAndPersist } from './scores';
 import { createRateLimiter } from '../services/rateLimit';
@@ -113,13 +113,18 @@ export async function simulationRoutes(app: FastifyInstance) {
     const rows = allAgents
       .map((a) => {
         const sc = latest.get(a.id);
-        const source = a.name.startsWith('sim-agent-')
+        // E2E 测试号判定（对齐酒馆 visibility 口径：名字 e2e 前缀，大小写不敏感）——
+        // 必须先于 pubkey 判定：酒馆 E2E 号也有 pubkey，否则被误判 real-benchmark 挂 SDK
+        // 标签占榜（0907 走查 C3 根因）。
+        const isE2E = /^e2e[-\s]/i.test(a.name);
+        const source =
+          isE2E || a.name.startsWith('sim-agent-')
           ? 'simulation'
-          : a.id.startsWith('ext-') || a.pubkey
-            ? 'real-benchmark'
-            : a.name.startsWith('real-')
-              ? 'benchmark'
-              : 'manual';
+            : a.id.startsWith('ext-') || a.pubkey
+              ? 'real-benchmark'
+              : a.name.startsWith('real-')
+                ? 'benchmark'
+                : 'manual';
         // 行为分：非能力维度加权和归一 ×10（对齐 1000 制）
         let behaviorScore: number | null = null;
         const dims = (sc?.dimensions ?? null) as Array<{ dimension: string; score: number | null; weight: number }> | null;
@@ -148,6 +153,7 @@ export async function simulationRoutes(app: FastifyInstance) {
           evidenceCount: (sc?.evidenceRefs ?? []).length,
           isSimulated: source === 'simulation',
           behaviorScore,
+          isE2E,
           inArena: arenaAgents.has(a.id),
           hasBenchmark: benchmarkAgents.has(a.id),
         };
@@ -155,8 +161,10 @@ export async function simulationRoutes(app: FastifyInstance) {
 
     const filtered =
       board === 'behavior'
-        ? rows.filter((r) => r.inArena && r.hasBenchmark && (r.score ?? 0) >= ARENA_GATE_SCORE)
-        : rows.filter((r) => r.source !== 'simulation');
+        ? rows.filter(
+            (r) => !r.isE2E && r.inArena && r.hasBenchmark && (r.score ?? 0) >= ARENA_GATE_SCORE,
+          )
+        : rows.filter((r) => r.source !== 'simulation' && !r.isE2E);
 
     return filtered
       .sort((x, y) => {
@@ -173,26 +181,64 @@ export async function simulationRoutes(app: FastifyInstance) {
   });
 
   // GET /stats — 首页大数字
-  app.get('/stats', async () => {
-    const [agentCount, evidenceCount, scoreCount, lastRun] = await Promise.all([
-      app.db.query.agents.findMany().then((a) => a.length),
-      app.db.query.evidence.findMany().then((e) => e.length),
-      app.db.query.creditScores.findMany().then((s) => s.length),
-      app.db.query.simulationRuns.findFirst({ orderBy: (r, { desc }) => [desc(r.createdAt)] }),
+  // 默认全量（P0-10 红线：统计数字与落库一致、仿真数据可溯）；?scope=public 为门面
+  // 展示口径（0907 走查「数字对不上账」）：排除仿真号 sim-agent-* 与 E2E 测试号（e2e 前缀），
+  // 与 capability 榜公开面一致。
+  const publicAgentFilter = and(
+    not(ilike(agents.name, 'e2e%')),
+    not(like(agents.name, 'sim-agent-%')),
+  );
+  app.get('/stats', async (req) => {
+    const q = (req.query as { scope?: string }) ?? {};
+    const lastRun = await app.db.query.simulationRuns.findFirst({
+      orderBy: (r, { desc }) => [desc(r.createdAt)],
+    });
+    if (q.scope !== 'public') {
+      const [agentCount, evidenceCount, scoreCount] = await Promise.all([
+        app.db.query.agents.findMany().then((a) => a.length),
+        app.db.query.evidence.findMany().then((e) => e.length),
+        app.db.query.creditScores.findMany().then((s) => s.length),
+      ]);
+      return { agentCount, evidenceCount, scoreCount, simulation: lastRun?.stats ?? null };
+    }
+    const [ag, ev, sc] = await Promise.all([
+      app.db.select({ n: count() }).from(agents).where(publicAgentFilter),
+      app.db
+        .select({ n: count() })
+        .from(evidence)
+        .innerJoin(agents, eq(evidence.agentId, agents.id))
+        .where(publicAgentFilter),
+      app.db
+        .select({ n: count() })
+        .from(creditScores)
+        .innerJoin(agents, eq(creditScores.agentId, agents.id))
+        .where(publicAgentFilter),
     ]);
     return {
-      agentCount,
-      evidenceCount,
-      scoreCount,
+      agentCount: ag[0]?.n ?? 0,
+      evidenceCount: ev[0]?.n ?? 0,
+      scoreCount: sc[0]?.n ?? 0,
       simulation: lastRun?.stats ?? null,
     };
   });
 
-  // GET /events — 最近证据流（ticker 用）
-  app.get('/events', async () => {
-    return app.db.query.evidence.findMany({
-      orderBy: (e, { desc }) => [desc(e.createdAt)],
-      limit: 40,
-    });
+  // GET /events — 最近证据流（ticker 用）；默认全量（append-only 可溯，P0-10 红线），
+  // ?scope=public 门面口径（排仿真/E2E 名下证据）。
+  app.get('/events', async (req) => {
+    const q = (req.query as { scope?: string }) ?? {};
+    if (q.scope !== 'public') {
+      return app.db.query.evidence.findMany({
+        orderBy: (e, { desc }) => [desc(e.createdAt)],
+        limit: 40,
+      });
+    }
+    const rows = await app.db
+      .select({ evidence })
+      .from(evidence)
+      .innerJoin(agents, eq(evidence.agentId, agents.id))
+      .where(publicAgentFilter)
+      .orderBy(desc(evidence.createdAt))
+      .limit(40);
+    return rows.map((r) => r.evidence);
   });
 }

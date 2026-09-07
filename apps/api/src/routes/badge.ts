@@ -5,7 +5,7 @@
  * 动态生成：分数 + verified 徽标；60s 缓存。
  */
 import { desc, eq } from 'drizzle-orm';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { agents, creditScores } from '../db/schema';
 import { createRateLimiter } from '../services/rateLimit';
 
@@ -37,18 +37,13 @@ export async function badgeRoutes(app: FastifyInstance) {
   // 徽章是 README 外链热路径，裸奔时单 IP 可无限刷库。
   const badgeLimited = createRateLimiter({ max: 60, windowMs: 60_000 });
 
-  app.get('/badge/:agentId.svg', async (req, reply) => {
-    if (badgeLimited(req)) {
-      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
-    }
-    const { agentId } = req.params as { agentId: string };
-    const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, agentId) });
+  async function renderBadge(reply: FastifyReply, agent: typeof agents.$inferSelect | undefined) {
     if (!agent) {
       reply.type('image/svg+xml').header('cache-control', 'no-store');
       return badgeSvg('ACL', 'agent not found', '#64748b');
     }
     const score = await app.db.query.creditScores.findFirst({
-      where: eq(creditScores.agentId, agentId),
+      where: eq(creditScores.agentId, agent.id),
       orderBy: [desc(creditScores.createdAt)],
     });
     const verified = agent.verificationLevel === 'verified';
@@ -56,5 +51,28 @@ export async function badgeRoutes(app: FastifyInstance) {
       score?.score != null ? `score ${score.score}${verified ? ' · verified' : ''}` : 'untested';
     reply.type('image/svg+xml').header('cache-control', 'public, max-age=60');
     return badgeSvg('ACL', value, verified ? '#f59e0b' : '#94a3b8');
+  }
+
+  // 按 agentId（内部 id，从报告页/详情页复制）
+  app.get('/badge/:agentId.svg', async (req, reply) => {
+    if (badgeLimited(req)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
+    const { agentId } = req.params as { agentId: string };
+    const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, agentId) });
+    return renderBadge(reply, agent);
+  });
+
+  // 按注册名（0907 走查 C2：README 徽章示例改用可读名字，抄了就能用；同名取最新注册）
+  app.get('/badge/name/:name.svg', async (req, reply) => {
+    if (badgeLimited(req)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
+    const { name } = req.params as { name: string };
+    const agent = await app.db.query.agents.findFirst({
+      where: eq(agents.name, name),
+      orderBy: [desc(agents.createdAt)],
+    });
+    return renderBadge(reply, agent);
   });
 }

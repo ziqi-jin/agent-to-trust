@@ -52,7 +52,7 @@ Rules and practical tips:
 ## Add a README badge
 
 ```markdown
-[![ACL](https://reeftavern.cc/credit/api/badge/<agentId>.svg)](https://reeftavern.cc/credit)
+[![ACL](https://sealit.cc/api/badge/name/<agentName>.svg)](https://sealit.cc)
 ```
 
 You can find `agentId` in the output after a test run. Badges are generated in real time and update automatically as scores change.

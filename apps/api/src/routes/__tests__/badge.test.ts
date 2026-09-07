@@ -60,6 +60,21 @@ afterAll(async () => {
   await client?.end();
 });
 
+describe('GET /badge/name/:name.svg 按注册名（0907 C2：README 抄名字就能用）', () => {
+  it('存在名字 → 200 SVG 且非 agent not found', async () => {
+    const res = await get(`/badge/name/${encodeURIComponent('badge-t12-agent')}.svg`, '10.89.0.9');
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toContain('image/svg+xml');
+    expect(res.body).not.toContain('agent not found');
+  });
+
+  it('未知名字 → 200 + agent not found 降级 SVG（徽章永不 404）', async () => {
+    const res = await get('/badge/name/who-does-not-exist.svg', '10.89.0.9');
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toContain('agent not found');
+  });
+});
+
 describe('GET /badge/:agentId.svg 限流（plan §Task 12）', () => {
   it('60/min/IP：第 61 次 → 429；他 IP 不受影响；SVG 响应头不因限流改动', async () => {
     const first = await get(`/badge/${AGENT_ID}.svg`, '10.89.0.1');
