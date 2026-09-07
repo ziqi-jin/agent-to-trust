@@ -20,6 +20,14 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { Ticker } from '@/components/Ticker';
 import { AgentDetail } from '@/components/AgentDetail';
 
+// 详情页 URL 化（0907 批次2）：?agent=<id> 驱动，可直接分享/刷新/后退。
+// 不走 next/navigation（避免 useSearchParams 的 Suspense CSR-bailout 约束），
+// 用 history API + popstate 手动同步——单页结构下最轻。
+function readAgentParam(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('agent');
+}
+
 export default function Page() {
   const t = useT();
   const { locale } = useLocale();
@@ -53,6 +61,16 @@ export default function Page() {
     refresh();
   }, [refresh]);
 
+  // 挂载后读一次 URL（SSR 首帧保持榜单渲染，无 hydration mismatch）；
+  // 浏览器前进/后退经 popstate 同步详情↔榜单。
+  useEffect(() => {
+    const id = readAgentParam();
+    if (id) setSelectedId(id);
+    const sync = () => setSelectedId(readAgentParam());
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+
   const nameMap = useMemo(() => {
     const m: Record<string, string> = {};
     for (const e of entries) m[e.agentId] = e.name;
@@ -64,9 +82,19 @@ export default function Page() {
   };
 
   const onBack = useCallback(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('agent');
+    window.history.pushState({}, '', url);
     setSelectedId(null);
     refresh();
   }, [refresh]);
+
+  const onSelectAgent = useCallback((id: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('agent', id);
+    window.history.pushState({}, '', url);
+    setSelectedId(id);
+  }, []);
 
   // 报头版本行：名册的期号 = 真实登记数据（结构即信息）
   const edition = [
@@ -137,7 +165,7 @@ export default function Page() {
           <Hero stats={stats} onTestAgent={scrollToQuickstart} />
           <Leaderboard
             entries={entries}
-            onSelect={setSelectedId}
+            onSelect={onSelectAgent}
             board={board}
             setBoard={setBoard}
             summary={summary}
