@@ -5,7 +5,7 @@
  * 修正用新事件，不覆盖历史。
  */
 
-import { index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 export const agents = pgTable('agents', {
   id: text('id').primaryKey(),
@@ -24,6 +24,12 @@ export const agents = pgTable('agents', {
   model: text('model'),
   /** 展示用：被测 agent 软件版本（如 claude-code 2.1.258）。 */
   agentVersion: text('agent_version'),
+  /**
+   * T6 榜单上报开关（老大 2026-09-08 17:00 拍板，设计冻结）：默认上榜、可关。
+   * 一个开关管两榜（capability/behavior）；opt-out 后详情页直链保留（unlisted 先例）。
+   * 信用数据采集不受影响——只控公开榜单展示。
+   */
+  leaderboardVisible: boolean('leaderboard_visible').notNull().default(true),
 });
 
 /** 上报 nonce（防重放）：一次性，插入冲突即重放。 */

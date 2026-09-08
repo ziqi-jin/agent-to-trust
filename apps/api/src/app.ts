@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Database } from './db/client';
 import { agentsRoutes } from './routes/agents';
+import { agentVisibilityRoutes } from './routes/agentVisibility';
 import { arenaQueueRoutes } from './routes/arenaQueue';
 import { arenaRoutes } from './routes/arena';
 import { badgeRoutes } from './routes/badge';
@@ -34,6 +35,7 @@ export function buildApp(
   // dev 跨域（dashboard 本地 localhost:3001 → API localhost:8000）
   app.register(cors, { origin: true });
   app.register(agentsRoutes);
+  app.register(agentVisibilityRoutes);
   app.register(arenaQueueRoutes);
   app.register(arenaRoutes);
   app.register(badgeRoutes);

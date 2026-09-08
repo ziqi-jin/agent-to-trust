@@ -5,7 +5,7 @@
  * 让前端榜单有真实（但 source=simulation，绝不伪装真实交易）的数据可展示。
  */
 import { randomUUID } from 'node:crypto';
-import { and, count, desc, eq, ilike, like, not } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, inArray, like, not } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
@@ -13,6 +13,15 @@ import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE } from './arenaQueue';
 import { computeAndPersist } from './scores';
 import { createRateLimiter } from '../services/rateLimit';
+
+/**
+ * T6 ≥3 单成交门槛（老大 2026-09-08 17:00 拍板，「双保险」防榜单膨胀）：
+ * 酒馆身份 agent（伪 pubkey `tavern-agent-` 前缀，tavernIdentity 唯一权威）settled
+ * （economic/success 真实证据 ≡ confirmed 成交单，1 单=1 行）< 3 不上榜。
+ * 主要针对榜单 1；榜单 2 不设门槛（偏差记录：行为榜已有 arena 准入 + real-benchmark
+ * 证据 + 考场分三重门槛，成交数非其语义）。SDK/考场 agent 无「成交」概念，豁免。
+ */
+export const MIN_TRADE_SETTLED_FOR_BOARD = 3;
 
 export async function simulationRoutes(app: FastifyInstance) {
   // 公开读限流 60/min/IP（S4-B M2 批 2，plan §Task 12；统一内存桶）。
@@ -110,6 +119,23 @@ export async function simulationRoutes(app: FastifyInstance) {
     });
     const benchmarkAgents = new Set(benchmarkEvidence.map((e) => e.agentId));
 
+    // T6 榜单上报开关（一个开关管两榜）：信用数据照跑，只控公开展示。
+    // settled 计数（economic/success 真实证据 = confirmed 成交单，1 单 1 行）按 agent 聚合。
+    const settledRows = await app.db.query.evidence.findMany({
+      where: and(
+        eq(evidence.dimension, 'economic'),
+        eq(evidence.result, 'success'),
+        inArray(evidence.source, ['real', 'real-confidential']),
+      ),
+    });
+    const settledByAgent = new Map<string, number>();
+    for (const e of settledRows) {
+      settledByAgent.set(e.agentId, (settledByAgent.get(e.agentId) ?? 0) + 1);
+    }
+    // 酒馆身份判定：tavernIdentity.tavernPubkey 的伪 pubkey 前缀（身份权威单处在 identity 服务）
+    const isTradeAgent = (pubkey: string | null): boolean =>
+      typeof pubkey === 'string' && pubkey.startsWith('tavern-agent-');
+
     const rows = allAgents
       .map((a) => {
         const sc = latest.get(a.id);
@@ -156,15 +182,32 @@ export async function simulationRoutes(app: FastifyInstance) {
           isE2E,
           inArena: arenaAgents.has(a.id),
           hasBenchmark: benchmarkAgents.has(a.id),
+          // T6：可见性（行内不过滤，过滤集中在下方 filtered——两榜共用同一判定）
+          leaderboardVisible: a.leaderboardVisible,
+          isTradeAgent: isTradeAgent(a.pubkey),
+          settledCount: settledByAgent.get(a.id) ?? 0,
         };
       });
 
+    // T6 过滤：opt-out（leaderboardVisible=false）两榜都不进；榜单 1 另加 ≥3 单成交
+    // 门槛（仅酒馆身份 agent，SDK/考场豁免，见 MIN_TRADE_SETTLED_FOR_BOARD 注释）。
     const filtered =
       board === 'behavior'
         ? rows.filter(
-            (r) => !r.isE2E && r.inArena && r.hasBenchmark && (r.score ?? 0) >= ARENA_GATE_SCORE,
+            (r) =>
+              !r.isE2E &&
+              r.leaderboardVisible &&
+              r.inArena &&
+              r.hasBenchmark &&
+              (r.score ?? 0) >= ARENA_GATE_SCORE,
           )
-        : rows.filter((r) => r.source !== 'simulation' && !r.isE2E);
+        : rows.filter(
+            (r) =>
+              r.source !== 'simulation' &&
+              !r.isE2E &&
+              r.leaderboardVisible &&
+              (!r.isTradeAgent || r.settledCount >= MIN_TRADE_SETTLED_FOR_BOARD),
+          );
 
     return filtered
       .sort((x, y) => {

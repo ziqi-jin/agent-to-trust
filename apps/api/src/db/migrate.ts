@@ -75,6 +75,9 @@ ALTER TABLE agents ADD COLUMN IF NOT EXISTS last_seen_at timestamptz;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS model text;
 ALTER TABLE agents ADD COLUMN IF NOT EXISTS agent_version text;
 
+-- T6 榜单上报开关（老大 2026-09-08 17:00 拍板）：默认上榜、可关；带默认值，无需数据回填
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS leaderboard_visible boolean NOT NULL DEFAULT true;
+
 CREATE TABLE IF NOT EXISTS ingest_nonces (
   nonce text PRIMARY KEY,
   created_at timestamptz NOT NULL DEFAULT now()

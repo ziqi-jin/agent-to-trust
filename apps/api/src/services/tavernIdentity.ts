@@ -40,6 +40,37 @@ export function tavernExternalId(agentRef: string): string {
 }
 
 /**
+ * 酒馆 agent 可见性同步（T6 榜单上报开关，老大 2026-09-08 17:00 拍板）：
+ * 酒馆服务端在注册时/设置页改动时经 POST /ingest/agent-visibility（bearer 机构级）调用。
+ *
+ * - 未知 ref → 先走 upsertTavernAgent 建号（随注册传 ACL：确定性 id + 伪 pubkey + basic，
+ *   建号默认 leaderboard_visible=true，随后落可见性）——注册时选择的偏好不会在首次证据前丢失；
+ * - 既有 ref → 只更新 leaderboard_visible，身份 id 永不变（T8 契约）；
+ * - 撞名（upsert 返回持名者 id）→ status='name-taken'，零写入：持名者的可见性绝不被
+ *   误改（可检测：agentId !== tavernExternalId(ref)，与 upsert 头注释同语义）；
+ * - 本函数不碰 lastSeenAt：设置同步不是活动心跳。
+ */
+export type TavernVisibilitySyncStatus = 'updated' | 'created' | 'name-taken';
+
+export async function setTavernAgentVisibility(
+  db: Database,
+  agentRef: string,
+  agentName: string,
+  visible: boolean,
+): Promise<{ agentId: string; status: TavernVisibilitySyncStatus }> {
+  const existed = await db.query.agents.findFirst({
+    where: eq(agents.pubkey, tavernPubkey(agentRef)),
+  });
+  const { agentId } = await upsertTavernAgent(db, agentRef, agentName);
+  // 撞名：返回的是持名者 id，绝不改他 agent 的可见性
+  if (agentId !== tavernExternalId(agentRef)) {
+    return { agentId, status: 'name-taken' };
+  }
+  await db.update(agents).set({ leaderboardVisible: visible }).where(eq(agents.id, agentId));
+  return { agentId, status: existed ? 'updated' : 'created' };
+}
+
+/**
  * 酒馆身份 upsert 契约（T7-8 评审 I1/I2，2026-09-06）：
  * - 新 ref 撞名（下方路径 2）：返回持有者 id，调用方可经 `agentId !== tavernExternalId(agentRef)` 检测。
  * - 改名撞名（路径 1 内）：返回自身 id 且静默保留旧展示名——**经返回值不可检测**。
