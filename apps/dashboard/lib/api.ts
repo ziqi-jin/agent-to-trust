@@ -21,6 +21,8 @@ export interface Agent {
   verificationLevel: string;
   capabilities: string[] | null;
   createdAt: string;
+  /** T6 榜单上报开关：false = 不进公开榜单（详情直链/徽章保留）。 */
+  leaderboardVisible: boolean;
 }
 
 export interface Evidence {
@@ -268,6 +270,12 @@ export const api = {
   createAgent: (name: string, capabilities?: string[]) =>
     http<Agent>('/agents', { method: 'POST', body: JSON.stringify({ name, capabilities }) }),
   getAgent: (id: string) => http<Agent>(`/agents/${id}`),
+  // T6：注册后可改（设计冻结条款 5）——dashboard 设置开关直调
+  updateAgentVisibility: (id: string, leaderboardVisible: boolean) =>
+    http<Agent>(`/agents/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ leaderboardVisible }),
+    }),
   listEvidence: (id: string) => http<Evidence[]>(`/agents/${id}/evidence`),
   addEvidence: (id: string, payload: Record<string, unknown>) =>
     http<Evidence>(`/agents/${id}/evidence`, { method: 'POST', body: JSON.stringify(payload) }),

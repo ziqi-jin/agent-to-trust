@@ -10,7 +10,14 @@ interface AgentBody {
   name?: string;
   owner?: string;
   capabilities?: string[];
+  /** T6 榜单上报开关（可选，省略 = 库默认 true）：注册时可选、随注册落 ACL。 */
+  leaderboardVisible?: unknown;
 }
+
+/** PATCH /agents/:id body 白名单：只开榜单可见性一个字段，改名/换 owner 等永不经此门。 */
+const PatchAgentBody = z
+  .object({ leaderboardVisible: z.boolean() })
+  .strict();
 
 /** body 白名单：source 现仅 'tavern'（判别符，扩源再放宽）；refs≤100。 */
 const ScoresByExternalBody = z.object({
@@ -24,6 +31,13 @@ export async function agentsRoutes(app: FastifyInstance) {
     if (!body.name || typeof body.name !== 'string') {
       return reply.code(400).send({ error: 'name 必填' });
     }
+    // T6：注册时可选传榜单可见性（类型错了拒绝而不是静默忽略）
+    if (
+      body.leaderboardVisible !== undefined &&
+      typeof body.leaderboardVisible !== 'boolean'
+    ) {
+      return reply.code(400).send({ error: 'leaderboardVisible 必须为 boolean' });
+    }
     const existing = await app.db.query.agents.findFirst({ where: eq(agents.name, body.name) });
     if (existing) {
       return reply.code(409).send({ error: `Agent 名称已存在：${body.name}` });
@@ -35,9 +49,37 @@ export async function agentsRoutes(app: FastifyInstance) {
         name: body.name,
         owner: body.owner ?? null,
         capabilities: body.capabilities ?? null,
+        ...(body.leaderboardVisible !== undefined
+          ? { leaderboardVisible: body.leaderboardVisible }
+          : {}),
       })
       .returning();
     return reply.code(201).send(created);
+  });
+
+  // PATCH /agents/:id — 注册后可改（T6 条款 5）：目前只开 leaderboardVisible 一个字段。
+  // 无 agent 级认证（与 POST /agents 同等公开面）：写面限流 30/min/IP 兒底；
+  // dashboard 设置开关直调（设计冻结条款 5）。鉴权硬化遗留问题另记。
+  const patchLimited = createRateLimiter({ max: 30, windowMs: 60_000 });
+  app.patch('/agents/:id', async (req, reply) => {
+    if (patchLimited(req as FastifyRequest)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
+    const { id } = req.params as { id: string };
+    const parsed = PatchAgentBody.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return reply
+        .code(400)
+        .send({ error: 'body 不合法：' + (parsed.error.issues[0]?.message ?? '') });
+    }
+    const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, id) });
+    if (!agent) return reply.code(404).send({ error: `Agent 不存在：${id}` });
+    const [updated] = await app.db
+      .update(agents)
+      .set({ leaderboardVisible: parsed.data.leaderboardVisible })
+      .where(eq(agents.id, id))
+      .returning();
+    return updated;
   });
 
   app.get('/agents', async () => {
