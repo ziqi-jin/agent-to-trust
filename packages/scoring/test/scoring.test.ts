@@ -122,6 +122,20 @@ describe('[来源权重] Source weighting', () => {
   it('真实来源（real）满分证据 → score 1000', () => {
     expect(computeScore([ev({ dimension: 'capability', source: 'real' })], NOW).score).toBe(1000);
   });
+
+  it('S5-T3/B3：real-confidential（confidential 明细类）在维度内按 0.5 计权', () => {
+    // negotiation：real 成功（1.0）+ real-confidential 失败（0.5）→ (1.0×1 + 0.5×0)/1.5 = 66.67
+    // 若两条均按 real=1.0 计权则应为 50 —— 66.67 证明降权档生效
+    const r = computeScore(
+      [
+        ev({ dimension: 'negotiation', source: 'real' }),
+        ev({ dimension: 'negotiation', source: 'real-confidential', result: 'failure' }),
+      ],
+      NOW,
+    );
+    const neg = r.dimensions.find((d) => d.dimension === 'negotiation');
+    expect(neg?.score).toBe(66.67);
+  });
 });
 
 describe('[置信度] Confidence semantics', () => {

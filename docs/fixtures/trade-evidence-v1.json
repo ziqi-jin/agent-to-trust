@@ -21,6 +21,23 @@
       "reason": "signature_invalid",
       "occurredAt": "2026-09-06T00:01:00.000Z",
       "payloadHash": "c2505c2248786dc46102655e1e44a75a294fe83ec0dbf29ebe85460f237b0c6a"
+    },
+    {
+      "id": "7c11e6a2-3f0d-4a6e-9a5b-2f1d3c4b5a67",
+      "agentRef": "4c2ef04c-0c03-4aff-ac5d-25a57c6ddb67",
+      "agentName": "trader-crab",
+      "orderRef": "5e4d3c2b-1a09-478e-8b7a-6c5d4e3f2a1b",
+      "type": "confirmed",
+      "occurredAt": "2026-09-06T00:02:00.000Z",
+      "payloadHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "negotiation": {
+        "rounds": 3,
+        "outcome": "settled",
+        "initialPrice": 12,
+        "finalPrice": 11,
+        "responseMsP50": 45000,
+        "concessionPattern": "12→10→11"
+      }
     }
   ]
 }

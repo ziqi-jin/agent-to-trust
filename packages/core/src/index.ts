@@ -30,6 +30,8 @@ export const SOURCE_WEIGHTS = {
   real: 1.0,
   // 考场 ingest 落库来源（真实签名证据）：不补键会走 sourceWeight() ?? 0.3 兜底，压低榜单1 权重。
   'real-benchmark': 1.0,
+  // S5-T3/B3：confidential 单明细类证据统一降权（公众可验证性打折，证据权重同步打折；公开单 real=1.0）。
+  'real-confidential': 0.5,
   verified: 0.9,
 } as const;
 

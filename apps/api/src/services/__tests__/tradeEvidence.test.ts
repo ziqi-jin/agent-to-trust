@@ -128,15 +128,33 @@ describe('EnvelopeSchema / 契约 fixture', () => {
     expect(parsed.data.reporter).toBe('tavern-market');
     expect(parsed.data.reporterVersion).toBe('1.0.0');
     expect(parsed.data.evidenceSchemaVersion).toBe(1);
-    expect(parsed.data.events).toHaveLength(2);
+    expect(parsed.data.events).toHaveLength(3);
     // delivered 无 reason 键（酒馆侧省略字段）
     expect('reason' in parsed.data.events[0]).toBe(false);
     expect(parsed.data.events[1]?.reason).toBe('signature_invalid');
-    // fixture 两事件的映射契约
+    // S5-T3：第 3 事件 = confirmed + settled 谈判轨迹（A3 完整面契约）
+    const third = parsed.data.events[2]!;
+    expect(third.type).toBe('confirmed');
+    expect(third.negotiation).toEqual({
+      rounds: 3,
+      outcome: 'settled',
+      initialPrice: 12,
+      finalPrice: 11,
+      responseMsP50: 45000,
+      concessionPattern: '12→10→11',
+    });
+    expect('confidential' in third).toBe(false);
+    // fixture 映射契约
     expect(mapEventToDimension('delivered')).toEqual({ dimension: 'delivery', outcome: 'success' });
     expect(mapEventToDimension('delivery_failed', 'signature_invalid')).toEqual({
       dimension: 'integrity',
       outcome: 'failure',
+    });
+    // confirmed + 轨迹：主行仍 economic，negotiation 由派生行承担（S5-T3）
+    expect(mapEventToDimension('confirmed')).toEqual({ dimension: 'economic', outcome: 'success' });
+    expect(mapEventToDimension('confirmed', undefined, third.negotiation)).toEqual({
+      dimension: 'economic',
+      outcome: 'success',
     });
   });
 });
@@ -216,5 +234,156 @@ describe('ingestTradeEvidence', () => {
     expect(scores.map((s) => s.agentId).sort()).toEqual(
       [tavernExternalId(refA), tavernExternalId(refB)].sort(),
     );
+  });
+});
+
+// ── S5-T3：negotiation 实战证据接入（spec A3/A4/B3/B4）──
+//
+// A4 信用映射落点：
+// - 达成（confirmed + 轨迹 outcome=settled）→ negotiation/success（派生行，economic 主行不变）
+// - 流拍（rejected 带轨迹 / negotiation_expired）→ negotiation/partial 只记录不重罚
+//   （谈判破裂是正常市场行为，不再按 delivery/failure 重罚）；虚假报价/接受后拒履约
+//   仍由 delivery_failed → reliability/integrity 现有映射扣分，本批不新增惩罚路径。
+// B3 降权落点：confidential 单全部证据 source='real-confidential'（SOURCE_WEIGHTS=0.5）。
+// B4 聚合面：confidential 单 negotiation 只含 rounds/outcome（承诺哈希在事件顶层），
+// ACL 库不落金额/让步序列——payloadHash 之外本就零明细。
+describe('S5-T3 negotiation 实战证据接入', () => {
+  const TRAJ = {
+    rounds: 3,
+    outcome: 'settled',
+    initialPrice: 12,
+    finalPrice: 11,
+    responseMsP50: 45000,
+    concessionPattern: '12→10→11',
+  } as const;
+
+  it('mapEventToDimension：rejected 带轨迹 → {negotiation, partial}（流拍不重罚）；无轨迹维持 delivery/failure', () => {
+    expect(mapEventToDimension('rejected', undefined, TRAJ)).toEqual({
+      dimension: 'negotiation',
+      outcome: 'partial',
+    });
+    expect(mapEventToDimension('rejected')).toEqual({ dimension: 'delivery', outcome: 'failure' });
+  });
+
+  it('mapEventToDimension：negotiation_expired → {negotiation, partial}（offer 72h 死局只记录）', () => {
+    expect(mapEventToDimension('negotiation_expired')).toEqual({
+      dimension: 'negotiation',
+      outcome: 'partial',
+    });
+  });
+
+  it('契约 fixture 第 3 事件：confirmed + settled 轨迹解析通过（两仓漂移即红）', () => {
+    const fixture = JSON.parse(readFileSync(FIXTURE_PATH, 'utf-8'));
+    const parsed = EnvelopeSchema.safeParse(fixture);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.events).toHaveLength(3);
+    const third = parsed.data.events[2]!;
+    expect(third.type).toBe('confirmed');
+    expect(third.negotiation).toEqual(TRAJ);
+    expect('confidential' in third).toBe(false);
+  });
+
+  it('confirmed + 轨迹 → 主行 economic/success + 派生行 negotiation/success（id 带 #negotiation 后缀）', async () => {
+    const res = await ingestTradeEvidence(
+      db,
+      envelope([
+        ev({ id: '55555555-5555-4555-8555-555555555551', type: 'confirmed', negotiation: TRAJ }),
+      ]),
+    );
+    expect(res.accepted).toEqual(['55555555-5555-4555-8555-555555555551']);
+    expect(res.rejected).toEqual([]);
+    const rows = await db.query.evidence.findMany();
+    expect(rows).toHaveLength(2);
+    const main = rows.find((r) => r.id === '55555555-5555-4555-8555-555555555551');
+    const derived = rows.find((r) => r.id === '55555555-5555-4555-8555-555555555551#negotiation');
+    expect(main?.dimension).toBe('economic');
+    expect(main?.result).toBe('success');
+    expect(main?.source).toBe('real');
+    expect(derived?.dimension).toBe('negotiation');
+    expect(derived?.result).toBe('success');
+    expect(derived?.source).toBe('real');
+    expect(derived?.issuer).toBe('tavern-market');
+    // 评分真实重算（mock 包装真实现）
+    expect(computeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejected + 轨迹 / negotiation_expired → 单行 negotiation/partial（流拍只记录不重罚）', async () => {
+    await ingestTradeEvidence(
+      db,
+      envelope([
+        ev({
+          id: '55555555-5555-4555-8555-555555555552',
+          type: 'rejected',
+          negotiation: { ...TRAJ, outcome: 'rejected' },
+        }),
+        ev({
+          id: '55555555-5555-4555-8555-555555555553',
+          type: 'negotiation_expired',
+          negotiation: { ...TRAJ, outcome: 'expired' },
+        }),
+      ]),
+    );
+    const rows = await db.query.evidence.findMany();
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.dimension).toBe('negotiation');
+      expect(row.result).toBe('partial');
+      expect(row.source).toBe('real');
+    }
+    expect(rows.find((r) => r.id?.endsWith('#negotiation'))).toBeUndefined();
+  });
+
+  it('confidential 单：全部证据 source=real-confidential（B3 降权 0.5）；聚合面（无明细）解析通过', async () => {
+    const res = await ingestTradeEvidence(
+      db,
+      envelope([
+        ev({
+          id: '55555555-5555-4555-8555-555555555554',
+          type: 'confirmed',
+          confidential: true,
+          commitmentHash: 'sha256-commit-hash',
+          negotiation: { rounds: 2, outcome: 'settled' }, // B4 聚合面：无金额/序列
+        }),
+        ev({
+          id: '55555555-5555-4555-8555-555555555555',
+          type: 'delivered',
+          confidential: true,
+          commitmentHash: 'sha256-commit-hash',
+        }),
+      ]),
+    );
+    expect(res.accepted).toHaveLength(2);
+    expect(res.rejected).toEqual([]);
+    const rows = await db.query.evidence.findMany();
+    expect(rows).toHaveLength(3); // confirmed 主行 + 派生行 + delivered
+    for (const row of rows) {
+      expect(row.source).toBe('real-confidential');
+      expect(row.sourceType).toBe('real');
+    }
+    const derived = rows.find((r) => r.id === '55555555-5555-4555-8555-555555555554#negotiation');
+    expect(derived?.dimension).toBe('negotiation');
+    expect(derived?.result).toBe('success');
+  });
+
+  it('重复推送幂等：confirmed + 轨迹重推 → duplicates，仍只有 2 行（派生行不重复）', async () => {
+    const env = envelope([
+      ev({ id: '55555555-5555-4555-8555-555555555556', type: 'confirmed', negotiation: TRAJ }),
+    ]);
+    const first = await ingestTradeEvidence(db, env);
+    expect(first.accepted).toHaveLength(1);
+    const second = await ingestTradeEvidence(db, env);
+    expect(second.accepted).toEqual([]);
+    expect(second.duplicates).toEqual(['55555555-5555-4555-8555-555555555556']);
+    expect(await db.query.evidence.findMany()).toHaveLength(2);
+  });
+
+  it('zod 非 strict 回归：事件带未知字段仍收下（T1 confidential 字段同理，打分只读白名单）', async () => {
+    const res = await ingestTradeEvidence(
+      db,
+      envelope([ev({ id: '55555555-5555-4555-8555-555555555557', futureField: 'x' })]),
+    );
+    expect(res.accepted).toHaveLength(1);
+    expect(res.rejected).toEqual([]);
   });
 });
