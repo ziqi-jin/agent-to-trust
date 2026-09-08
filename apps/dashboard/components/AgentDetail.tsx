@@ -44,6 +44,10 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // T6 榜单展示开关：本地状态 + 乐观更新（失败回滚）
+  const [visibilityBusy, setVisibilityBusy] = useState(false);
+  const [visibilitySaved, setVisibilitySaved] = useState(false);
+  const [visibilityError, setVisibilityError] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -68,6 +72,27 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
   useEffect(() => {
     load();
   }, [load]);
+
+  const toggleVisibility = useCallback(async () => {
+    if (!agent || visibilityBusy) return;
+    const next = !agent.leaderboardVisible;
+    setVisibilityBusy(true);
+    setVisibilitySaved(false);
+    setVisibilityError(false);
+    setAgent({ ...agent, leaderboardVisible: next }); // 乐观更新
+    try {
+      const updated = await api.updateAgentVisibility(agent.id, next);
+      setAgent(updated);
+      setVisibilitySaved(true);
+      setTimeout(() => setVisibilitySaved(false), 2000);
+    } catch {
+      setAgent({ ...agent, leaderboardVisible: !next }); // 回滚
+      setVisibilityError(true);
+      setTimeout(() => setVisibilityError(false), 3000);
+    } finally {
+      setVisibilityBusy(false);
+    }
+  }, [agent, visibilityBusy]);
 
   const dims = score?.dimensions ?? [];
 
@@ -153,6 +178,46 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                     <div className="mt-1 font-mono text-lg text-ink tabular-nums">{val}</div>
                   </div>
                 ))}
+              </div>
+            </Panel>
+          </div>
+
+          {/* T6 榜单展示开关（设计冻结条款 5：注册后可改；opt-out 直链保留） */}
+          <div className="mt-4">
+            <Panel title={t.detail.visibilityTitle} note={t.detail.visibilityDesc}>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <span
+                    className={`font-mono text-sm font-bold ${
+                      agent.leaderboardVisible ? 'text-ledger' : 'text-seal'
+                    }`}
+                  >
+                    {agent.leaderboardVisible ? t.detail.visibilityOn : t.detail.visibilityOff}
+                  </span>
+                  {visibilitySaved && (
+                    <span className="ml-2 font-mono text-[11px] text-dim">{t.detail.visibilitySaved}</span>
+                  )}
+                  {visibilityError && (
+                    <span className="ml-2 font-mono text-[11px] text-seal">{t.detail.visibilitySaveFailed}</span>
+                  )}
+                </div>
+                <button
+                  onClick={toggleVisibility}
+                  disabled={visibilityBusy}
+                  aria-pressed={agent.leaderboardVisible}
+                  role="switch"
+                  className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
+                    agent.leaderboardVisible
+                      ? 'border-ledger bg-ledger/25'
+                      : 'border-hairline bg-panel'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${
+                      agent.leaderboardVisible ? 'left-[1.5rem] bg-ledger' : 'left-0.5 bg-dim'
+                    }`}
+                  />
+                </button>
               </div>
             </Panel>
           </div>
