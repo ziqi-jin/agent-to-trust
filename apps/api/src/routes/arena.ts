@@ -36,18 +36,41 @@ function notifyWaiters(sessionId: string): void {
   if (!set) return;
   const pending = [...set];
   set.clear();
+  waiters.delete(sessionId);
   for (const resolve of pending) resolve();
 }
 
-function registerWaiter(sessionId: string): Promise<void> {
-  return new Promise((resolve) => {
-    let set = waiters.get(sessionId);
-    if (!set) {
-      set = new Set();
-      waiters.set(sessionId, set);
-    }
-    set.add(() => resolve());
+interface WaiterHandle {
+  promise: Promise<void>;
+  /** 摘除自己（超时/主动放弃时调用），避免 resolver 永久留在 set 里。 */
+  cancel: () => void;
+}
+
+function registerWaiter(sessionId: string): WaiterHandle {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => {
+    resolve = r;
   });
+  let set = waiters.get(sessionId);
+  if (!set) {
+    set = new Set();
+    waiters.set(sessionId, set);
+  }
+  set.add(resolve);
+  return {
+    promise,
+    cancel: () => {
+      const s = waiters.get(sessionId);
+      if (!s) return;
+      s.delete(resolve);
+      if (s.size === 0) waiters.delete(sessionId);
+    },
+  };
+}
+
+/** 仅测试用：观测长轮询等待者（审计 A6 泄漏回归）。 */
+export function __debugWaiterCounts(): Record<string, number> {
+  return Object.fromEntries([...waiters].map(([k, v]) => [k, v.size]));
 }
 
 export async function arenaRoutes(app: FastifyInstance): Promise<void> {
@@ -227,10 +250,14 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
 
     let events = await fetchEvents();
     if (events.length === 0 && wait > 0) {
+      const waiter = registerWaiter(id);
       await Promise.race([
-        registerWaiter(id),
+        waiter.promise,
         new Promise<void>((r) => setTimeout(r, wait * 1000)),
       ]);
+      // 审计 A6【P2】：超时分支必须摘除自己的 resolver（set 空则删 Map 键），
+      // 否则每次超时轮询都永久泄漏一个闭包（慢内存泄漏）。
+      waiter.cancel();
       events = await fetchEvents();
     }
     return { events };
