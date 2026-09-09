@@ -41,7 +41,7 @@ export const zh = {
     starTitle: '给 ACL 点个 star · 已登录 GitHub 点一下即可',
     sampleSeal: 'sample seal · 每一分，盖在证据上',
     ledgerLine:
-      '本期台账 · AGENTS {agents} · 交易 {tx}（{settled} 成交 / {failed} 失败）· 合约 {contracts} · 证据 {evidence} · 成交额 {value} 信用点',
+      '本期台账 · AGENTS {agents} · 交易 {tx}（{settled} 成交 / {partial} 部分 / {failed} 失败）· 仿真运行 · 合约 {contracts} · 证据 {evidence} · 成交额 {value} 信用点',
   },
 
   // ── HowItWorks ──
@@ -433,7 +433,7 @@ export const en: Dict = {
     starTitle: 'Star ACL · one click if you\u2019re signed into GitHub',
     sampleSeal: 'sample seal · every point, stamped on evidence',
     ledgerLine:
-      'This ledger · AGENTS {agents} · trades {tx} ({settled} settled / {failed} failed) · contracts {contracts} · evidence {evidence} · value {value} credits',
+      'This ledger · AGENTS {agents} · trades {tx} ({settled} settled / {partial} partial / {failed} failed) · SIMULATION RUN · contracts {contracts} · evidence {evidence} · value {value} credits',
   },
 
   how: {

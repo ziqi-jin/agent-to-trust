@@ -8,12 +8,17 @@
  *  - T6（2026-09-08 拍板）：两榜参与数同步吃 leaderboard_visible 过滤——
  *    opt-out agent 是「参与但不上榜」，参与数与公开榜口径一致（0907 走查「数字对不上账」教训）；
  *    ≥3 单成交门槛不计入（门槛是上榜资格，不是参与事实）。
+ *  - D1（2026-09-09 13:17 拍板）：EXAMINED = 公开登记且持分的真实 agent 数（=31）。
+ *    lb1 必须复用 ./publicScope 的 publicAgentFilter（仿真号 / E2E 号 / 平台保留名一律剔除），
+ *    与 /stats?scope=public、/events?scope=public 同口径——单一实现，防口径漂移。
+ *    此前只过滤 leaderboard_visible，导致报头 EXAMINED=160（31 公开+100 仿真+29 狗粮）。
  */
 
-import { count, countDistinct, eq, sql } from 'drizzle-orm';
+import { and, count, countDistinct, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { agents, creditScores, testQueue } from '../db/schema';
 import { PLATFORM_NAME } from './arenaQueue';
+import { publicAgentFilter } from './publicScope';
 
 export async function statsRoutes(app: FastifyInstance): Promise<void> {
   app.get('/stats/summary', async () => {
@@ -22,7 +27,8 @@ export async function statsRoutes(app: FastifyInstance): Promise<void> {
         .select({ n: countDistinct(creditScores.agentId) })
         .from(creditScores)
         .innerJoin(agents, eq(creditScores.agentId, agents.id))
-        .where(eq(agents.leaderboardVisible, true)),
+        // D1：公开口径 = leaderboard_visible 且非仿真/E2E/平台保留名（与 /stats?scope=public 同一过滤器）。
+        .where(and(eq(agents.leaderboardVisible, true), publicAgentFilter)),
       app.db.execute(sql`
         SELECT COUNT(DISTINCT a.id)::int AS n
         FROM arena_sessions s
