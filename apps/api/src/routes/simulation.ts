@@ -5,13 +5,14 @@
  * 让前端榜单有真实（但 source=simulation，绝不伪装真实交易）的数据可展示。
  */
 import { randomUUID } from 'node:crypto';
-import { and, count, desc, eq, ilike, inArray, like, not } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
 import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE, PLATFORM_NAME } from './arenaQueue';
 import { computeAndPersist } from './scores';
+import { publicAgentFilter } from './publicScope';
 import { createRateLimiter } from '../services/rateLimit';
 
 /**
@@ -229,12 +230,10 @@ export async function simulationRoutes(app: FastifyInstance) {
 
   // GET /stats — 首页大数字
   // 默认全量（P0-10 红线：统计数字与落库一致、仿真数据可溯）；?scope=public 为门面
-  // 展示口径（0907 走查「数字对不上账」）：排除仿真号 sim-agent-* 与 E2E 测试号（e2e 前缀），
-  // 与 capability 榜公开面一致。
-  const publicAgentFilter = and(
-    not(ilike(agents.name, 'e2e%')),
-    not(like(agents.name, 'sim-agent-%')),
-  );
+  // 展示口径（0907 走查「数字对不上账」）：排除仿真号 sim-agent-*、E2E 测试号（e2e 前缀）
+  // 与平台保留名，与 capability 榜公开面一致。
+  // D1（2026-09-09 拍板）：过滤器抽到 ./publicScope，/stats/summary lb1 复用同一实现，
+  // 单一口径防漂移（EXAMINED=公开登记且持分的真实 agent 数）。
   app.get('/stats', async (req) => {
     const q = (req.query as { scope?: string }) ?? {};
     const lastRun = await app.db.query.simulationRuns.findFirst({
