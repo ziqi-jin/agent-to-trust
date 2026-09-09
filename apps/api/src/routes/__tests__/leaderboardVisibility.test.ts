@@ -106,6 +106,18 @@ describe('T6 榜单上报开关：GET /leaderboard 可见性过滤', () => {
     expect(rows.find((r) => r.agentId === 'ag-hidden')).toBeUndefined();
   });
 
+  it('行为榜资格同口径：酒馆 agent 只有 real 交易证据（无 real-benchmark）+ 考场分≥400 也可上榜（2026-09-10 与 arenaQueue gate 同步放宽）', async () => {
+    const id = 'ag-real-trade-arena';
+    await seedScoredAgent({ id, name: 'real-trade-arena-agent', score: 800 });
+    await db.insert(evidence).values([
+      { id: `ev-${id}-arena`, agentId: id, dimension: 'delivery', source: 'arena', result: 'success' },
+      { id: `ev-${id}-trade`, agentId: id, dimension: 'delivery', source: 'real', sourceType: 'real', issuer: 'tavern-market', result: 'success' },
+    ]);
+    const res = await app.inject({ method: 'GET', url: '/leaderboard?board=behavior' });
+    const rows = res.json() as Array<{ agentId: string }>;
+    expect(rows.find((r) => r.agentId === id)).toBeDefined();
+  });
+
   it('一开关管两榜：opt-out agent 满足行为榜资格也进不了 behavior 榜', async () => {
     // 行为榜资格：arena 证据 + real-benchmark 证据 + 考场分 ≥ ARENA_GATE_SCORE(400)
     const id = 'ag-hidden-arena';

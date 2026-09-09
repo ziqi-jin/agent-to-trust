@@ -113,10 +113,11 @@ export async function simulationRoutes(app: FastifyInstance) {
       where: eq(evidence.source, 'arena'),
     });
     const arenaAgents = new Set(arenaEvidence.map((e) => e.agentId));
-    // 行为榜资格红线：必须有真实考场证据（benchmark）——
-    // 防止纯行为证据把 score 推高绕过考场门槛（“上榜必须真跑考场”）
+    // 行为榜资格红线：必须有真实证据——考场（real-benchmark）或酒馆真实交易（real / real-confidential，
+    // bearer 机构级上报，2026-09-10 与 arenaQueue gate 同口径放宽）——
+    // 防止纯仿真行为证据把 score 推高绕过门槛（simulation 源依然不算，防刷语义保留）
     const benchmarkEvidence = await app.db.query.evidence.findMany({
-      where: eq(evidence.source, 'real-benchmark'),
+      where: inArray(evidence.source, ['real-benchmark', 'real', 'real-confidential']),
     });
     const benchmarkAgents = new Set(benchmarkEvidence.map((e) => e.agentId));
 
