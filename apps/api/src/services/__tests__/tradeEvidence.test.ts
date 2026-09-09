@@ -378,6 +378,31 @@ describe('S5-T3 negotiation 实战证据接入', () => {
     expect(await db.query.evidence.findMany()).toHaveLength(2);
   });
 
+  // 审计 B5【P2】：派生行此前只在主行本次 inserted 时才写。
+  // 历史事件重推（主行已在库、派生行缺失）时，inserted.length === 0 → 派生行永远补不回。
+  it('历史重推回补：主行已存在、派生行缺失 → 重推后派生行补回', async () => {
+    const id = '55555555-5555-4555-8555-555555555558';
+    // 第一次推送：confirmed 但无轨迹（模拟派生行功能上线前的历史事件）→ 只落主行
+    const first = await ingestTradeEvidence(db, envelope([ev({ id, type: 'confirmed' })]));
+    expect(first.accepted).toEqual([id]);
+    let rows = await db.query.evidence.findMany();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe(id);
+
+    // 重推：同一事件带轨迹 → 主行冲突进 duplicates，但派生行必须补回
+    const second = await ingestTradeEvidence(
+      db,
+      envelope([ev({ id, type: 'confirmed', negotiation: TRAJ })]),
+    );
+    expect(second.duplicates).toEqual([id]);
+    rows = await db.query.evidence.findMany();
+    expect(rows).toHaveLength(2);
+    const derived = rows.find((r) => r.id === `${id}#negotiation`);
+    expect(derived?.dimension).toBe('negotiation');
+    expect(derived?.result).toBe('success');
+    expect(derived?.source).toBe('real');
+  });
+
   it('zod 非 strict 回归：事件带未知字段仍收下（T1 confidential 字段同理，打分只读白名单）', async () => {
     const res = await ingestTradeEvidence(
       db,
