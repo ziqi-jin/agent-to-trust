@@ -19,6 +19,7 @@ import {
   verifyPayload,
 } from '@acl/sdk';
 import { evidence, ingestNonces } from '../db/schema';
+import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { computeAndPersist } from './scores';
@@ -143,11 +144,23 @@ export async function ingestRoutes(app: FastifyInstance) {
     }
 
     // 7) upsert agent（密钥即身份；与 Arena register 共用同一身份体系）
+    // 审计 A4【P1·安全】：agentEndpoint 是服务端后续会 fetch 的地址（reverify），
+    // 不校验即盲 SSRF（云元数据/内网/环回）。落库前用 isPublicEndpoint 卡口：
+    // 未提供（undefined/null/空串）视为 model 模式放行；其余非法值一律 400。
+    let endpoint: string | undefined;
+    if (agentEndpoint !== undefined && agentEndpoint !== null && agentEndpoint !== '') {
+      if (typeof agentEndpoint !== 'string' || !isPublicEndpoint(agentEndpoint.trim())) {
+        return reply
+          .code(400)
+          .send({ error: 'agentEndpoint 必须是公网 http(s) 地址（拒绝环回/私网/非法值）' });
+      }
+      endpoint = agentEndpoint.trim();
+    }
     const cleanName = (agentName as string).trim();
     const identity = await upsertAgentIdentity(app.db, {
       name: cleanName,
       pubkey,
-      endpoint: typeof agentEndpoint === 'string' ? agentEndpoint : undefined,
+      endpoint,
       model: typeof agentModel === 'string' ? agentModel : undefined,
       version: typeof agentVersion === 'string' ? agentVersion : undefined,
     });

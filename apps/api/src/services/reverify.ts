@@ -11,6 +11,7 @@ import type { FastifyInstance } from 'fastify';
 import { and, desc, eq } from 'drizzle-orm';
 import { EndpointAgent, loadSuite } from '@acl/sdk';
 import { agents, evidence } from '../db/schema';
+import { isPublicEndpoint } from '../playground/scenario';
 
 /** 复算抽题：确定性客观题（数值题，grader 无歧义）。 */
 const REVERIFY_CASE_IDS = ['coding-sum', 'reasoning-sequence'];
@@ -38,6 +39,9 @@ async function runReverify(
   try {
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, agentId) });
     if (!agent?.endpoint || !agent.pubkey) return 'basic';
+    // 审计 A4【P1·安全】：ingest 已卡口新写入，但库里可能已有历史脏 endpoint。
+    // 服务端 fetch 前再校验一次：非法（环回/私网/非 http(s)）直接放弃，不发请求。
+    if (!isPublicEndpoint(agent.endpoint)) return 'basic';
 
     // 最近一次上报的 real-benchmark 证据（按 caseId 取最新 value）
     const allReal = await app.db.query.evidence.findMany({
