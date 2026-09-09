@@ -80,15 +80,23 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** 准入门槛：real-benchmark 证据存在 + 最近一次考场分 ≥ ARENA_GATE_SCORE。返回 null=通过。 */
+/** 准入门槛：真实证据（考场 real-benchmark 或酒馆交易 real）存在 + 最近一次考场分 ≥ ARENA_GATE_SCORE。返回 null=通过。 */
 async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<string | null> {
   const [bench] = await db
     .select({ id: evidence.id })
     .from(evidence)
-    .where(and(eq(evidence.agentId, agentId), eq(evidence.source, 'real-benchmark')))
+    .where(
+      and(
+        eq(evidence.agentId, agentId),
+        // 2026-09-09 老大指令「都要走通一遍」：酒馆真实交易证据（source=real，bearer 机构级上报）
+        // 与考场 real-benchmark 同等算真实实战——酒馆 agent 不再被结构性挡在榜2 外。
+        // 防刷底线不动：分数 ≥ ARENA_GATE_SCORE 仍强制；且交易有真金白银成本，刷 Arena 激励低。
+        inArray(evidence.source, ['real-benchmark', 'real']),
+      ),
+    )
     .limit(1);
   if (!bench) {
-    return '未通过考场门槛：请先跑 npx @acl/sdk test 拿到真实考场成绩（行为榜同源资格）';
+    return '未通过考场门槛：请先跑 npx @acl/sdk test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
   }
   const [latest] = await db
     .select({ score: creditScores.score })

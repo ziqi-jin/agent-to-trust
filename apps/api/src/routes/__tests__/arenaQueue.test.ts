@@ -92,6 +92,34 @@ async function enqueue(name: string, pubkey: string) {
 }
 
 describe('POST /arena/queue — 准入门槛', () => {
+  it('酒馆交易证据（source=real）也满足准入门槛（T10：酒馆 agent 进榜2，2026-09-09 老大指令）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
+    dirs.push(dir);
+    const keys = ensureKeypair(dir);
+    const name = `gate-real-${randomUUID().slice(0, 6)}`;
+    // 夹具：只有 source=real（酒馆交易证据），无 real-benchmark
+    const reg = await app.inject({ method: 'POST', url: '/arena/register', payload: { name, pubkey: keys.publicKeyPem } });
+    expect(reg.statusCode).toBe(201);
+    const agentId = reg.json().agentId as string;
+    await db.insert(evidence).values({
+      id: `ev-${randomUUID().slice(0, 8)}`,
+      agentId,
+      dimension: 'delivery',
+      source: 'real',
+      sourceType: 'real',
+      result: 'success',
+      value: 0.9,
+    });
+    await db.insert(creditScores).values({
+      id: `cs-${randomUUID().slice(0, 8)}`,
+      agentId,
+      score: 800,
+      modelVersion: 'test',
+    });
+    const res = await enqueue(name, keys.publicKeyPem);
+    expect(res.statusCode).toBe(201);
+  });
+
   it('边界：考场分恰好等于门槛（400）通过', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
     dirs.push(dir);
