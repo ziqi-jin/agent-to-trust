@@ -26,6 +26,9 @@ function createAgent(name = 'test-agent') {
 // 验收维度映射：docs/TESTING.md
 // 正确性 / 确定性 / 可解释性 / 鲁棒性 / 数据完整性 / 持久化
 
+// 注（D3，2026-09-09 拍板）：POST /agents/:id/evidence 的 source 白名单已收紧为
+// 仅 'simulation'（真实证据走 /ingest/results 验签链路）。本文件原先用 'benchmark'
+// 作为占位源，现统一改为 'simulation'——这些用例考的是提交/重算/可追溯，不涉源权重。
 describe('[正确性] Correctness', () => {
   it('创建 + 查询 Agent', async () => {
     const res = await createAgent();
@@ -41,8 +44,8 @@ describe('[正确性] Correctness', () => {
 
   it('全失败证据 → score 0', async () => {
     const agent = (await createAgent('fail-agent')).json();
-    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
-    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'benchmark', result: 'failure' } });
+    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'simulation', result: 'failure' } });
+    await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: 'reliability', source: 'simulation', result: 'failure' } });
     const res = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
     expect(res.json().score).toBe(0);
   });
@@ -100,7 +103,7 @@ describe('[可解释性] Explainability — 可追溯', () => {
     const agent = (await createAgent('trace-agent')).json();
     const ids: string[] = [];
     for (const d of ['capability', 'reliability', 'delivery']) {
-      const r = await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: d, source: 'benchmark', result: 'success' } });
+      const r = await app.inject({ method: 'POST', url: `/agents/${agent.id}/evidence`, payload: { dimension: d, source: 'simulation', result: 'success' } });
       ids.push(r.json().evidence.id);
     }
     const res = await app.inject({ method: 'POST', url: `/agents/${agent.id}/score` });
@@ -114,7 +117,7 @@ describe('[确定性] Determinism + [持久化] Persistence', () => {
   it('落库后重复 GET score 返回一致', async () => {
     const agent = (await createAgent('persist-agent')).json();
     for (const ev of [
-      { dimension: 'capability', source: 'benchmark', result: 'success' },
+      { dimension: 'capability', source: 'simulation', result: 'success' },
       { dimension: 'reliability', source: 'simulation', result: 'success' },
       { dimension: 'delivery', source: 'simulation', result: 'success' },
     ]) {
@@ -139,7 +142,7 @@ describe('[自动更新] P0-9 Reputation Engine — 事件驱动分数', () => {
     const r = await app.inject({
       method: 'POST',
       url: `/agents/${agent.id}/evidence`,
-      payload: { dimension: 'capability', source: 'benchmark', result: 'success' },
+      payload: { dimension: 'capability', source: 'simulation', result: 'success' },
     });
     expect(r.statusCode).toBe(201);
     const body = r.json();

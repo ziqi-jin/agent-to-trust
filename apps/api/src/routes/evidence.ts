@@ -17,6 +17,15 @@ interface EvidenceBody {
   payloadHash?: string;
 }
 
+/**
+ * source 白名单（D3，2026-09-09 13:17 老大拍板）：本端点只收 'simulation'。
+ * 原先 `source: body.source ?? 'simulation'` 无白名单，可传 source=real
+ * （SOURCE_WEIGHTS.real = 1.0）无鉴权灌分，绕过验签。
+ * 真实证据必须走 POST /ingest/results（Ed25519 验签链路）。
+ * 扩源（如未来允许 benchmark 自报）再放宽——单处常量，防口径漂移。
+ */
+const ALLOWED_EVIDENCE_SOURCES = new Set(['simulation']);
+
 export async function evidenceRoutes(app: FastifyInstance) {
   app.post('/agents/:id/evidence', async (req, reply) => {
     const { id } = req.params as { id: string };
@@ -33,13 +42,23 @@ export async function evidenceRoutes(app: FastifyInstance) {
       return reply.code(422).send({ error: `非法 result：${result}。可选：success | failure | partial` });
     }
 
+    // D3（0909 拍板）：source 白名单——只收 simulation，堵无鉴权灌分。
+    const source = body.source ?? 'simulation';
+    if (!ALLOWED_EVIDENCE_SOURCES.has(source)) {
+      return reply.code(400).send({
+        error:
+          `非法 source：${source}。本端点只收 simulation；` +
+          'source=real 的证据请走 POST /ingest/results（Ed25519 验签链路），参考文档 /docs',
+      });
+    }
+
     const [created] = await app.db
       .insert(evidence)
       .values({
         id: randomUUID(),
         agentId: id,
         dimension: body.dimension as Dimension,
-        source: (body.source ?? 'simulation') as Source,
+        source: source as Source,
         sourceType: body.sourceType ?? 'simulation',
         issuer: body.issuer ?? null,
         result: result as 'success' | 'failure' | 'partial',
