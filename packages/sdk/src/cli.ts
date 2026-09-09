@@ -246,7 +246,9 @@ async function main(): Promise<void> {
         const res = await uploadResults(suite, {
           meta: {
             name,
-            endpoint: t.url ?? (t.cmd ? `cmd:${t.cmd.slice(0, 120)}` : undefined),
+            // cmd/model 模式不传 endpoint：CLI agent 无公网地址（A4 后服务端校验会拒非公网值，
+            // cmd: 前缀伪协议也过不了）；无 endpoint 上报合法（服务端跳过校验，reverify 自然跳过）
+            endpoint: t.url,
             model: t.model,
             version: t.agentVersion,
             modelMeta: t.model
