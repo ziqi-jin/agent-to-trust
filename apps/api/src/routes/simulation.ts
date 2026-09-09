@@ -10,7 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
 import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
-import { ARENA_GATE_SCORE } from './arenaQueue';
+import { ARENA_GATE_SCORE, PLATFORM_NAME } from './arenaQueue';
 import { computeAndPersist } from './scores';
 import { createRateLimiter } from '../services/rateLimit';
 
@@ -203,6 +203,9 @@ export async function simulationRoutes(app: FastifyInstance) {
           )
         : rows.filter(
             (r) =>
+              // 审计 A3【P1】：平台对家是系统撮合账号，不是参赛 agent，绝不进公开能力榜。
+              // 与 stats.ts lb2（`name <> PLATFORM_NAME`）及 behavior 榜口径一致。
+              r.name !== PLATFORM_NAME &&
               r.source !== 'simulation' &&
               !r.isE2E &&
               r.leaderboardVisible &&
