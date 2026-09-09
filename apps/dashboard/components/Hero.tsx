@@ -92,14 +92,23 @@ export function Hero({
         </div>
       </div>
 
-      {/* 本期台账（安静的一行，不抢戏） */}
+      {/*
+        本期台账（安静的一行，不抢戏）。
+        D2（老大 2026-09-09 13:17 拍板，方案①）：这行数字来自最近一次仿真运行
+        （/api/stats 的 simulation 字段），与公开口径的 AGENTS/证据数混排易被误读，故：
+        ①标注「· 仿真运行 / · SIMULATION RUN」；②补 partial（此前 65 settled + 93 failed
+        ≠ 200，42 partial 被吞）；③整体降透明度 + 缩字号做视觉弱化。
+        条件（老大拍板原文）：「若以后停跑仿真或不需要展示，删除此段改用真实数据
+        （2026-09-09 拍板）」——届时连此注释与 hero.ledgerLine 一并删除。
+      */}
       {sim && (
         <div className="mx-auto max-w-6xl px-6 pb-6">
-          <p className="border-t border-hairline pt-3 font-mono text-[11px] tracking-wide text-dim">
+          <p className="border-t border-hairline pt-3 font-mono text-[10px] tracking-wide text-dim/60">
             {fill(t.hero.ledgerLine, {
               agents: fmt(stats?.agentCount),
               tx: fmt(sim.transactions),
               settled: fmt(sim.settled),
+              partial: fmt(sim.partial),
               failed: fmt(sim.failed),
               contracts: fmt(sim.contractsCreated),
               evidence: fmt(stats?.evidenceCount),
