@@ -148,4 +148,31 @@ describe('isPublicEndpoint（SSRF 防护）', () => {
     expect(isPublicEndpoint('http://172.32.0.1/v1')).toBe(true);
     expect(isPublicEndpoint('http://172.20.0.1/v1')).toBe(false);
   });
+
+  // 审计 A5【P2】：IPv4-mapped IPv6（::ffff:a.b.c.d）此前未归一化——
+  // URL 归一化成 ::ffff:7f00:1 后绕过了 IPv4 私网判定，可盲 SSRF。
+  describe('审计 A5：IPv4-mapped IPv6 归一化', () => {
+    it('映射到环回/私网/云元数据 → 拒绝', () => {
+      expect(isPublicEndpoint('http://[::ffff:127.0.0.1]:8000/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[::ffff:10.0.0.1]/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[::ffff:172.16.0.1]/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[::ffff:192.168.1.1]/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[::ffff:169.254.169.254]/latest/meta-data')).toBe(false);
+      // 未压缩写法（同一地址，URL 归一化为 ::ffff:7f00:1）
+      expect(isPublicEndpoint('http://[0:0:0:0:0:ffff:127.0.0.1]/v1')).toBe(false);
+      // IPv4-compatible（废弃写法）同样归一化后判定
+      expect(isPublicEndpoint('http://[::127.0.0.1]/v1')).toBe(false);
+    });
+
+    it('映射到公网 IPv4 仍放行（不过度拦截）', () => {
+      expect(isPublicEndpoint('http://[::ffff:8.8.8.8]/v1')).toBe(true);
+      expect(isPublicEndpoint('https://[::ffff:1.1.1.1]/v1')).toBe(true);
+    });
+
+    it('链路本地 fe80::/10 全段拒绝（含 fe90/febf）', () => {
+      expect(isPublicEndpoint('http://[fe80::1]/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[fe90::1]/v1')).toBe(false);
+      expect(isPublicEndpoint('http://[febf::1]/v1')).toBe(false);
+    });
+  });
 });

@@ -200,27 +200,29 @@ export async function ingestTradeEvidence(
     if (inserted.length > 0) {
       accepted.push(event.id);
       scored.set(event.agentRef, agentId);
-
-      // S5-T3：confirmed + 谈判轨迹 → 另落 negotiation 维度实战证据（economic 主行不变）。
-      // 确定性派生 id → 重推幂等；outcome=settled → success（达成），expired/rejected → partial（流拍中性）。
-      if (event.type === 'confirmed' && event.negotiation) {
-        await db
-          .insert(evidence)
-          .values({
-            id: `${event.id}#negotiation`,
-            agentId,
-            dimension: 'negotiation',
-            source,
-            sourceType: 'real',
-            issuer: 'tavern-market',
-            result: event.negotiation.outcome === 'settled' ? 'success' : 'partial',
-            evidenceUri: `tavern://order/${event.orderRef}`,
-            payloadHash: event.payloadHash,
-          })
-          .onConflictDoNothing({ target: evidence.id });
-      }
     } else {
       duplicates.push(event.id);
+    }
+
+    // S5-T3 / 审计 B5【P2】：confirmed + 谈判轨迹 → 另落 negotiation 维度实战证据
+    // （economic 主行不变）。派生行独立 upsert，不依赖主行本次是否 inserted：
+    // 历史事件重推时主行进 duplicates，但派生行可能因功能上线/丢失而缺失，必须能补回。
+    // 确定性派生 id → 重推幂等；outcome=settled → success（达成），expired/rejected → partial（流拍中性）。
+    if (event.type === 'confirmed' && event.negotiation) {
+      await db
+        .insert(evidence)
+        .values({
+          id: `${event.id}#negotiation`,
+          agentId,
+          dimension: 'negotiation',
+          source,
+          sourceType: 'real',
+          issuer: 'tavern-market',
+          result: event.negotiation.outcome === 'settled' ? 'success' : 'partial',
+          evidenceUri: `tavern://order/${event.orderRef}`,
+          payloadHash: event.payloadHash,
+        })
+        .onConflictDoNothing({ target: evidence.id });
     }
   }
 

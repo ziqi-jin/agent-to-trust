@@ -53,26 +53,80 @@ type Validated = { ok: true; value: ValidatedSessionInput } | { ok: false; error
 
 const isFinitePos = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0;
 
+/** 点分十进制 IPv4 是否环回/私网/链路本地/未指定。 */
+function isPrivateV4(h: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (!m) return false;
+  const [a, b] = [Number(m[1]), Number(m[2])];
+  if (a === 127 || a === 10 || a === 0) return true; // 环回 / 私网 / 未指定
+  if (a === 172 && b >= 16 && b <= 31) return true; // 私网
+  if (a === 192 && b === 168) return true; // 私网
+  if (a === 169 && b === 254) return true; // 链路本地
+  return false;
+}
+
+/** IPv6 字面量（方括号已剥）→ 8 段 hextet；非法返回 null。 */
+function parseIpv6(host: string): number[] | null {
+  let s = host;
+  // 防御：内嵌点分 IPv4（URL 归一化后通常已转 hex，直接调用时需稳）
+  if (s.includes('.')) {
+    const colon = s.lastIndexOf(':');
+    const v4 = s.slice(colon + 1).split('.').map(Number);
+    if (v4.length !== 4 || v4.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return null;
+    const hi = ((v4[0] << 8) | v4[1]).toString(16);
+    const lo = ((v4[2] << 8) | v4[3]).toString(16);
+    s = `${s.slice(0, colon + 1)}${hi}:${lo}`;
+  }
+  const halves = s.split('::');
+  if (halves.length > 2) return null;
+  const parseGroups = (str: string): number[] | null => {
+    if (str === '') return [];
+    const out: number[] = [];
+    for (const g of str.split(':')) {
+      if (!/^[0-9a-f]{1,4}$/i.test(g)) return null;
+      out.push(Number.parseInt(g, 16));
+    }
+    return out;
+  };
+  const left = parseGroups(halves[0] ?? '');
+  const right = halves.length === 2 ? parseGroups(halves[1] ?? '') : [];
+  if (!left || !right) return null;
+  if (halves.length === 1) return left.length === 8 ? left : null;
+  const fill = 8 - left.length - right.length;
+  if (fill < 0) return null;
+  return [...left, ...new Array<number>(fill).fill(0), ...right];
+}
+
+/** 取末两段 hextet 还原点分十进制（IPv4-mapped/compatible）。 */
+function mappedIpv4(v6: number[]): string {
+  const hi = v6[6];
+  const lo = v6[7];
+  return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+}
+
 function isPrivateHost(hostname: string): boolean {
   const h = hostname.toLowerCase().replace(/\.$/, '');
   if (h === 'localhost' || h.endsWith('.localhost')) return true;
-  // IPv4 字面量
-  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
-  if (m) {
-    const [a, b] = [Number(m[1]), Number(m[2])];
-    if (a === 127 || a === 10 || a === 0) return true; // 环回 / 私网 / 未指定
-    if (a === 172 && b >= 16 && b <= 31) return true; // 私网
-    if (a === 192 && b === 168) return true; // 私网
-    if (a === 169 && b === 254) return true; // 链路本地
-    return false;
-  }
   // IPv6 字面量（URL 方括号已剥）
   if (h.includes(':')) {
-    const v6 = h.replace(/^\[|\]$/g, '');
-    if (v6 === '::1' || v6 === '::' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80')) return true;
+    const v6 = parseIpv6(h.replace(/^\[|\]$/g, ''));
+    if (!v6) return true; // 解析不了 → 保守拒绝
+    // 审计 A5【P2】：IPv4-mapped ::ffff:a.b.c.d / IPv4-compatible ::a.b.c.d
+    // 先归一化回 IPv4 再判私网，堵 ::ffff:127.0.0.1 类绕过。
+    if (v6.slice(0, 5).every((x) => x === 0) && v6[5] === 0xffff) {
+      return isPrivateV4(mappedIpv4(v6));
+    }
+    if (v6.slice(0, 6).every((x) => x === 0)) {
+      // ::（未指定）/ ::1（环回）/ ::x.y.z.w（IPv4-compatible）
+      return isPrivateV4(mappedIpv4(v6));
+    }
+    const hi = v6[0];
+    if ((hi & 0xfe00) === 0xfc00) return true; // ULA fc00::/7
+    if ((hi & 0xffc0) === 0xfe80) return true; // 链路本地 fe80::/10
+    if ((hi & 0xff00) === 0xff00) return true; // 组播 ff00::/8
     return false;
   }
-  return false;
+  return isPrivateV4(h);
 }
 
 /** SSRF 防护：http(s) 且 host 非环回/私网/链路本地。 */

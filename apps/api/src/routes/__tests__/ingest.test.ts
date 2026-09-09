@@ -56,7 +56,9 @@ describe('POST /ingest/results', () => {
   it('accepts a valid signed payload: evidence stored, agent bound to pubkey, score computed', async () => {
     const payload = buildIngestPayload(
       suiteFixture,
-      { name: 'e2e-agent', endpoint: 'http://localhost:9999/agent' },
+      // 审计 A4：endpoint 现在必须过 isPublicEndpoint 卡口；localhost 会被 400。
+      // .invalid 为 RFC 2606 保留 TLD，DNS 秒失败，不产生真实出网。
+      { name: 'e2e-agent', endpoint: 'https://agent.invalid/v1' },
       keypair,
     );
     const res = await post(payload);
@@ -76,7 +78,7 @@ describe('POST /ingest/results', () => {
 
     const agent = await db.query.agents.findFirst({ where: sql`id = ${body.agentId}` as never });
     expect(agent?.pubkey).toBe(keypair.publicKeyPem);
-    expect(agent?.endpoint).toBe('http://localhost:9999/agent');
+    expect(agent?.endpoint).toBe('https://agent.invalid/v1');
   });
 
   it('accepts re-upload from the same key (score recomputed, evidence appended)', async () => {

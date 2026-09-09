@@ -10,7 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
 import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
-import { ARENA_GATE_SCORE } from './arenaQueue';
+import { ARENA_GATE_SCORE, PLATFORM_NAME } from './arenaQueue';
 import { computeAndPersist } from './scores';
 import { createRateLimiter } from '../services/rateLimit';
 
@@ -139,10 +139,11 @@ export async function simulationRoutes(app: FastifyInstance) {
     const rows = allAgents
       .map((a) => {
         const sc = latest.get(a.id);
-        // E2E 测试号判定（对齐酒馆 visibility 口径：名字 e2e 前缀，大小写不敏感）——
+        // E2E 测试号判定（审计 B4：统一为 ILIKE 'e2e%' 语义，大小写不敏感前缀）——
+        // 必须与 /stats、/events 的 publicAgentFilter 同口径（否则 e2efoo 榜单在榜、统计被剔）。
         // 必须先于 pubkey 判定：酒馆 E2E 号也有 pubkey，否则被误判 real-benchmark 挂 SDK
         // 标签占榜（0907 走查 C3 根因）。
-        const isE2E = /^e2e[-\s]/i.test(a.name);
+        const isE2E = /^e2e/i.test(a.name);
         const source =
           isE2E || a.name.startsWith('sim-agent-')
           ? 'simulation'
@@ -203,6 +204,9 @@ export async function simulationRoutes(app: FastifyInstance) {
           )
         : rows.filter(
             (r) =>
+              // 审计 A3【P1】：平台对家是系统撮合账号，不是参赛 agent，绝不进公开能力榜。
+              // 与 stats.ts lb2（`name <> PLATFORM_NAME`）及 behavior 榜口径一致。
+              r.name !== PLATFORM_NAME &&
               r.source !== 'simulation' &&
               !r.isE2E &&
               r.leaderboardVisible &&
