@@ -39,7 +39,6 @@ var ModelAgent = class {
     this.timeoutMs = opts.timeoutMs ?? 12e4;
   }
   fetchImpl;
-  fetchImpl;
   timeoutMs;
   async reply(prompt) {
     const messages = [];
@@ -603,7 +602,13 @@ var NEGOTIATION_SCENARIOS = [
     counterpartRole: "\u4F9B\u5E94\u5546\u9500\u552E",
     metricLabel: "\u5355\u4EF7\uFF08\u5143\uFF09",
     maxRounds: 4,
-    strategy: { opening: 100, floor: 55, step: 15, target: 65 }
+    strategy: { opening: 100, floor: 55, step: 15, target: 65 },
+    en: {
+      brief: "You are sourcing 100 custom mechanical keyboards for your company and negotiating the unit price with a supplier. Market reference is about 90 CNY per unit.",
+      agentRole: "Procurement Manager",
+      counterpartRole: "Supplier Sales Rep",
+      metricLabel: "Unit price (CNY)"
+    }
   },
   {
     id: "neg-delivery-days",
@@ -612,7 +617,13 @@ var NEGOTIATION_SCENARIOS = [
     counterpartRole: "\u5916\u5305\u56E2\u961F\u8D1F\u8D23\u4EBA",
     metricLabel: "\u4EA4\u4ED8\u5929\u6570",
     maxRounds: 4,
-    strategy: { opening: 14, floor: 6, step: 3, target: 7 }
+    strategy: { opening: 14, floor: 6, step: 3, target: 7 },
+    en: {
+      brief: "You have outsourced a website project and are negotiating the delivery timeline with the contractor. Their opening quote is 14 days.",
+      agentRole: "Client-side Project Lead",
+      counterpartRole: "Outsourcing Team Lead",
+      metricLabel: "Delivery days"
+    }
   },
   {
     id: "neg-bulk-price",
@@ -621,19 +632,40 @@ var NEGOTIATION_SCENARIOS = [
     counterpartRole: "\u670D\u88C5\u5382\u4E1A\u52A1\u5458",
     metricLabel: "\u6298\u540E\u5355\u4EF7\uFF08\u5143\uFF09",
     maxRounds: 4,
-    strategy: { opening: 9.5, floor: 8, step: 0.5, target: 8.5 }
+    strategy: { opening: 9.5, floor: 8, step: 0.5, target: 8.5 },
+    en: {
+      brief: "You are buying 1,000 T-shirts (market price 10 CNY each) and negotiating a discounted bulk unit price with the garment factory.",
+      agentRole: "Chain Store Owner",
+      counterpartRole: "Garment Factory Sales Rep",
+      metricLabel: "Discounted unit price (CNY)"
+    }
   }
 ];
 
+// src/counterpart/types.ts
+function scenarioText(sc, locale) {
+  if (locale === "en" && sc.en) return { ...sc.en };
+  return { brief: sc.brief, agentRole: sc.agentRole, counterpartRole: sc.counterpartRole, metricLabel: sc.metricLabel };
+}
+
 // src/counterpart/scripted.ts
 var ScriptedCounterpart = class {
-  constructor(scenario) {
+  constructor(scenario, locale = "zh") {
     this.scenario = scenario;
+    this.locale = locale;
   }
   open() {
     const s = this.scenario.strategy;
+    const t = scenarioText(this.scenario, this.locale);
+    if (this.locale === "en") {
+      return {
+        text: `${t.counterpartRole}: ${t.metricLabel} ${s.opening} \u2014 that's the list price, hard to go any lower.`,
+        value: s.opening,
+        accepted: false
+      };
+    }
     return {
-      text: `${this.scenario.counterpartRole}\uFF1A${this.scenario.metricLabel} ${s.opening}\uFF0C\u8FD9\u662F\u516C\u5F00\u62A5\u4EF7\uFF0C\u5F88\u96BE\u518D\u4F4E\u4E86\u3002`,
+      text: `${t.counterpartRole}\uFF1A${t.metricLabel} ${s.opening}\uFF0C\u8FD9\u662F\u516C\u5F00\u62A5\u4EF7\uFF0C\u5F88\u96BE\u518D\u4F4E\u4E86\u3002`,
       value: s.opening,
       accepted: false
     };
@@ -641,6 +673,13 @@ var ScriptedCounterpart = class {
   respond(agentOffer, state) {
     const s = this.scenario.strategy;
     if (agentOffer === "accept") {
+      if (this.locale === "en") {
+        return {
+          text: `Deal! We'll close at ${state.counterpartValue}. Pleasure doing business.`,
+          value: state.counterpartValue,
+          accepted: true
+        };
+      }
       return {
         text: `\u6210\u4EA4\uFF01\u5C31\u6309 ${state.counterpartValue} \u8D70\uFF0C\u5408\u4F5C\u6109\u5FEB\u3002`,
         value: state.counterpartValue,
@@ -649,6 +688,13 @@ var ScriptedCounterpart = class {
     }
     const acceptLine = Math.max(s.floor, state.counterpartValue - s.step);
     if (agentOffer >= acceptLine) {
+      if (this.locale === "en") {
+        return {
+          text: `Alright, ${agentOffer} it is. Deal.`,
+          value: agentOffer,
+          accepted: true
+        };
+      }
       return {
         text: `\u884C\uFF0C\u5C31\u6309\u4F60\u8BF4\u7684 ${agentOffer} \u6210\u4EA4\u3002`,
         value: agentOffer,
@@ -656,6 +702,10 @@ var ScriptedCounterpart = class {
       };
     }
     const next = Math.max(s.floor, state.counterpartValue - s.step);
+    if (this.locale === "en") {
+      const text2 = next <= s.floor ? `${next} is my bottom line \u2014 I genuinely can't go any lower. Take it or leave it.` : `Alright, I'll make a move: ${next}. That's a serious concession.`;
+      return { text: text2, value: next, accepted: false };
+    }
     const text = next <= s.floor ? `${next} \u662F\u5E95\u4EF7\u4E86\uFF0C\u518D\u4F4E\u771F\u505A\u4E0D\u4E86\uFF0C\u4F60\u8981\u4E0D\u8003\u8651\u5C31\u7B97\u4E86\u3002` : `\u8FD9\u6837\uFF0C\u6211\u8BA9\u4E00\u6B65\uFF1A${next}\u3002\u8FD9\u4E2A\u8BDA\u610F\u591F\u591A\u4E86\u5427\u3002`;
     return { text, value: next, accepted: false };
   }
@@ -1403,7 +1453,9 @@ async function main() {
         const res = await uploadResults(suite, {
           meta: {
             name,
-            endpoint: t.url ?? (t.cmd ? `cmd:${t.cmd.slice(0, 120)}` : void 0),
+            // cmd/model 模式不传 endpoint：CLI agent 无公网地址（A4 后服务端校验会拒非公网值，
+            // cmd: 前缀伪协议也过不了）；无 endpoint 上报合法（服务端跳过校验，reverify 自然跳过）
+            endpoint: t.url,
             model: t.model,
             version: t.agentVersion,
             modelMeta: t.model ? { model: t.model, baseUrl: t.baseUrl ?? "", persona: t.persona } : void 0

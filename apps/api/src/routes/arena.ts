@@ -17,6 +17,7 @@ import { verifyPayload } from '@acl/sdk';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { settleSession } from '../services/arenaSettle';
+import { sweepStaleSessions } from '../services/arenaSweep';
 
 const EVENT_TYPES = new Set([
   'OFFER',
@@ -261,5 +262,12 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
       events = await fetchEvents();
     }
     return { events };
+  });
+
+  /** 平台引擎兜底：清扫悬空会话（deadline 已过 / 无 deadline 超 TTL）→ failed + TIMEOUT 事件留痕。 */
+  app.post('/arena/sweep', async () => {
+    const swept = await sweepStaleSessions(app);
+    for (const id of swept) notifyWaiters(id);
+    return { swept, count: swept.length };
   });
 }
