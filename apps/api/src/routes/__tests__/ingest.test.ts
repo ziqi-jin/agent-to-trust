@@ -147,4 +147,51 @@ describe('POST /ingest/results', () => {
     const res = await post(payload);
     expect(res.statusCode).toBe(403);
   });
+
+  // ---- exam-v2（榜2 考场组件，难度档）准入 ----
+  it('rejects exam-v2 caseId when reported under v1 version (422)', async () => {
+    const payload = buildIngestPayload(
+      {
+        ...suiteFixture,
+        results: [
+          { caseId: 'C1', dimension: 'reasoning', scoreDimension: 'capability', value: 1, result: 'success', rawOutput: 'x' },
+        ],
+      },
+      { name: 'e2e-v2-lowver' },
+      keypair,
+    );
+    const res = await post(payload);
+    expect(res.statusCode).toBe(422);
+  });
+
+  it('accepts exam-v2 caseId under v2 version and maps server-side dimension', async () => {
+    const payload = buildIngestPayload(
+      {
+        ...suiteFixture,
+        benchmarkVersion: '2.0.0',
+        results: [
+          { caseId: 'C1', dimension: 'coding', scoreDimension: 'capability', value: 1, result: 'success', rawOutput: 'x' },
+          { caseId: 'd01', dimension: 'honesty', scoreDimension: 'integrity', value: 0, result: 'failure', rawOutput: 'y' },
+          { caseId: 'r1', dimension: 'honesty', scoreDimension: 'integrity', value: 0.5, result: 'partial', rawOutput: 'z' },
+        ],
+      },
+      { name: 'e2e-v2-ok' },
+      keypair,
+    );
+    const res = await post(payload);
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { agentId: string };
+    const mine = (await db.query.evidence.findMany()).filter((e) => e.agentId === body.agentId);
+    // 服务端权威维度：客户端报的 dimension 一律不信。
+    const byUri = new Map(mine.map((e) => [e.evidenceUri, e]));
+    expect(byUri.get('acl://benchmark/C1')?.dimension).toBe('reliability');
+    expect(byUri.get('acl://benchmark/d01')?.dimension).toBe('security');
+    expect(byUri.get('acl://benchmark/r1')?.dimension).toBe('delivery');
+  });
+
+  it('accepts v1 caseId under v1 version (regression: v2 gate does not block v1)', async () => {
+    const payload = buildIngestPayload(suiteFixture, { name: 'e2e-v1-ok' }, keypair);
+    const res = await post(payload);
+    expect(res.statusCode).toBe(200);
+  });
 });

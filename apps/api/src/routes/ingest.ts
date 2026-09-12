@@ -14,6 +14,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Dimension } from '@acl/core';
 import {
   DIMENSION_MAP,
+  EXAM_V2_DIMENSION,
   NEGOTIATION_SCENARIOS,
   loadSuite,
   verifyPayload,
@@ -25,14 +26,18 @@ import { upsertAgentIdentity } from '../services/agentIdentity';
 import { computeAndPersist } from './scores';
 
 const MIN_BENCHMARK_VERSION = '1.0.0';
+/** exam-v2（榜2 考场组件，难度档）最低题集版本。 */
+const MIN_EXAM_V2_VERSION = '2.0.0';
 const RATE_LIMIT = { max: 60, windowMs: 10 * 60_000 };
 const TIMESTAMP_WINDOW_MS = 10 * 60_000;
 
-/** caseId → 评分维度（服务端权威映射）。 */
+/** caseId → 评分维度（服务端权威映射）。v1 suite + 谈判场景 + exam-v2 难度档。 */
 const CASE_DIMENSION: Record<string, Dimension> = (() => {
   const m: Record<string, Dimension> = {};
   for (const c of loadSuite()) m[c.id] = DIMENSION_MAP[c.dimension] as Dimension;
   for (const s of NEGOTIATION_SCENARIOS) m[s.id] = 'negotiation';
+  // exam-v2：题号（a1/C1/…）在 v1 白名单外，单独登记（见 packages/sdk/src/benchmarks/exam-v2.ts）
+  Object.assign(m, EXAM_V2_DIMENSION);
   return m;
 })();
 
@@ -126,6 +131,16 @@ export async function ingestRoutes(app: FastifyInstance) {
     // 5) 题集版本
     if (!versionAtLeast(benchmarkVersion, MIN_BENCHMARK_VERSION)) {
       return reply.code(422).send({ error: `题集版本过低（最低 ${MIN_BENCHMARK_VERSION}）` });
+    }
+    // 5b) 防降级混淆：v2 题号必须以 v2 题集版本上报，v1 题号不得冒充 v2
+    //     （题号与版本交叉校验，防止老客户端用低版本号绕过 v2 门槛）
+    const usesV2 = (results as Array<Record<string, unknown>>).some(
+      (r) => typeof r.caseId === 'string' && EXAM_V2_DIMENSION[r.caseId] !== undefined,
+    );
+    if (usesV2 && !versionAtLeast(benchmarkVersion, MIN_EXAM_V2_VERSION)) {
+      return reply
+        .code(422)
+        .send({ error: `exam-v2 题集版本过低（最低 ${MIN_EXAM_V2_VERSION}）` });
     }
 
     // 6) caseId 白名单 + 数值合法性（服务端权威，不信任客户端维度）
