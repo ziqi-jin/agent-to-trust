@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { GITHUB_URL } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-
 const CONTRIB_MD_URL = `${GITHUB_URL}/blob/master/CONTRIBUTING.md`;
 
 function Section({ id, label, title, children }: { id: string; label: string; title: string; children: React.ReactNode }) {
@@ -130,6 +129,30 @@ export default function ContributingPage() {
               {s.c5.contributeLink}
             </a>
             {s.c5.contributePost}
+          </p>
+        </Section>
+
+        <Section id="c6" label={s.c6.label} title={s.c6.title}>
+          <p>{s.c6.intro}</p>
+          <ul className="mt-2 space-y-2">
+            {s.c6.gaps.map((g) => (
+              <li key={g.dim} className="border-l-2 border-seal/60 pl-3">
+                <span className="font-mono text-[12px] font-semibold text-seal">{g.dim}</span>
+                <p className="mt-0.5 text-[13px] text-ink/85">{g.need}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="pt-2 font-semibold text-ink">{s.c6.thinTitle}</p>
+          <ul className="space-y-1">
+            {s.c6.thin.map((txt, i) => (
+              <li key={i} className="flex gap-2">
+                <span className="font-mono text-[11px] text-brass">{String(i + 1).padStart(2, '0')}</span>
+                <span>{txt}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 border border-hairline bg-panel p-3 font-mono text-[11px] leading-relaxed text-dim">
+            {s.c6.hint}
           </p>
         </Section>
 

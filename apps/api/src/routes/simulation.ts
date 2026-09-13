@@ -12,6 +12,7 @@ import type { SimulationConfig } from '@acl/simulator';
 import { isDimension, type Dimension } from '@acl/core';
 import {
   badgesFromDimensions,
+  freshnessFactorFromDays,
   realEvidenceCounts,
   REAL_EVIDENCE_SOURCES,
   type Badge,
@@ -184,16 +185,19 @@ export async function simulationRoutes(app: FastifyInstance) {
               : a.name.startsWith('real-')
                 ? 'benchmark'
                 : 'manual';
-        // 行为分：非能力维度加权和归一 ×10（对齐 1000 制）
+        // 行为分：非能力维度加权和归一 ×10（对齐 1000 制），再乘**置信度 × 新鲜度**
+        // ——2026-09-13 老大拍板 A（修口径 bug）：与榜1 印章同尺，稀疏号不再「只考一门满分 = 1000」。
+        // 榜2 是榜1 的准入门（考场分 ≥ ARENA_GATE_SCORE 才进），同 agent 榜2 应 ≤ 榜1。
         let behaviorScore: number | null = null;
         const dims = (sc?.dimensions ?? null) as Array<{ dimension: string; score: number | null; weight: number }> | null;
         if (dims) {
           const behavior = dims.filter((d) => d.dimension !== 'capability' && d.score !== null);
           if (behavior.length > 0) {
             const wsum = behavior.reduce((s, d) => s + d.weight, 0);
-            behaviorScore = Math.round(
-              (behavior.reduce((s, d) => s + (d.score ?? 0) * d.weight, 0) / wsum) * 10,
-            );
+            const base =
+              (behavior.reduce((s, d) => s + (d.score ?? 0) * d.weight, 0) / wsum) * 10;
+            const fresh = freshnessFactorFromDays(sc?.freshnessDays ?? null) ?? 1;
+            behaviorScore = Math.round(base * (sc?.confidence ?? 0) * fresh);
           }
         }
         // 勋章派生（纯函数，口径单处在 @acl/scoring）：只认真实证据条数；时效由 freshnessDays 推算。

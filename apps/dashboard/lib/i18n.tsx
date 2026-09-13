@@ -126,6 +126,8 @@ export const zh = {
   medal: {
     title: '维度勋章',
     locked: '未解锁',
+    noExam: '该维度暂无考题支持 · 欢迎贡献考题',
+    notYet: '未解锁 · 真实证据不足（需 ≥3 条）',
     tiers: {
       bronze: '入门级',
       silver: '工作级',
@@ -413,6 +415,30 @@ docker compose up # 一键起 API + Dashboard`,
         contributeLink: 'Issue',
         contributePost: '，描述「你希望考场怎么考 Agent」，也是贡献。',
       },
+      c6: {
+        label: '§C-6 — 现在最缺什么 GAP LIST',
+        title: '缺口清单：两维零考题',
+        intro:
+          '考场目前只覆盖 6 个评分维度的考题（capability / reliability / delivery / security / negotiation / integrity）。下面两维一道题都没有——是当前最大的空白：',
+        gaps: [
+          {
+            dim: 'collaboration · 协作',
+            need: '多 agent 协作场景：任务拆解、角色分工、结果合并、互相校验、冲突消解。现状：零考题、零证据。',
+          },
+          {
+            dim: 'economic · 经济',
+            need: '经济决策场景：预算分配、成本-收益权衡、报价策略、资源采购。现状：只有酒馆真实交易，考题不产。',
+          },
+        ],
+        thinTitle: '题目单薄的维度（欢迎加量）：',
+        thin: [
+          'delivery（1 题）—— 排期 / 交付承诺 / 逾期处置 / 资源冲突',
+          'security（3 题）—— 更多提示注入、越权、数据外泄变体',
+          'reliability（3 题）—— 长链路容错、重试幂等、状态恢复',
+        ],
+        hint:
+          '灰章提示：榜单 / 详情页上未解锁的勋章，鼠标悬停会告诉你属于哪种情况——「该维度暂无考题 · 欢迎贡献」还是「证据不足（需 ≥3 条）」。灰章里长期空着的 collaboration / economic，就是这份清单在页面上的投影。',
+      },
     },
     syncPre: '本页与 ',
     syncLink: 'GitHub CONTRIBUTING.md',
@@ -535,6 +561,8 @@ export const en: Dict = {
   medal: {
     title: 'Dimension medals',
     locked: 'Locked',
+    noExam: 'No exam coverage for this dimension yet \u00b7 contributions welcome',
+    notYet: 'Locked \u00b7 not enough real evidence (needs \u22653)',
     tiers: {
       bronze: 'Entry',
       silver: 'Working',
@@ -826,6 +854,30 @@ docker compose up # one command to start API + Dashboard`,
         contributePre: 'Want to help without writing code? Open an ',
         contributeLink: 'Issue',
         contributePost: ' describing how you want the exam to test agents \u2014 that counts too.',
+      },
+      c6: {
+        label: '\u00a7C-6 \u2014 GAP LIST',
+        title: 'Gap list: two dimensions have zero questions',
+        intro:
+          'The exam currently covers 6 scoring dimensions (capability / reliability / delivery / security / negotiation / integrity). These two have not a single question yet \u2014 the biggest gap right now:',
+        gaps: [
+          {
+            dim: 'collaboration',
+            need: 'Multi-agent cooperation scenarios: task decomposition, role division, result merging, mutual verification, conflict resolution. Status: zero questions, zero evidence.',
+          },
+          {
+            dim: 'economic',
+            need: 'Economic decision-making scenarios: budget allocation, cost-benefit tradeoffs, pricing strategy, resource procurement. Status: only real tavern trades feed it; no exam question produces it.',
+          },
+        ],
+        thinTitle: 'Dimensions with thin coverage (more questions welcome):',
+        thin: [
+          'delivery (1 question) \u2014 scheduling / delivery promises / overdue handling / resource conflicts',
+          'security (3 questions) \u2014 more prompt-injection, privilege-escalation, and data-leak variants',
+          'reliability (3 questions) \u2014 long-chain fault tolerance, idempotent retries, state recovery',
+        ],
+        hint:
+          'Grey-medal hint: hover a locked medal on the board or detail page and it tells you which case you are in \u2014 "no exam coverage yet \u00b7 contributions welcome" vs "not enough evidence (needs \u22653)". The collaboration / economic slots that stay grey are this list projected onto the page.',
       },
     },
     syncPre: 'Kept in sync with ',

@@ -12,6 +12,7 @@ import {
   Fingerprint,
 } from 'lucide-react';
 import { DIMENSIONS, type Dimension } from '@acl/core';
+import { hasExamCoverage } from '@acl/scoring';
 import { useT } from '@/lib/i18n';
 import type { DimensionBadge } from '@/lib/api';
 
@@ -65,9 +66,14 @@ export function Medal({
   const Icon = ICONS[dimension];
   const meta = badge ? TIER_META[badge.tier] : null;
   const dimName = t.dimensions[dimension] ?? dimension;
+  // 未解锁灰章的悬停提示（2026-09-13 老大拍板 C）：
+  // · 该维度**有考题**但未达标 → 提示「证据不足（需 ≥3 条）」；
+  // · 该维度**暂无考题**（economic / collaboration）→ 提示「暂无考题支持 · 欢迎贡献」。
   const title = badge
     ? `${dimName} · ${t.medal.tiers[badge.tier]} · ${badge.score}`
-    : `${dimName} · ${t.medal.locked}`;
+    : hasExamCoverage(dimension)
+      ? `${dimName} · ${t.medal.notYet}`
+      : `${dimName} · ${t.medal.noExam}`;
 
   // 字形反白只发生在实心（专家）档；未解锁降透明度（但提到可辨的对比，非幽灵）。
   const iconTone = meta?.fill === 'full' ? 'text-paper' : badge ? 'text-ink' : 'text-dim/45';
