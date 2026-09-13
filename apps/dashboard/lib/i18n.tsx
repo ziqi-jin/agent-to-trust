@@ -34,14 +34,14 @@ export const zh = {
   hero: {
     eyebrow: 'live · seed 42 · 确定性仿真',
     descPre:
-      'Agent Credit Lab 是公开的 Agent 信用评级档案室。我们让 100 个 Agent 在虚拟市场里自主交易，把每一次成交、准时、诚实与否都变成',
+      'Agent Credit Lab 是公开的 Agent 信用档案库。我们让 100 个 Agent 在虚拟市场里自主交易，把每一次成交、准时、诚实与否都变成',
     descBold: '可追溯的证据',
     descPost: '，再据此算出带置信度的信用分。信任不是拍脑袋，是测出来的。',
     cta: '把你的 Agent 送进考场',
     starTitle: '给 ACL 点个 star · 已登录 GitHub 点一下即可',
     sampleSeal: 'sample seal · 每一分，盖在证据上',
     ledgerLine:
-      '本期台账 · AGENTS {agents} · 交易 {tx}（{settled} 成交 / {partial} 部分 / {failed} 失败）· 仿真运行 · 合约 {contracts} · 证据 {evidence} · 成交额 {value} 信用点',
+      '本期数据 · AGENTS {agents} · 交易 {tx}（{settled} 成交 / {partial} 部分 / {failed} 失败）· 仿真运行 · 合约 {contracts} · 证据 {evidence} · 成交额 {value} 信用点',
   },
 
   // ── HowItWorks ──
@@ -75,7 +75,7 @@ export const zh = {
       },
       {
         n: 'STEP 03',
-        title: '盖章 + 徽章',
+        title: '认证 + 徽章',
         desc: '分数可复核；把 README 徽章挂出去，信用即传播。',
         cmd: '[![ACL](.../badge/<agentId>.svg)](https://reeftavern.cc/credit)',
       },
@@ -89,9 +89,9 @@ export const zh = {
 
   // ── Leaderboard ──
   leaderboard: {
-    title: '评级名册',
+    title: '信用榜单',
     subtitleCapability:
-      '名册按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
+      '榜单按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
     subtitleBehavior: '行为分册：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
     tabCapability: '考场榜 · Capability',
     tabBehavior: '行为榜 · Behavior',
@@ -110,16 +110,16 @@ export const zh = {
     sourceBenchmark: '真实评测',
     sourceSimulation: '仿真',
     mobileRow: '置信 {confidence}% · 证据 {evidence}',
-    emptyTitle: '名册暂时空白。',
-    emptyDesc: '跑一次考场——第一个盖章的就是你：',
-    moreRows: '翻到名册第二页 — 其余 {n} 个 ⌄',
+    emptyTitle: '榜单暂时空白。',
+    emptyDesc: '参加一次考试——第一个上榜的就是你：',
+    moreRows: '翻到榜单第二页 — 其余 {n} 个 ⌄',
     listHint: '上榜 / 更新分数（同钥即同身份，重跑即更新）：',
     footnotePre: '⚠️ 数据分三类：',
     footnoteSdk: 'SDK 考场',
     footnoteSdkDetail: '（source=real-benchmark，外部开发者 npx 接入，Ed25519 签名上报）',
     footnoteBench: '真实评测',
     footnoteBenchDetail: '（source=benchmark，DeepSeek 实跑）',
-    footnotePost: '。仿真数据仅用于引擎自测，不在名册展示；SDK 数据经签名验证后才可升级 verified。',
+    footnotePost: '。仿真数据仅用于引擎自测，不在榜单展示；SDK 数据经签名验证后才可升级 verified。',
   },
 
   // ── 勋章（维度×三档）──
@@ -136,7 +136,7 @@ export const zh = {
 
   // ── AgentDetail ──
   detail: {
-    back: '← 返回名册',
+    back: '← 返回榜单',
     loading: '调取档案中…',
     notFound: '档案不存在',
     fileNo: 'AGENT FILE · 档案编号 {id}',
@@ -202,7 +202,7 @@ export const zh = {
   playground: {
     mastheadLabel: 'Agent Credit Lab · 自测场',
     mastheadSub: '零安装自测场 · 填 endpoint，跑一局，拿评分卡 · 不进官方榜',
-    back: '← 公开名册',
+    back: '← 公开榜单',
     sessionExpired: '会话不存在或已过期（自测场会话 1 小时后清除）——重新填好表单，再跑一局。',
     failedLabel: '会话失败 · SESSION FAILED',
     failedFallback: '连续两次调用 endpoint 失败。',
@@ -213,7 +213,7 @@ export const zh = {
     form: {
       sectionAgent: '§PG-1 — 被测 AGENT',
       sectionScenario: '§PG-2 — 场景来源 SCENARIO',
-      nameLabel: '显示名 · NAME（可选）',
+      nameLabel: '名称 · NAME（可选）',
       endpointLabel: 'Endpoint *',
       endpointPlaceholder: 'https://your-agent.example.com/v1/chat/completions',
       endpointHelper: 'OpenAI chat-completions 兼容地址 · agent 零改动，同考场 --url 模式',
@@ -298,7 +298,7 @@ export const zh = {
       protocolCompliance: '协议合规',
       rounds: '谈判回合',
       goExam: '去考场上榜 →',
-      footnote: '自测场结果不进官方榜 · 考场跑分才有名册席位',
+      footnote: '自测场结果不进官方榜 · 考试得分才有榜单名额',
     },
   },
 
@@ -342,7 +342,7 @@ export const zh = {
   contributing: {
     title: '贡献指南 · Contribute',
     subtitle: '场景 · 算法 · 对手 · 接入 —— 全部开放贡献',
-    back: '← 公开名册',
+    back: '← 公开榜单',
     introPre: 'Agent Credit Lab 是 Agent 信用的开源实验场：',
     introStrong: "Don't trust an Agent. Test it.",
     introPost:

@@ -12,6 +12,12 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # 资源限额（2026-09-13，A 档加固）：防单服务跑飞拖垮整机（2 核/3.6G 单点）
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U acl -d acl"]
       interval: 5s
@@ -27,6 +33,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
 
   api:
     build:
@@ -46,6 +57,11 @@ services:
       - aclplatform:/app/data
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 640M
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,6 +78,11 @@ services:
     ports:
       - "3001:3001"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
     depends_on:
       - api
 
