@@ -114,7 +114,7 @@ export const REAL_EVIDENCE_SOURCES = ['real-benchmark', 'real', 'real-confidenti
  * **有考题覆盖**的维度（v1 suite + exam-v2 题库的维度并集）——用于灰章悬停提示：
  * 未解锁勋章里，哪些维度是**暂无考题**（欢迎贡献），哪些是**已有考题但尚未达标**。
  *
- * 口径单处：本常量与 @acl/sdk 题库映射（v1 `DIMENSION_MAP` + `negotiation` 场景，
+ * 口径单处：本常量与 sealit-sdk 题库映射（v1 `DIMENSION_MAP` + `negotiation` 场景，
  * exam-v2 `EXAM_V2_CASES`）的一致性由 apps/api 的回归测试守卫（scoring 不反向依赖 sdk）。
  * 当前**无考题**的维度：`economic`（仅靠酒馆交易真实证据）、`collaboration`（零证据来源）——
  * 正是 GitHub 贡献指南里最缺的两维。

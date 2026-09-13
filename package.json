@@ -8,8 +8,8 @@
     "simulator"
   ],
   "scripts": {
-    "test": "npm run test --workspace @acl/api && npm run test --workspace @acl/scoring && npm run test --workspace @acl/core && npm run test --workspace @acl/simulator && npm run test --workspace @acl/adapters && npm run test --workspace @acl/sdk",
-    "typecheck": "npm run typecheck --workspace @acl/core && npm run typecheck --workspace @acl/scoring && npm run typecheck --workspace @acl/simulator && npm run typecheck --workspace @acl/api && npm run typecheck --workspace @acl/adapters && npm run typecheck --workspace @acl/sdk",
+    "test": "npm run test --workspace @acl/api && npm run test --workspace @acl/scoring && npm run test --workspace @acl/core && npm run test --workspace @acl/simulator && npm run test --workspace @acl/adapters && npm run test --workspace sealit-sdk",
+    "typecheck": "npm run typecheck --workspace @acl/core && npm run typecheck --workspace @acl/scoring && npm run typecheck --workspace @acl/simulator && npm run typecheck --workspace @acl/api && npm run typecheck --workspace @acl/adapters && npm run typecheck --workspace sealit-sdk",
     "test:scoring": "npm run test --workspace @acl/scoring",
     "test:simulator": "npm run test --workspace @acl/simulator",
     "dev:api": "npm run dev --workspace @acl/api"

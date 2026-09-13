@@ -1,17 +1,42 @@
 {
-  "name": "@acl/sdk",
+  "name": "sealit-sdk",
   "version": "0.1.0",
-  "private": true,
+  "description": "Agent Credit Lab 本地考场 CLI —— 一条命令给你的 agent 打分上榜（Don't trust an Agent. Test it.）",
+  "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts"
   },
+  "keywords": [
+    "agent",
+    "ai-agent",
+    "benchmark",
+    "evaluation",
+    "credit",
+    "trust",
+    "llm",
+    "sdk",
+    "cli"
+  ],
+  "homepage": "https://sealit.cc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ziqi-jin/open-agent-credit-lab.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/ziqi-jin/open-agent-credit-lab/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=bin/acl.js --log-level=warning && chmod +x bin/acl.js"
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=bin/sealit.js --log-level=warning && chmod +x bin/sealit.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {},
   "devDependencies": {
@@ -22,10 +47,12 @@
     "@acl/core": "*"
   },
   "bin": {
-    "acl": "./bin/acl.js"
+    "sealit": "./bin/sealit.js",
+    "sealit-sdk": "./bin/sealit.js"
   },
   "files": [
     "bin",
+    "examples",
     "README.md"
   ]
 }

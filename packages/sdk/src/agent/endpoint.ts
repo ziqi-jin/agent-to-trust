@@ -1,4 +1,4 @@
-import type { AclAgent } from './types.js';
+import type { SealitAgent } from './types.js';
 
 interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[];
@@ -10,7 +10,7 @@ interface ChatCompletionResponse {
  * 请求：OpenAI chat-completions 格式（行业最通用）。
  * 响应：兼容标准结构（choices[0].message.content）与裸文本。
  */
-export class EndpointAgent implements AclAgent {
+export class EndpointAgent implements SealitAgent {
   constructor(
     private readonly url: string,
     private readonly fetchImpl: typeof fetch = fetch,

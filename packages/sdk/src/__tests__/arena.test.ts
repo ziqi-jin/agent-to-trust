@@ -10,7 +10,7 @@ import {
   runJoinLoop,
 } from '../arena.js';
 import type { ArenaContext } from '../arena.js';
-import type { AclAgent } from '../agent/types.js';
+import type { SealitAgent } from '../agent/types.js';
 
 const apiBase = 'https://api.test';
 
@@ -154,7 +154,7 @@ function sessionJson(overrides: Record<string, unknown> = {}): Record<string, un
 }
 
 /** 回复队列 agent：按调用次数返回预设文本。 */
-function queueAgent(replies: string[]): AclAgent & { calls: string[] } {
+function queueAgent(replies: string[]): SealitAgent & { calls: string[] } {
   const calls: string[] = [];
   return {
     calls,

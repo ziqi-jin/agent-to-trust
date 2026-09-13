@@ -15,9 +15,9 @@ export interface IngestResponse {
 
 export interface UploadOptions {
   meta: AgentMeta;
-  /** 平台 API 地址（如 https://reeftavern.cc/credit/api）。 */
+  /** 平台 API 地址（如 https://sealit.cc/api）。 */
   apiBase: string;
-  /** 密钥目录（默认 ~/.acl）。 */
+  /** 密钥目录（默认 ~/.sealit）。 */
   dir?: string;
   /** 注入（测试用）。 */
   fetchImpl?: typeof fetch;

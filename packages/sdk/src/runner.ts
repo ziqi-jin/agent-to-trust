@@ -1,5 +1,5 @@
 import type { Dimension } from '@acl/core';
-import type { AclAgent } from './agent/types.js';
+import type { SealitAgent } from './agent/types.js';
 import { extractNumber, round2 } from './benchmarks/graders.js';
 import {
   BENCHMARK_VERSION,
@@ -58,7 +58,7 @@ function summarize(results: CaseResult[]): SuiteResult['summary'] {
 const AGENT_REPLY_RETRIES = 1;
 
 /** 单次回复，瞬时失败重试 1 次；连续失败上抛由 runSuite 记 failure case。 */
-async function replyWithRetry(agent: AclAgent, prompt: string): Promise<string> {
+async function replyWithRetry(agent: SealitAgent, prompt: string): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
       return await agent.reply(prompt);
@@ -88,7 +88,7 @@ function failureCase(
 
 /** 跑单轮题：prompt 进 → 回复出 → 确定性 grader 打分。 */
 async function runSingleTurn(
-  agent: AclAgent,
+  agent: SealitAgent,
   c: {
     id: string;
     dimension: BenchmarkDimension;
@@ -113,7 +113,7 @@ async function runSingleTurn(
  * 行为分语义：成交价 ≤ target → success；成交但贵 → partial；破裂 → failure。
  * 成交越接近 target 分越高（线性映射 opening→0，target→1）。
  */
-async function runNegotiation(agent: AclAgent, sc: NegotiationScenario): Promise<CaseResult> {
+async function runNegotiation(agent: SealitAgent, sc: NegotiationScenario): Promise<CaseResult> {
   const cp = new ScriptedCounterpart(sc);
   let counterpartValue = cp.open().value;
   const history: string[] = [`对方开价：${counterpartValue}`];
@@ -193,7 +193,7 @@ async function runNegotiation(agent: AclAgent, sc: NegotiationScenario): Promise
 }
 
 /** 跑全量评测：单轮题（30）+ 谈判题（3）。 */
-export async function runSuite(agent: AclAgent, opts: RunOptions = {}): Promise<SuiteResult> {
+export async function runSuite(agent: SealitAgent, opts: RunOptions = {}): Promise<SuiteResult> {
   const seed = opts.seed ?? 'fixed-v1';
   const startedAt = new Date().toISOString();
   const results: CaseResult[] = [];

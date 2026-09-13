@@ -244,7 +244,7 @@ describe('runSession', () => {
     });
 
     it('对手话术（EN）：ScriptedCounterpart respond 路径英文模板', async () => {
-      const { ScriptedCounterpart } = await import('@acl/sdk');
+      const { ScriptedCounterpart } = await import('sealit-sdk');
       const cp = new ScriptedCounterpart(enScenario, 'en');
       const d = cp.respond(60, { round: 1, counterpartValue: 100 }); // 60 < max(55, 85) → 拒绝并让步到 85
       expect(d.accepted).toBe(false);

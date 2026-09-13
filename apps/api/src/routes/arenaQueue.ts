@@ -20,7 +20,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { ensureKeypair, signPayload } from '@acl/sdk';
+import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 
@@ -96,7 +96,7 @@ async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<st
     )
     .limit(1);
   if (!bench) {
-    return '未通过考场门槛：请先跑 npx @acl/sdk test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
+    return '未通过考场门槛：请先跑 npx sealit-sdk test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
   }
   const [latest] = await db
     .select({ score: creditScores.score })

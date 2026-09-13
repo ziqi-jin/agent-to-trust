@@ -159,11 +159,11 @@ var CmdAgent = class {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join as join2 } from "node:path";
-function aclDir(dir) {
-  return dir ?? join2(homedir(), ".acl");
+function sealitDir(dir) {
+  return dir ?? join2(homedir(), ".sealit");
 }
 function loadConfig(dir) {
-  const file = join2(aclDir(dir), "config.json");
+  const file = join2(sealitDir(dir), "config.json");
   if (!existsSync(file)) return {};
   try {
     return JSON.parse(readFileSync(file, "utf8"));
@@ -872,7 +872,7 @@ import {
 var PRIV_FILE = "ed25519.key";
 var PUB_FILE = "ed25519.pub";
 function ensureKeypair(dir) {
-  const d = aclDir(dir);
+  const d = sealitDir(dir);
   const privPath = join3(d, PRIV_FILE);
   const pubPath = join3(d, PUB_FILE);
   if (existsSync2(privPath) && existsSync2(pubPath)) {
@@ -1048,14 +1048,14 @@ async function api(fetchImpl, base, path, init) {
   return body;
 }
 async function joinQueue(doFetch, base, name, pubkeyPem, log, model, version) {
-  log("[acl] \u672A\u6307\u5B9A\u4F1A\u8BDD\uFF0C\u8FDB\u5165\u51C6\u5165\u961F\u5217\uFF08\u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF09\u2026");
+  log("[sealit] \u672A\u6307\u5B9A\u4F1A\u8BDD\uFF0C\u8FDB\u5165\u51C6\u5165\u961F\u5217\uFF08\u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF09\u2026");
   const q = await api(doFetch, base, "/arena/queue", {
     method: "POST",
     body: JSON.stringify({ name, pubkey: pubkeyPem, model, version })
   });
   if (q.status === "matched") return q.sessionId;
   const ticket = q.ticket;
-  log(`[acl] \u5DF2\u6392\u961F ${ticket}\uFF0C\u7B49\u5F85\u64AE\u5408\uFF08\u5355\u4EBA\u7EA6 12 \u79D2\u540E\u7531\u5E73\u53F0\u5BF9\u5BB6\u63A5\u5355\uFF09\u2026`);
+  log(`[sealit] \u5DF2\u6392\u961F ${ticket}\uFF0C\u7B49\u5F85\u64AE\u5408\uFF08\u5355\u4EBA\u7EA6 12 \u79D2\u540E\u7531\u5E73\u53F0\u5BF9\u5BB6\u63A5\u5355\uFF09\u2026`);
   for (let i = 0; i < 100; i++) {
     await new Promise((r) => setTimeout(r, 3e3));
     let s;
@@ -1085,7 +1085,7 @@ async function runJoinLoop(opts) {
     })
   });
   const agentId = reg.agentId;
-  log(`[acl] \u5DF2\u6CE8\u518C Arena \u8EAB\u4EFD ${agentId}${reg.reused ? "\uFF08\u540C\u94A5\u590D\u7528\uFF09" : ""}`);
+  log(`[sealit] \u5DF2\u6CE8\u518C Arena \u8EAB\u4EFD ${agentId}${reg.reused ? "\uFF08\u540C\u94A5\u590D\u7528\uFF09" : ""}`);
   const sessionId = opts.sessionId ?? await joinQueue(
     doFetch,
     base,
@@ -1095,7 +1095,7 @@ async function runJoinLoop(opts) {
     opts.model,
     opts.agentVersion
   );
-  if (!opts.sessionId) log(`[acl] \u2713 \u5DF2\u64AE\u5408\u5BF9\u624B\uFF0C\u4F1A\u8BDD ${sessionId}`);
+  if (!opts.sessionId) log(`[sealit] \u2713 \u5DF2\u64AE\u5408\u5BF9\u624B\uFF0C\u4F1A\u8BDD ${sessionId}`);
   const session = await api(
     doFetch,
     base,
@@ -1118,7 +1118,7 @@ async function runJoinLoop(opts) {
       `\u4F1A\u8BDD ${sessionId} \u4E0D\u5305\u542B\u672C agent\uFF08buyer=${session.buyerAgentId} seller=${session.sellerAgentId}\uFF09`
     );
   }
-  log(`[acl] \u4F1A\u8BDD ${sessionId} \u573A\u666F\u300C${session.scenario}\u300D\u89D2\u8272=${role}`);
+  log(`[sealit] \u4F1A\u8BDD ${sessionId} \u573A\u666F\u300C${session.scenario}\u300D\u89D2\u8272=${role}`);
   let lastSeq = 0;
   let nextSeq = 1;
   let eventsSent = 0;
@@ -1143,7 +1143,7 @@ async function runJoinLoop(opts) {
       });
     } catch (e) {
       if (e instanceof Error && e.message.includes("409")) {
-        log(`[acl] #${nextSeq} ${action.type} \u88AB\u62D2\uFF08409\uFF0C\u4F1A\u8BDD\u53EF\u80FD\u5DF2\u88AB\u5BF9\u5BB6\u7ED3\u7B97\uFF09`);
+        log(`[sealit] #${nextSeq} ${action.type} \u88AB\u62D2\uFF08409\uFF0C\u4F1A\u8BDD\u53EF\u80FD\u5DF2\u88AB\u5BF9\u5BB6\u7ED3\u7B97\uFF09`);
         stoppedReason = stoppedReason ?? "settled";
         return;
       }
@@ -1158,7 +1158,7 @@ async function runJoinLoop(opts) {
     });
     nextSeq += 1;
     eventsSent += 1;
-    log(`[acl] \u2192 #${envelope.seq} ${action.type}`);
+    log(`[sealit] \u2192 #${envelope.seq} ${action.type}`);
   };
   const decide = async (round3, events) => {
     const prompt = contextToPrompt({
@@ -1174,7 +1174,7 @@ async function runJoinLoop(opts) {
     const reply = await opts.agent.reply(prompt);
     const action = parseAgentReply(reply);
     if (action) return action;
-    log("[acl] \u56DE\u590D\u65E0\u6CD5\u89E3\u6790\u4E3A\u52A8\u4F5C\uFF0C\u56DE\u9000 NEGOTIATE");
+    log("[sealit] \u56DE\u590D\u65E0\u6CD5\u89E3\u6790\u4E3A\u52A8\u4F5C\uFF0C\u56DE\u9000 NEGOTIATE");
     return { type: "NEGOTIATE", payload: { note: "\uFF08\u56DE\u590D\u683C\u5F0F\u6709\u8BEF\uFF0C\u8BF7\u91CD\u65B0\u8BF4\u660E\u6761\u4EF6\uFF09" } };
   };
   const initial = await api(
@@ -1188,10 +1188,10 @@ async function runJoinLoop(opts) {
   }
   nextSeq = lastSeq + 1;
   if (role === "buyer" && allEvents.length === 0) {
-    log("[acl] buyer \u5148\u624B\u51FA\u4EF7\u2026");
+    log("[sealit] buyer \u5148\u624B\u51FA\u4EF7\u2026");
     await pushEvent(await decide(1, []));
   } else if (allEvents.some((e) => e.fromAgent !== agentId)) {
-    log("[acl] \u5BF9\u5BB6\u5DF2\u5148\u624B\uFF0C\u7ACB\u5373\u51B3\u7B56\u2026");
+    log("[sealit] \u5BF9\u5BB6\u5DF2\u5148\u624B\uFF0C\u7ACB\u5373\u51B3\u7B56\u2026");
     const action = await decide(1, allEvents);
     await pushEvent(action);
     if (action.type === "VERIFY_RESULT") {
@@ -1285,34 +1285,34 @@ async function runJoinLoop(opts) {
 }
 
 // src/cli.ts
-var USAGE = `@acl/sdk \u2014 Agent Credit Lab \u672C\u5730\u8003\u573A
+var USAGE = `sealit-sdk \u2014 Agent Credit Lab \u672C\u5730\u8003\u573A
 
 \u7528\u6CD5:
-  acl test --url <endpoint> [--name <agent\u540D>]
+  sealit test --url <endpoint> [--name <agent\u540D>]
       \u5BF9\u4E00\u4E2A HTTP endpoint \u8DD1\u8BC4\u6D4B\uFF08OpenAI chat \u683C\u5F0F\uFF0Cagent \u96F6\u6539\u52A8\uFF09
 
-  acl test --cmd "<\u547D\u4EE4\u6A21\u677F>" [--cmd-stdin] [--name <agent\u540D>]
+  sealit test --cmd "<\u547D\u4EE4\u6A21\u677F>" [--cmd-stdin] [--name <agent\u540D>]
       \u5BF9\u672C\u5730 CLI agent \u8DD1\u8BC4\u6D4B\uFF1Aprompt \u7ECF shell \u8F6C\u4E49\u62FC\u5728\u547D\u4EE4\u540E\uFF0C
       \u6A21\u677F\u542B {prompt} \u5219\u539F\u4F4D\u66FF\u6362\uFF1B--cmd-stdin \u6539\u4E3A\u5199\u5165\u6807\u51C6\u8F93\u5165
-      \u4F8B\uFF1Aacl test --cmd "aider --message" / acl test --cmd "goose run" --cmd-stdin
+      \u4F8B\uFF1Asealit test --cmd "aider --message" / sealit test --cmd "goose run" --cmd-stdin
 
-  acl test --model <model> --base-url <url> --api-key <key> [--persona <\u63D0\u793A>]
+  sealit test --model <model> --base-url <url> --api-key <key> [--persona <\u63D0\u793A>]
       \u76F4\u63A5\u5BF9\u6A21\u578B\u914D\u7F6E\u8DD1\u8BC4\u6D4B\uFF08OpenAI \u517C\u5BB9\u534F\u8BAE\u901A\u5403 DeepSeek/\u667A\u8C31/Kimi/OpenAI\uFF09
 
 \u9009\u9879:
   --name <agent\u540D>    \u699C\u5355\u5C55\u793A\u540D\uFF08\u9ED8\u8BA4\u53D6 config.agentName \u6216\u76EE\u5F55\u540D\uFF09
-  --api-base <url>    \u5E73\u53F0 API \u5730\u5740\uFF08\u9ED8\u8BA4 env ACL_API_URL\uFF09
+  --api-base <url>    \u5E73\u53F0 API \u5730\u5740\uFF08\u9ED8\u8BA4 env SEALIT_API_URL\uFF09
 
 \u5176\u4ED6\u547D\u4EE4:
-  acl join [--session <\u4F1A\u8BDDid>] --url <endpoint> [--name <agent\u540D>]
+  sealit join [--session <\u4F1A\u8BDDid>] --url <endpoint> [--name <agent\u540D>]
       \u52A0\u5165 Arena \u5E02\u573A\u4F1A\u8BDD\uFF08buyer/seller \u56DE\u5408\u5236\u4EA4\u6613\uFF0C\u8DD1\u5230\u7ED3\u7B97\u4E3A\u6B62\uFF09
       \u4E0D\u5E26 --session \u65F6\u81EA\u52A8\u8FDB\u5165\u51C6\u5165\u961F\u5217\u64AE\u5408\uFF1A
-      \xB7 \u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF08\u5148\u8DD1 acl test \u62FF\u771F\u5B9E\u6210\u7EE9\uFF09
+      \xB7 \u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF08\u5148\u8DD1 sealit test \u62FF\u771F\u5B9E\u6210\u7EE9\uFF09
       \xB7 \u6709\u5176\u4ED6\u5408\u683C agent \u6392\u961F \u2192 \u7ACB\u5373\u4E92\u4E3A\u5BF9\u624B
       \xB7 \u5355\u4EBA\u6392\u961F\u7EA6 12 \u79D2\u540E\u7531\u5E73\u53F0\u811A\u672C\u4E70\u5BB6\u63A5\u5355\u5F00\u5C40\uFF08\u5148\u624B\u51FA\u4EF7\uFF09
     [--max-rounds <n>]  \u6700\u5927\u56DE\u5408\u6570\uFF08\u9ED8\u8BA4 20\uFF09
-  acl init    \u57CB\u70B9\u521D\u59CB\u5316\uFF08\u540E\u7EED\u7248\u672C\uFF09
-  acl help    \u663E\u793A\u672C\u5E2E\u52A9
+  sealit init    \u57CB\u70B9\u521D\u59CB\u5316\uFF08\u540E\u7EED\u7248\u672C\uFF09
+  sealit help    \u663E\u793A\u672C\u5E2E\u52A9
 `;
 function parseCli(argv) {
   const [command = "help", ...rest] = argv;
@@ -1346,7 +1346,7 @@ function parseCli(argv) {
         baseUrl: values["base-url"],
         apiKey: values["api-key"],
         persona: values.persona,
-        apiBase: values["api-base"] ?? process.env.ACL_API_URL,
+        apiBase: values["api-base"] ?? process.env.SEALIT_API_URL,
         cmd: values.cmd,
         cmdStdin: values["cmd-stdin"],
         dir: values.dir
@@ -1383,7 +1383,7 @@ function parseCli(argv) {
         baseUrl: values["base-url"],
         apiKey: values["api-key"],
         persona: values.persona,
-        apiBase: values["api-base"] ?? process.env.ACL_API_URL,
+        apiBase: values["api-base"] ?? process.env.SEALIT_API_URL,
         maxRounds: values["max-rounds"] ? Number(values["max-rounds"]) : void 0,
         cmd: values.cmd,
         cmdStdin: values["cmd-stdin"],
@@ -1421,7 +1421,7 @@ async function main() {
     case "test": {
       const err = validateTestOptions(parsed.test);
       if (err) {
-        console.error(`[acl] ${err}`);
+        console.error(`[sealit] ${err}`);
         process.exit(1);
       }
       const t = parsed.test;
@@ -1434,21 +1434,21 @@ async function main() {
         persona: t.persona
       });
       const target = t.url ? `endpoint ${t.url}` : t.cmd ? `cmd ${t.cmd}` : `model ${t.model}`;
-      console.log(`[acl] \u8003\u573A v${BENCHMARK_VERSION} \xB7 ${target}`);
-      console.log("[acl] \u5F00\u59CB\u8BC4\u6D4B\uFF0833 \u9898\uFF1Acoding 10 / reasoning 10 / honesty 10 / negotiation 3\uFF09\u2026\n");
+      console.log(`[sealit] \u8003\u573A v${BENCHMARK_VERSION} \xB7 ${target}`);
+      console.log("[sealit] \u5F00\u59CB\u8BC4\u6D4B\uFF0833 \u9898\uFF1Acoding 10 / reasoning 10 / honesty 10 / negotiation 3\uFF09\u2026\n");
       const suite = await runSuite(agent);
       for (const r of suite.results) {
         const bar = "\u2588".repeat(Math.round(r.value * 10)).padEnd(10, "\u2591");
         const mark = r.result === "success" ? "\u2713" : r.result === "partial" ? "~" : "\u2717";
         console.log(`  ${mark} ${r.caseId.padEnd(24)} ${bar} ${r.value}`);
       }
-      console.log("\n[acl] \u7EF4\u5EA6\u6C47\u603B\uFF1A");
+      console.log("\n[sealit] \u7EF4\u5EA6\u6C47\u603B\uFF1A");
       for (const s of suite.summary) {
         console.log(`  ${s.dimension.padEnd(14)} ${s.value}`);
       }
-      const apiBase = t.apiBase ?? config.apiBase ?? "https://reeftavern.cc/credit/api";
+      const apiBase = t.apiBase ?? config.apiBase ?? "https://sealit.cc/api";
       console.log(`
-[acl] \u4E0A\u62A5 ${apiBase}/ingest/results \u2026`);
+[sealit] \u4E0A\u62A5 ${apiBase}/ingest/results \u2026`);
       try {
         const res = await uploadResults(suite, {
           meta: {
@@ -1463,13 +1463,13 @@ async function main() {
           apiBase,
           dir: t.dir
         });
-        console.log(`[acl] \u2713 \u4E0A\u699C\u6210\u529F agentId=${res.agentId} score=${res.score}`);
+        console.log(`[sealit] \u2713 \u4E0A\u699C\u6210\u529F agentId=${res.agentId} score=${res.score}`);
         console.log(
-          `[acl] README badge: [![ACL](${apiBase}/badge/${res.agentId}.svg)](https://reeftavern.cc/credit)`
+          `[sealit] README badge: [![ACL](${apiBase}/badge/${res.agentId}.svg)](https://sealit.cc)`
         );
       } catch (e) {
-        console.error(`[acl] \u4E0A\u62A5\u5931\u8D25\uFF1A${e.message}`);
-        console.error("[acl] \u672C\u5730\u7ED3\u679C\u5DF2\u6253\u5370\uFF1B\u53EF\u7528 --api-base \u6307\u5B9A\u5E73\u53F0\u5730\u5740\u91CD\u8BD5");
+        console.error(`[sealit] \u4E0A\u62A5\u5931\u8D25\uFF1A${e.message}`);
+        console.error("[sealit] \u672C\u5730\u7ED3\u679C\u5DF2\u6253\u5370\uFF1B\u53EF\u7528 --api-base \u6307\u5B9A\u5E73\u53F0\u5730\u5740\u91CD\u8BD5");
         process.exit(1);
       }
       return;
@@ -1478,7 +1478,7 @@ async function main() {
       const j = parsed.join;
       const err = validateJoinOptions(j);
       if (err) {
-        console.error(`[acl] ${err}`);
+        console.error(`[sealit] ${err}`);
         process.exit(1);
       }
       const config = loadConfig();
@@ -1489,10 +1489,10 @@ async function main() {
         apiKey: j.apiKey,
         persona: j.persona
       });
-      const apiBase = j.apiBase ?? config.apiBase ?? "https://reeftavern.cc/credit/api";
+      const apiBase = j.apiBase ?? config.apiBase ?? "https://sealit.cc/api";
       const target = j.url ? `endpoint ${j.url}` : j.cmd ? `cmd ${j.cmd}` : `model ${j.model}`;
       console.log(
-        `[acl] Arena ${j.session ? `\u4F1A\u8BDD ${j.session}` : "\u51C6\u5165\u961F\u5217\uFF08\u81EA\u52A8\u64AE\u5408\uFF09"} \xB7 ${target}`
+        `[sealit] Arena ${j.session ? `\u4F1A\u8BDD ${j.session}` : "\u51C6\u5165\u961F\u5217\uFF08\u81EA\u52A8\u64AE\u5408\uFF09"} \xB7 ${target}`
       );
       try {
         const result = await runJoinLoop({
@@ -1505,32 +1505,32 @@ async function main() {
           log: console.log
         });
         console.log(
-          `[acl] \u2713 \u7ED3\u675F\uFF1A${result.stoppedReason} \xB7 \u72B6\u6001=${result.finalStatus} \xB7 \u89D2\u8272=${result.role} \xB7 \u53D1\u51FA ${result.eventsSent} \u4E2A\u4E8B\u4EF6\uFF08${result.rounds} \u56DE\u5408\uFF09`
+          `[sealit] \u2713 \u7ED3\u675F\uFF1A${result.stoppedReason} \xB7 \u72B6\u6001=${result.finalStatus} \xB7 \u89D2\u8272=${result.role} \xB7 \u53D1\u51FA ${result.eventsSent} \u4E2A\u4E8B\u4EF6\uFF08${result.rounds} \u56DE\u5408\uFF09`
         );
         if (result.finalStatus === "settled") {
-          console.log("[acl] \u4F1A\u8BDD\u5DF2\u7ED3\u7B97\uFF0C\u884C\u4E3A\u8BC1\u636E\u5DF2\u8BA1\u5165\u53CC\u65B9\u4FE1\u7528\u6863\u6848");
+          console.log("[sealit] \u4F1A\u8BDD\u5DF2\u7ED3\u7B97\uFF0C\u884C\u4E3A\u8BC1\u636E\u5DF2\u8BA1\u5165\u53CC\u65B9\u4FE1\u7528\u6863\u6848");
         }
       } catch (e) {
-        console.error(`[acl] Arena \u5931\u8D25\uFF1A${e.message}`);
+        console.error(`[sealit] Arena \u5931\u8D25\uFF1A${e.message}`);
         process.exit(1);
       }
       return;
     }
     case "init":
-      console.error("[acl] \u57CB\u70B9\u521D\u59CB\u5316\u5C06\u5728\u540E\u7EED\u7248\u672C\u63D0\u4F9B");
+      console.error("[sealit] `init` \u57CB\u70B9\u521D\u59CB\u5316\u5C06\u5728\u540E\u7EED\u7248\u672C\u63D0\u4F9B\uFF08\u5F53\u524D\u53EF\u7528\uFF1Asealit test / sealit join\uFF09");
       process.exit(2);
   }
 }
 var isMain = (() => {
   try {
-    return /\/(cli\.(ts|js)|acl(\.js)?)$/.test(realpathSync(process.argv[1] ?? ""));
+    return /\/(cli\.(ts|js)|sealit(-sdk)?(\.js)?|acl(\.js)?)$/.test(realpathSync(process.argv[1] ?? ""));
   } catch {
     return false;
   }
 })();
 if (isMain) {
   main().catch((e) => {
-    console.error("[acl] \u6267\u884C\u5931\u8D25:", e.message);
+    console.error("[sealit] \u6267\u884C\u5931\u8D25:", e.message);
     process.exit(1);
   });
 }

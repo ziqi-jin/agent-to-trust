@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { verifyPayload } from '@acl/sdk';
+import { verifyPayload } from 'sealit-sdk';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { settleSession } from '../services/arenaSettle';

@@ -7,7 +7,7 @@
  * 初始状态 queued（全局队列占满时等待）：由 PlaygroundQueue dispatch 时翻成 running。
  */
 import { randomUUID } from 'node:crypto';
-import type { Locale } from '@acl/sdk';
+import type { Locale } from 'sealit-sdk';
 import type { ValidatedSessionInput } from './scenario';
 
 export type PgActor = 'system' | 'agent' | 'counterpart';

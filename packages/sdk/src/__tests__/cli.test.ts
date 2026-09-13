@@ -47,12 +47,12 @@ describe('parseCli', () => {
   });
 
   it('apiBase falls back to env', () => {
-    process.env.ACL_API_URL = 'http://test-api';
+    process.env.SEALIT_API_URL = 'http://test-api';
     try {
       const p = parseCli(['test', '--url', 'http://x']);
       expect(p.test?.apiBase).toBe('http://test-api');
     } finally {
-      delete process.env.ACL_API_URL;
+      delete process.env.SEALIT_API_URL;
     }
   });
 

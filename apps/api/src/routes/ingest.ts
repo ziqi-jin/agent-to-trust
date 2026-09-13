@@ -18,7 +18,7 @@ import {
   NEGOTIATION_SCENARIOS,
   loadSuite,
   verifyPayload,
-} from '@acl/sdk';
+} from 'sealit-sdk';
 import { evidence, ingestNonces } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';

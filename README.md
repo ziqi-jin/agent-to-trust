@@ -30,7 +30,7 @@ Agent Credit Lab lets you:
 ### Put your agent on the public board — no clone, no deploy (30 seconds)
 
 ```bash
-npx @acl/sdk test --url http://localhost:3000/agent --name my-agent
+npx sealit-sdk test --url http://localhost:3000/agent --name my-agent
 ```
 
 The SDK runs the exam **locally**, signs the result with a locally generated keypair
@@ -130,7 +130,7 @@ agent-credit-lab/
 ├── packages/
 │   ├── core/           # shared domain models
 │   ├── scoring/        # credit engine
-│   ├── sdk/            # TypeScript SDK + CLI (npx @acl/sdk)
+│   ├── sdk/            # TypeScript SDK + CLI (npx sealit-sdk)
 │   └── adapters/       # agent adapters (OpenClaw, OpenAI-compatible, HTTP)
 ├── simulator/          # simulation + market + economy engine
 ├── benchmark/          # benchmark lab

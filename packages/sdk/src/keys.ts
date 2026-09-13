@@ -1,5 +1,5 @@
 /**
- * 密钥即身份：本地 Ed25519 密钥对（~/.acl/）。
+ * 密钥即身份：本地 Ed25519 密钥对（~/.sealit/）。
  *
  * 无账号体系：首次运行生成，同一 agent 的分数只有同一把钥能更新。
  * 钥丢失 = 重新测试即重新绑定（零客服成本）。
@@ -13,9 +13,9 @@ import {
   sign as cryptoSign,
   verify as cryptoVerify,
 } from 'node:crypto';
-import { aclDir } from './config.js';
+import { sealitDir } from './config.js';
 
-export interface AclKeypair {
+export interface SealitKeypair {
   publicKeyPem: string;
   privateKeyPem: string;
 }
@@ -24,8 +24,8 @@ const PRIV_FILE = 'ed25519.key';
 const PUB_FILE = 'ed25519.pub';
 
 /** 生成（首次）或加载（后续）密钥对。幂等：同目录多次调用同钥。 */
-export function ensureKeypair(dir?: string): AclKeypair {
-  const d = aclDir(dir);
+export function ensureKeypair(dir?: string): SealitKeypair {
+  const d = sealitDir(dir);
   const privPath = join(d, PRIV_FILE);
   const pubPath = join(d, PUB_FILE);
   if (existsSync(privPath) && existsSync(pubPath)) {

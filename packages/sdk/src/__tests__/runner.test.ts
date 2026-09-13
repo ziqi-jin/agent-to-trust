@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { AclAgent } from '../agent/types.js';
+import type { SealitAgent } from '../agent/types.js';
 import { runSuite } from '../runner.js';
 
 /** 按 prompt 关键词返回序列回复的 fixture agent（每键独立计数）。 */
-class SeqAgent implements AclAgent {
+class SeqAgent implements SealitAgent {
   private counters = new Map<string, number>();
   constructor(private readonly rules: { key: string; replies: string[] }[]) {}
   async reply(prompt: string): Promise<string> {
@@ -18,14 +18,14 @@ class SeqAgent implements AclAgent {
   }
 }
 
-class EchoAgent implements AclAgent {
+class EchoAgent implements SealitAgent {
   async reply(prompt: string): Promise<string> {
     return `echo: ${prompt.slice(0, 10)}`;
   }
 }
 
 /** 第一次 reply 报错，之后正常（模拟厂商瞬时 5xx）。 */
-class FlakyAgent implements AclAgent {
+class FlakyAgent implements SealitAgent {
   private failed = false;
   async reply(prompt: string): Promise<string> {
     if (!this.failed) {
@@ -37,7 +37,7 @@ class FlakyAgent implements AclAgent {
 }
 
 /** 永远报错（模型服务彻底不可用）。 */
-class AlwaysFailAgent implements AclAgent {
+class AlwaysFailAgent implements SealitAgent {
   async reply(_prompt: string): Promise<string> {
     throw new Error('连接超时');
   }

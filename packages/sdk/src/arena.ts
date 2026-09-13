@@ -1,5 +1,5 @@
 /**
- * Arena 会话桥 — `acl join`（Phase 2）。
+ * Arena 会话桥 — `sealit join`（Phase 2）。
  *
  * 回合制市场交易：buyer 询价 → 卖方还价/接受 → 交付 → 验收 → 结算。
  * 服务端规则（apps/api/src/routes/arena.ts）：
@@ -12,7 +12,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { ensureKeypair, signPayload } from './keys.js';
-import type { AclAgent } from './agent/types.js';
+import type { SealitAgent } from './agent/types.js';
 
 export const ARENA_EVENT_TYPES = [
   'OFFER',
@@ -54,13 +54,13 @@ export interface ArenaAction {
 }
 
 export interface JoinOptions {
-  agent: AclAgent;
+  agent: SealitAgent;
   /** 平台 API 地址。 */
   apiBase: string;
   /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，冷启动 400）。 */
   sessionId?: string;
   name?: string;
-  /** 密钥目录（默认 ~/.acl；同钥即同身份）。 */
+  /** 密钥目录（默认 ~/.sealit；同钥即同身份）。 */
   dir?: string;
   /** 模型名（cmd 模式显式上报，榜单展示）。 */
   model?: string;
@@ -236,14 +236,14 @@ async function joinQueue(
   model?: string,
   version?: string,
 ): Promise<string> {
-  log('[acl] 未指定会话，进入准入队列（门槛：考场分≥400）…');
+  log('[sealit] 未指定会话，进入准入队列（门槛：考场分≥400）…');
   const q = await api(doFetch, base, '/arena/queue', {
     method: 'POST',
     body: JSON.stringify({ name, pubkey: pubkeyPem, model, version }),
   });
   if (q.status === 'matched') return q.sessionId as string;
   const ticket = q.ticket as string;
-  log(`[acl] 已排队 ${ticket}，等待撮合（单人约 12 秒后由平台对家接单）…`);
+  log(`[sealit] 已排队 ${ticket}，等待撮合（单人约 12 秒后由平台对家接单）…`);
   for (let i = 0; i < 100; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     let s: Record<string, unknown>;
@@ -284,7 +284,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     }),
   });
   const agentId = reg.agentId as string;
-  log(`[acl] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
+  log(`[sealit] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
 
   // 2. 会话与角色（无 --session → 准入队列自动撮合）
   const sessionId =
@@ -298,7 +298,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       opts.model,
       opts.agentVersion,
     ));
-  if (!opts.sessionId) log(`[acl] ✓ 已撮合对手，会话 ${sessionId}`);
+  if (!opts.sessionId) log(`[sealit] ✓ 已撮合对手，会话 ${sessionId}`);
   const session = (await api(
     doFetch,
     base,
@@ -321,7 +321,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       `会话 ${sessionId} 不包含本 agent（buyer=${session.buyerAgentId} seller=${session.sellerAgentId}）`,
     );
   }
-  log(`[acl] 会话 ${sessionId} 场景「${session.scenario}」角色=${role}`);
+  log(`[sealit] 会话 ${sessionId} 场景「${session.scenario}」角色=${role}`);
 
   // 3. seq 与事件流
   let lastSeq = 0;
@@ -350,7 +350,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     } catch (e) {
       // 409：对家抢先结算 / seq 并发 / nonce 撞车——对家事件已让会话收尾，无害退出
       if (e instanceof Error && e.message.includes('409')) {
-        log(`[acl] #${nextSeq} ${action.type} 被拒（409，会话可能已被对家结算）`);
+        log(`[sealit] #${nextSeq} ${action.type} 被拒（409，会话可能已被对家结算）`);
         stoppedReason = stoppedReason ?? 'settled';
         return;
       }
@@ -365,7 +365,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     });
     nextSeq += 1;
     eventsSent += 1;
-    log(`[acl] → #${envelope.seq} ${action.type}`);
+    log(`[sealit] → #${envelope.seq} ${action.type}`);
   };
 
   /** 问 agent 要下一步动作。 */
@@ -383,7 +383,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     const reply = await opts.agent.reply(prompt);
     const action = parseAgentReply(reply);
     if (action) return action;
-    log('[acl] 回复无法解析为动作，回退 NEGOTIATE');
+    log('[sealit] 回复无法解析为动作，回退 NEGOTIATE');
     return { type: 'NEGOTIATE', payload: { note: '（回复格式有误，请重新说明条件）' } };
   };
 
@@ -400,11 +400,11 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   nextSeq = lastSeq + 1;
 
   if (role === 'buyer' && allEvents.length === 0) {
-    log('[acl] buyer 先手出价…');
+    log('[sealit] buyer 先手出价…');
     await pushEvent(await decide(1, []));
   } else if (allEvents.some((e) => e.fromAgent !== agentId)) {
     // 排队撮合场景：对家（如平台买家）在 join 前已先手 → 立即决策，不能等下一轮长轮询
-    log('[acl] 对家已先手，立即决策…');
+    log('[sealit] 对家已先手，立即决策…');
     const action = await decide(1, allEvents);
     await pushEvent(action);
     if (action.type === 'VERIFY_RESULT') {

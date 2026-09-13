@@ -1,4 +1,4 @@
-import type { AclAgent } from './types.js';
+import type { SealitAgent } from './types.js';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -14,7 +14,7 @@ interface ChatCompletionResponse {
  *
  * 任意 base_url + api_key —— DeepSeek / 智谱 / Kimi / OpenAI 通吃。
  */
-export class ModelAgent implements AclAgent {
+export class ModelAgent implements SealitAgent {
   private readonly fetchImpl: typeof fetch;
 
   constructor(
