@@ -23,6 +23,9 @@ beforeAll(async () => {
         res.end('裸文本回复');
       } else if (req.url === '/boom') {
         res.writeHead(500).end('error');
+      } else if (req.url === '/wrongshape') {
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ result: 'not-openai-shape' }));
       } else {
         res.writeHead(404).end();
       }
@@ -49,5 +52,21 @@ describe('EndpointAgent', () => {
   it('throws on http error status', async () => {
     const agent = new EndpointAgent(`${baseUrl}/boom`);
     await expect(agent.reply('hi')).rejects.toThrow(/500/);
+  });
+
+  it('人话报错：连不上时提示检查 agent 是否运行 / URL 是否正确', async () => {
+    // 127.0.0.1:1 必然拒连（ECONNREFUSED）
+    const agent = new EndpointAgent('http://127.0.0.1:1/agent');
+    await expect(agent.reply('hi')).rejects.toThrow(/连不上 endpoint[\s\S]*agent 是否正在运行/);
+  });
+
+  it('人话报错：HTTP 非 2xx 带响应摘要', async () => {
+    const agent = new EndpointAgent(`${baseUrl}/boom`);
+    await expect(agent.reply('hi')).rejects.toThrow(/HTTP 500/);
+  });
+
+  it('人话报错：JSON 但缺 choices[0].message.content → 提示格式', async () => {
+    const agent = new EndpointAgent(`${baseUrl}/wrongshape`);
+    await expect(agent.reply('hi')).rejects.toThrow(/响应格式不对[\s\S]*OpenAI chat 格式/);
   });
 });

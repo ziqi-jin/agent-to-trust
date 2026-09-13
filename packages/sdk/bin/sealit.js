@@ -12,20 +12,35 @@ var EndpointAgent = class {
     this.fetchImpl = fetchImpl;
   }
   async reply(prompt) {
-    const res = await this.fetchImpl(this.url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
-    });
+    let res;
+    try {
+      res = await this.fetchImpl(this.url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: prompt }] })
+      });
+    } catch (err) {
+      throw new Error(
+        `\u8FDE\u4E0D\u4E0A endpoint ${this.url}\uFF08${err.message}\uFF09\u3002\u8BF7\u68C0\u67E5\uFF1A\u2460 agent \u662F\u5426\u6B63\u5728\u8FD0\u884C \u2461 URL \u4E0E\u7AEF\u53E3\u662F\u5426\u6B63\u786E`
+      );
+    }
     if (!res.ok) {
-      throw new Error(`endpoint ${this.url} \u8FD4\u56DE ${res.status}`);
+      const body2 = await res.text().catch(() => "");
+      const digest = body2.replace(/\s+/g, " ").trim().slice(0, 200);
+      throw new Error(
+        `endpoint ${this.url} \u8FD4\u56DE HTTP ${res.status}${digest ? `\uFF1A${digest}` : ""}\uFF08agent \u6536\u5230\u4E86\u8BF7\u6C42\u4F46\u62A5\u9519\u4E86\uFF0C\u8BF7\u67E5\u770B\u5B83\u7684\u65E5\u5FD7\uFF09`
+      );
     }
     const body = await res.text();
     try {
       const json = JSON.parse(body);
       const content = json.choices?.[0]?.message?.content;
       if (typeof content === "string") return content;
-    } catch {
+      throw new Error(
+        `endpoint ${this.url} \u7684\u54CD\u5E94\u683C\u5F0F\u4E0D\u5BF9\uFF1A\u671F\u671B OpenAI chat \u683C\u5F0F {"choices":[{"message":{"content":"..."}}]}\uFF0C\u6216\u76F4\u63A5\u8FD4\u56DE\u7EAF\u6587\u672C\u3002\u5B9E\u9645\u6536\u5230\uFF1A${body.trim().slice(0, 120)}`
+      );
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith("endpoint ")) throw e;
     }
     return body;
   }
