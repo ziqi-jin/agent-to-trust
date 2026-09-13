@@ -9,6 +9,13 @@ import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { runSimulation } from '@acl/simulator';
 import type { SimulationConfig } from '@acl/simulator';
+import { isDimension, type Dimension } from '@acl/core';
+import {
+  badgesFromDimensions,
+  realEvidenceCounts,
+  REAL_EVIDENCE_SOURCES,
+  type Badge,
+} from '@acl/scoring';
 import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE, PLATFORM_NAME } from './arenaQueue';
 import { computeAndPersist } from './scores';
@@ -101,8 +108,21 @@ export async function simulationRoutes(app: FastifyInstance) {
     if (leaderboardLimited(req)) {
       return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
     }
-    const q = req.query as { board?: string };
+    const q = req.query as { board?: string; dims?: string };
     const board = q.board === 'behavior' ? 'behavior' : 'capability';
+    // 视图层维度筛选/重排（0912 老大拍板：榜单支持组合维度条件重排）。
+    // 白名单校验：非法维度名 → 400（防注入/防静默错排）。不改变底层分数，仅改排序键。
+    const selectedDims: Dimension[] = [];
+    if (q.dims) {
+      for (const raw of q.dims.split(',')) {
+        const d = raw.trim();
+        if (!d) continue;
+        if (!isDimension(d)) {
+          return reply.code(400).send({ error: `非法维度名：${d}` });
+        }
+        if (!selectedDims.includes(d)) selectedDims.push(d);
+      }
+    }
     const allAgents = await app.db.query.agents.findMany();
     const allScores = await app.db.query.creditScores.findMany({
       orderBy: (s, { desc }) => [desc(s.createdAt)],
@@ -117,9 +137,19 @@ export async function simulationRoutes(app: FastifyInstance) {
     // bearer 机构级上报，2026-09-10 与 arenaQueue gate 同口径放宽）——
     // 防止纯仿真行为证据把 score 推高绕过门槛（simulation 源依然不算，防刷语义保留）
     const benchmarkEvidence = await app.db.query.evidence.findMany({
-      where: inArray(evidence.source, ['real-benchmark', 'real', 'real-confidential']),
+      where: inArray(evidence.source, [...REAL_EVIDENCE_SOURCES]),
     });
     const benchmarkAgents = new Set(benchmarkEvidence.map((e) => e.agentId));
+    // 勋章红线支撑：按 (agentId, dimension) 统计真实证据条数（只算 real-* 源，口径单处在 @acl/scoring）。
+    const benchmarkEvByAgent = new Map<string, { dimension: string }[]>();
+    for (const e of benchmarkEvidence) {
+      const arr = benchmarkEvByAgent.get(e.agentId);
+      if (arr) arr.push(e);
+      else benchmarkEvByAgent.set(e.agentId, [e]);
+    }
+    const realEvByAgentDim = new Map(
+      [...benchmarkEvByAgent].map(([agentId, rows]) => [agentId, realEvidenceCounts(rows)]),
+    );
 
     // T6 榜单上报开关（一个开关管两榜）：信用数据照跑，只控公开展示。
     // settled 计数（economic/success 真实证据 = confirmed 成交单，1 单 1 行）按 agent 聚合。
@@ -166,6 +196,12 @@ export async function simulationRoutes(app: FastifyInstance) {
             );
           }
         }
+        // 勋章派生（纯函数，口径单处在 @acl/scoring）：只认真实证据条数；时效由 freshnessDays 推算。
+        const badges: Badge[] = badgesFromDimensions(
+          dims ?? [],
+          realEvByAgentDim.get(a.id) ?? new Map(),
+          sc?.freshnessDays ?? null,
+        );
         return {
           agentId: a.id,
           name: a.name,
@@ -180,6 +216,9 @@ export async function simulationRoutes(app: FastifyInstance) {
           confidence: sc?.confidence ?? 0,
           coverage: sc?.coverage ?? 0,
           evidenceCount: (sc?.evidenceRefs ?? []).length,
+          // 勋章 + 维度明细（0912）：前者是本行 agent 已达成勋章（服务端权威派生）。
+          badges,
+          dimensions: dims ?? [],
           isSimulated: source === 'simulation',
           behaviorScore,
           isE2E,
@@ -217,6 +256,18 @@ export async function simulationRoutes(app: FastifyInstance) {
 
     return filtered
       .sort((x, y) => {
+        // 视图层组合维度重排（0912）：勾选维度后按所选维度均分降序（不改底层分数）。
+        if (selectedDims.length > 0) {
+          const avg = (r: (typeof rows)[number]) => {
+            const sum = selectedDims.reduce((s, d) => {
+              const found = r.dimensions.find((x) => x.dimension === d);
+              return s + (found?.score ?? 0);
+            }, 0);
+            return sum / selectedDims.length;
+          };
+          const d = avg(y) - avg(x);
+          if (d !== 0) return d;
+        }
         if (board === 'behavior') {
           return (y.behaviorScore ?? -1) - (x.behaviorScore ?? -1);
         }

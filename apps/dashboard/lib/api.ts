@@ -59,6 +59,15 @@ export interface ScoreResponse {
   evidenceCount: number;
   evidenceRefs: string[];
   computedAt: string;
+  /** 已达成勋章（服务端权威派生，与榜单行同口径；客户端不得自报）。 */
+  badges?: DimensionBadge[];
+}
+/** 维度勋章（服务端权威派生：只认真实证据，详见 @acl/scoring badgesFor）。 */
+export interface DimensionBadge {
+  dimension: string;
+  tier: 'bronze' | 'silver' | 'gold';
+  /** 达成时该维度分（0–100）。 */
+  score: number;
 }
 
 export interface LeaderboardEntry {
@@ -82,6 +91,10 @@ export interface LeaderboardEntry {
   model: string | null;
   /** 被测 agent 软件版本（未上报为 null）。 */
   agentVersion: string | null;
+  /** 已达成勋章（每维最多一枚，服务端权威派生；客户端不得自报）。 */
+  badges: DimensionBadge[];
+  /** 各维度明细（排序/筛选用；不含证据数）。 */
+  dimensions: Array<{ dimension: string; score: number | null; weight: number }>;
   rank: number;
 }
 
@@ -283,8 +296,12 @@ export const api = {
   getScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`),
 
   // 榜单 / 统计 / 证据流
-  leaderboard: (board: 'capability' | 'behavior' = 'capability') =>
-    http<LeaderboardEntry[]>(`/leaderboard?board=${board}`),
+  // dims（可选）：视图层组合维度重排——按所选维度均分降序，不改底层分数。
+  leaderboard: (board: 'capability' | 'behavior' = 'capability', dims: string[] = []) => {
+    const qs = new URLSearchParams({ board });
+    if (dims.length > 0) qs.set('dims', dims.join(','));
+    return http<LeaderboardEntry[]>(`/leaderboard?${qs.toString()}`);
+  },
   // scope=public：门面展示口径（排仿真号/E2E 测试号），api 默认全量保 P0-10 可溯红线
   stats: () => http<StatsResponse>('/stats?scope=public'),
   statsSummary: () => http<StatsSummary>('/stats/summary'),

@@ -158,3 +158,5 @@ export function computeScore(evidence: EvidencePoint[], now: Date = new Date()):
     explanation,
   };
 }
+
+export * from './badges.js';

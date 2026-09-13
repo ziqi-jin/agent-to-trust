@@ -3,6 +3,8 @@
 import type { LeaderboardEntry, StatsSummary } from '@/lib/api';
 import { useT, fill } from '@/lib/i18n';
 import { ScoreSeal } from './ScoreSeal';
+import { MedalBar } from './MedalBar';
+import { DIMENSIONS } from '@acl/core';
 
 function SourceTag({ source }: { source: LeaderboardEntry['source'] }) {
   const t = useT();
@@ -90,6 +92,8 @@ function Row({
             })}
             {e.model ? ` · ${e.model}` : ''}
           </span>
+          {/* 勋章条（服务端权威派生；每维最多一枚，未解锁显示灰档） */}
+          <MedalBar badges={e.badges ?? []} size={17} className="mt-0.5 w-full" />
         </span>
 
         {/* 证据 */}
@@ -135,17 +139,23 @@ export function Leaderboard({
   board,
   setBoard,
   summary,
+  dims,
+  setDims,
 }: {
   entries: LeaderboardEntry[];
   onSelect: (id: string) => void;
   board: 'capability' | 'behavior';
   setBoard: (b: 'capability' | 'behavior') => void;
   summary: StatsSummary | null;
+  dims: string[];
+  setDims: (d: string[]) => void;
 }) {
   const t = useT();
   const top10 = entries.slice(0, 10);
   const rest = entries.slice(10);
   const isBehavior = board === 'behavior';
+  const toggleDim = (d: string) =>
+    setDims(dims.includes(d) ? dims.filter((x) => x !== d) : [...dims, d]);
 
   return (
     <section id="leaderboard" className="mx-auto w-full max-w-6xl px-6 py-14 md:py-16">
@@ -196,7 +206,46 @@ export function Leaderboard({
         )}
       </p>
 
-      {/* 表格区：横向滚动容器兑底（列收敡后 390 内应刚好放下，不出现滚动条） */}
+      {/* 维度筛选 / 组合重排（0912）：勾选维度 → 按所选维度均分降序重排；不改底层分数 */}
+      <div className="mb-5 border border-hairline bg-panel px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
+            {t.leaderboard.filterLabel}
+          </span>
+          {DIMENSIONS.map((d) => {
+            const on = dims.includes(d);
+            return (
+              <button
+                key={d}
+                onClick={() => toggleDim(d)}
+                aria-pressed={on}
+                className={`border px-2 py-1 font-mono text-[11px] transition ${
+                  on
+                    ? 'border-ledger bg-ledger text-paper'
+                    : 'border-hairline text-dim hover:border-ink hover:text-ink'
+                }`}
+              >
+                {t.dimensions[d] ?? d}
+              </button>
+            );
+          })}
+          {dims.length > 0 && (
+            <button
+              onClick={() => setDims([])}
+              className="ml-1 font-mono text-[11px] text-seal underline-offset-4 hover:underline"
+            >
+              {t.leaderboard.filterClear} ✕
+            </button>
+          )}
+        </div>
+        <p className="mt-2 font-mono text-[10px] text-dim">
+          {dims.length > 0
+            ? fill(t.leaderboard.filterActive, { n: dims.length })
+            : t.leaderboard.filterHint}
+        </p>
+      </div>
+
+      {/* 表格区：横向滚动容器兜底（列收敡后 390 内应刚好放下，不出现滚动条） */}
       <div className="overflow-x-auto">
         {/* 表头 */}
         <div className="hidden grid-cols-[3rem_1fr_4.5rem_6.5rem_5rem_10.5rem_6rem] gap-4 border-b-2 border-ink px-4 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-dim md:grid">
@@ -252,6 +301,10 @@ export function Leaderboard({
       </div>
 
       <p className="mt-6 font-mono text-[11px] leading-relaxed text-dim">
+        {t.medal.legend}
+      </p>
+
+      <p className="mt-4 font-mono text-[11px] leading-relaxed text-dim">
         {t.leaderboard.footnotePre}
         <span className="text-seal">{t.leaderboard.footnoteSdk}</span>
         {t.leaderboard.footnoteSdkDetail}

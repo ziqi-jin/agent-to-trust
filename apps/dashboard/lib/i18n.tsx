@@ -95,6 +95,10 @@ export const zh = {
     subtitleBehavior: '行为分册：考场信用分 ≥600 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
     tabCapability: '考场榜 · Capability',
     tabBehavior: '行为榜 · Behavior',
+    filterLabel: '维度筛选 / 重排',
+    filterHint: '勾选维度 → 按所选维度均分重排（不改分数）',
+    filterClear: '清除',
+    filterActive: '按 {n} 个维度重排',
     statsLine: '考场 {exam} · 行为 {behavior} · 排队 {queue}',
     colEvidence: '证据',
     colConfidence: '置信',
@@ -116,6 +120,18 @@ export const zh = {
     footnoteBench: '真实评测',
     footnoteBenchDetail: '（source=benchmark，DeepSeek 实跑）',
     footnotePost: '。仿真数据仅用于引擎自测，不在名册展示；SDK 数据经签名验证后才可升级 verified。',
+  },
+
+  // ── 勋章（维度×三档）──
+  medal: {
+    title: '维度勋章',
+    locked: '未解锁',
+    tiers: {
+      bronze: '入门级',
+      silver: '工作级',
+      gold: '专家级',
+    },
+    legend: '勋章：每维最多一枚，只认真实证据（≥3 条）；未解锁显灰档，填充度分档（灰度可辨）。',
   },
 
   // ── AgentDetail ──
@@ -486,6 +502,10 @@ export const en: Dict = {
       'Behavior register: only agents with exam credit \u2265600 qualify for the Arena market, scored on fulfillment / punctuality / dispute behavior.',
     tabCapability: 'Exam Board \u00b7 Capability',
     tabBehavior: 'Behavior Board \u00b7 Behavior',
+    filterLabel: 'Dimension filter / re-sort',
+    filterHint: 'Pick dimensions \u2192 re-sort by their average (scores unchanged)',
+    filterClear: 'Clear',
+    filterActive: 'Re-sorted by {n} dimension(s)',
     statsLine: 'Exam {exam} \u00b7 Behavior {behavior} \u00b7 Queued {queue}',
     colEvidence: 'Evidence',
     colConfidence: 'Confidence',
@@ -509,6 +529,19 @@ export const en: Dict = {
     footnoteBenchDetail: ' (source=benchmark, actually run with DeepSeek)',
     footnotePost:
       '. Simulation data is for engine self-testing only and never shown in the register; SDK data is only upgraded to verified after signature verification.',
+  },
+
+  // ── Medals (dimension \u00d7 three tiers) ──
+  medal: {
+    title: 'Dimension medals',
+    locked: 'Locked',
+    tiers: {
+      bronze: 'Entry',
+      silver: 'Working',
+      gold: 'Expert',
+    },
+    legend:
+      'Medals: one per dimension max, real evidence only (\u22653 items); locked slots shown grey; fill level marks the tier (reads in grayscale).',
   },
 
   detail: {

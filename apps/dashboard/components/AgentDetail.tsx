@@ -8,6 +8,7 @@ import {
   type ScoreResponse,
 } from '@/lib/api';
 import { useLocale, useT, fill, mapApiError } from '@/lib/i18n';
+import { MedalBar } from './MedalBar';
 import { ScoreSeal } from './ScoreSeal';
 
 function fmtTime(iso: string, locale: 'en' | 'zh'): string {
@@ -163,6 +164,16 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                 {score?.score === null && (
                   <span className="font-mono text-xs text-dim">{t.detail.unverified}</span>
                 )}
+              </div>
+              {/* 维度勋章（2026-09-13）：与榜单行同口径，服务端权威派生 */}
+              <div className="mt-5 border-t border-hairline pt-4">
+                <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
+                  {t.medal.title}
+                </div>
+                <MedalBar badges={score?.badges ?? []} size={22} className="mt-2" />
+                <p className="mt-2 font-mono text-[11px] leading-relaxed text-dim">
+                  {t.medal.legend}
+                </p>
               </div>
               <div className="mt-5 grid grid-cols-2 gap-4 border-t border-hairline pt-4 sm:grid-cols-4">
                 {[

@@ -10,6 +10,7 @@ import {
   type StatsSummary,
 } from '@/lib/api';
 import { useLocale, useT, mapApiError } from '@/lib/i18n';
+import { DIMENSIONS } from '@acl/core';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
@@ -28,6 +29,33 @@ function readAgentParam(): string | null {
   return new URLSearchParams(window.location.search).get('agent');
 }
 
+// 榜单 URL 化：?board= & ?dims=a,b（可分享/刷新/后退）。
+function readBoardParam(): 'capability' | 'behavior' {
+  if (typeof window === 'undefined') return 'capability';
+  return new URLSearchParams(window.location.search).get('board') === 'behavior'
+    ? 'behavior'
+    : 'capability';
+}
+
+function readDimsParam(): string[] {
+  if (typeof window === 'undefined') return [];
+  const raw = new URLSearchParams(window.location.search).get('dims');
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => (DIMENSIONS as string[]).includes(s));
+}
+
+function writeListParams(board: 'capability' | 'behavior', dims: string[]) {
+  const url = new URL(window.location.href);
+  if (board === 'capability') url.searchParams.delete('board');
+  else url.searchParams.set('board', board);
+  if (dims.length === 0) url.searchParams.delete('dims');
+  else url.searchParams.set('dims', dims.join(','));
+  window.history.pushState({}, '', url);
+}
+
 export default function Page() {
   const t = useT();
   const { locale } = useLocale();
@@ -37,13 +65,14 @@ export default function Page() {
   const [events, setEvents] = useState<Evidence[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [board, setBoard] = useState<'capability' | 'behavior'>('capability');
+  const [dims, setDims] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const [s, lb, ev, sum] = await Promise.all([
         api.stats(),
-        api.leaderboard(board),
+        api.leaderboard(board, dims),
         api.events(),
         api.statsSummary(),
       ]);
@@ -55,21 +84,37 @@ export default function Page() {
       const msg = (e as Error).message;
       setError(locale === 'zh' ? msg : mapApiError(msg, t.apiError));
     }
-  }, [board, locale, t]);
+  }, [board, dims, locale, t]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  // 挂载后读一次 URL（SSR 首帧保持榜单渲染，无 hydration mismatch）；
-  // 浏览器前进/后退经 popstate 同步详情↔榜单。
+  // 挂载后读一次 URL（SSR 首帧保持默认榜单渲染，无 hydration mismatch）；
+  // 浏览器前进/后退经 popstate 同步详情↔榜单与筛选态。
   useEffect(() => {
     const id = readAgentParam();
     if (id) setSelectedId(id);
-    const sync = () => setSelectedId(readAgentParam());
+    setBoard(readBoardParam());
+    setDims(readDimsParam());
+    const sync = () => {
+      setSelectedId(readAgentParam());
+      setBoard(readBoardParam());
+      setDims(readDimsParam());
+    };
     window.addEventListener('popstate', sync);
     return () => window.removeEventListener('popstate', sync);
   }, []);
+
+  const changeBoard = useCallback((b: 'capability' | 'behavior') => {
+    setBoard(b);
+    writeListParams(b, dims);
+  }, [dims]);
+
+  const changeDims = useCallback((d: string[]) => {
+    setDims(d);
+    writeListParams(board, d);
+  }, [board]);
 
   const nameMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -167,8 +212,10 @@ export default function Page() {
             entries={entries}
             onSelect={onSelectAgent}
             board={board}
-            setBoard={setBoard}
+            setBoard={changeBoard}
             summary={summary}
+            dims={dims}
+            setDims={changeDims}
           />
           <Ticker events={events} nameMap={nameMap} />
           <HowItWorks />

@@ -1,10 +1,36 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { type Dimension, type Source } from '@acl/core';
-import { computeScore, type EvidencePoint } from '@acl/scoring';
+import {
+  badgesFromDimensions,
+  computeScore,
+  realEvidenceCounts,
+  REAL_EVIDENCE_SOURCES,
+  type Badge,
+  type EvidencePoint,
+} from '@acl/scoring';
 import { agents, creditScores, evidence, scoreSnapshots } from '../db/schema';
 import { createRateLimiter } from '../services/rateLimit';
+
+/**
+ * 详情页勋章（2026-09-13 老大走查补）：与榜单行**同一口径**（@acl/scoring.badgesFromDimensions），
+ * 只认真实证据（REAL_EVIDENCE_SOURCES），时效由 freshnessDays 推算；客户端不得自报。
+ */
+async function badgesForAgent(
+  app: FastifyInstance,
+  agentId: string,
+  s: { dimensions: unknown; freshnessDays: number | null },
+): Promise<Badge[]> {
+  const rows = await app.db.query.evidence.findMany({
+    where: and(
+      eq(evidence.agentId, agentId),
+      inArray(evidence.source, [...REAL_EVIDENCE_SOURCES]),
+    ),
+  });
+  const dims = (s.dimensions ?? []) as Array<{ dimension: string; score: number | null }>;
+  return badgesFromDimensions(dims, realEvidenceCounts(rows), s.freshnessDays);
+}
 
 export function serialize(s: typeof creditScores.$inferSelect) {
   return {
@@ -70,7 +96,7 @@ export async function scoresRoutes(app: FastifyInstance) {
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, id) });
     if (!agent) return reply.code(404).send({ error: `Agent 不存在：${id}` });
     const created = await computeAndPersist(app, id);
-    return serialize(created);
+    return { ...serialize(created), badges: await badgesForAgent(app, id, created) };
   });
 
   app.get('/agents/:id/score', async (req, reply) => {
@@ -84,7 +110,7 @@ export async function scoresRoutes(app: FastifyInstance) {
       where: eq(creditScores.agentId, id),
       orderBy: (s, { desc }) => [desc(s.createdAt)],
     });
-    if (!latest) return serialize(await computeAndPersist(app, id));
-    return serialize(latest);
+    const s = latest ?? (await computeAndPersist(app, id));
+    return { ...serialize(s), badges: await badgesForAgent(app, id, s) };
   });
 }
