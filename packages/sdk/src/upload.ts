@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AgentMeta } from './agent/types.js';
 import { ensureKeypair, signPayload } from './keys.js';
+import { isPublicHttpUrl } from './net.js';
 import type { SuiteResult } from './runner.js';
 
 export interface IngestResponse {
@@ -31,9 +32,13 @@ export function buildIngestPayload(
   meta: AgentMeta,
   keypair: { publicKeyPem: string; privateKeyPem: string },
 ): Record<string, unknown> & { signature: string } {
+  // 真用户实测修复（2026-09-13）：本地考场（--url http://localhost:…）的 endpoint 是私网地址，
+  // 平台服务端回访不了它（reverify 本就跳过），若如实上报会被 SSRF 卡口 400 拒绝，
+  // 导致「localhost 也能上榜」的核心承诺失效。因此只上报公网地址；私网/环回一律省略。
+  const publicEndpoint = meta.endpoint && isPublicHttpUrl(meta.endpoint) ? meta.endpoint : undefined;
   const body = {
     agentName: meta.name ?? 'unnamed-agent',
-    agentEndpoint: meta.endpoint,
+    agentEndpoint: publicEndpoint,
     agentModel: meta.model ?? meta.modelMeta?.model,
     agentVersion: meta.version,
     modelMeta: meta.modelMeta,

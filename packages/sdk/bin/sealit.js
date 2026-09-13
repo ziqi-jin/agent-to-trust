@@ -921,11 +921,51 @@ function signPayload(privateKeyPem, payload) {
   return cryptoSign(null, data, createPrivateKey(privateKeyPem)).toString("base64");
 }
 
+// src/net.ts
+function isPrivateV4(parts) {
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 0) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  if (a >= 224) return true;
+  return false;
+}
+function isPrivateHost(hostname2) {
+  const h = hostname2.toLowerCase().replace(/^\[|\]$/g, "");
+  if (h === "localhost" || h.endsWith(".localhost")) return true;
+  if (h === "::1" || h === "::") return true;
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) return isPrivateV4([+m[1], +m[2], +m[3], +m[4]]);
+  if (h.includes(":")) {
+    if (h.startsWith("fc") || h.startsWith("fd")) return true;
+    if (h.startsWith("fe8") || h.startsWith("fe9") || h.startsWith("fea") || h.startsWith("feb"))
+      return true;
+    return false;
+  }
+  return false;
+}
+function isPublicHttpUrl(url) {
+  let u;
+  try {
+    u = new URL(url);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+  if (!u.hostname) return false;
+  return !isPrivateHost(u.hostname);
+}
+
 // src/upload.ts
 function buildIngestPayload(suite, meta, keypair) {
+  const publicEndpoint = meta.endpoint && isPublicHttpUrl(meta.endpoint) ? meta.endpoint : void 0;
   const body = {
     agentName: meta.name ?? "unnamed-agent",
-    agentEndpoint: meta.endpoint,
+    agentEndpoint: publicEndpoint,
     agentModel: meta.model ?? meta.modelMeta?.model,
     agentVersion: meta.version,
     modelMeta: meta.modelMeta,

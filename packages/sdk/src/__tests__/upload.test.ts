@@ -25,6 +25,36 @@ describe('buildIngestPayload', () => {
     const { signature, ...body } = payload;
     expect(verifyPayload(keypair.publicKeyPem, body, signature as string)).toBe(true);
   });
+
+  it('本地考场：私网/环回 endpoint 不上报（服务端 SSRF 卡口会 400）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const keypair = ensureKeypair(dir);
+    const suite = await fixtureSuite();
+    for (const ep of [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://192.168.1.10:8080/agent',
+      'http://10.0.0.5:3000',
+    ]) {
+      const p = buildIngestPayload(suite, { name: 'local-agent', endpoint: ep }, keypair);
+      expect(p.agentEndpoint, ep).toBeUndefined();
+      // 签名仍然有效（省略字段也参与 canonical-json）
+      const { signature, ...body } = p;
+      expect(verifyPayload(keypair.publicKeyPem, body, signature as string)).toBe(true);
+    }
+  });
+
+  it('公网 endpoint 照常上报', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const keypair = ensureKeypair(dir);
+    const suite = await fixtureSuite();
+    const p = buildIngestPayload(
+      suite,
+      { name: 'public-agent', endpoint: 'https://agent.example.com/v1/chat' },
+      keypair,
+    );
+    expect(p.agentEndpoint).toBe('https://agent.example.com/v1/chat');
+  });
 });
 
 describe('uploadResults', () => {

@@ -7,6 +7,7 @@ import {
   type PlaygroundTemplate,
 } from '@/lib/api';
 import { useLocale, useT, fill } from '@/lib/i18n';
+import { InfoDot } from '@/components/InfoDot';
 
 type Mode = 'template' | 'custom';
 type Style = 'tough' | 'balanced' | 'gentle';
@@ -199,7 +200,10 @@ export function PlaygroundForm({
         </p>
         <div className="mt-4 flex flex-col gap-4">
           <label>
-            <span className={LABEL_CLS}>{f.nameLabel}</span>
+            <span className={LABEL_CLS}>
+              {f.nameLabel}
+              <InfoDot text={f.hints.name} />
+            </span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -209,7 +213,10 @@ export function PlaygroundForm({
             />
           </label>
           <label>
-            <span className={LABEL_CLS}>{f.endpointLabel}</span>
+            <span className={LABEL_CLS}>
+              {f.endpointLabel}
+              <InfoDot text={f.hints.endpoint} />
+            </span>
             <input
               value={endpoint}
               onChange={(e) => setEndpoint(e.target.value)}
@@ -222,7 +229,10 @@ export function PlaygroundForm({
             </span>
           </label>
           <label>
-            <span className={LABEL_CLS}>{f.apiKeyLabel}</span>
+            <span className={LABEL_CLS}>
+              {f.apiKeyLabel}
+              <InfoDot text={f.hints.apiKey} />
+            </span>
             <input
               type="password"
               value={apiKey}
@@ -236,7 +246,10 @@ export function PlaygroundForm({
             </span>
           </label>
           <label>
-            <span className={LABEL_CLS}>{f.modelLabel}</span>
+            <span className={LABEL_CLS}>
+              {f.modelLabel}
+              <InfoDot text={f.hints.model} />
+            </span>
             <input
               type="text"
               value={model}
@@ -279,7 +292,10 @@ export function PlaygroundForm({
             ) : (
               <>
                 <label>
-                  <span className={LABEL_CLS}>{f.chooseScenario}</span>
+                  <span className={LABEL_CLS}>
+                    {f.chooseScenario}
+                    <InfoDot text={f.hints.chooseScenario} />
+                  </span>
                   <select
                     value={templateId}
                     onChange={(e) => onTemplateChange(e.target.value)}
@@ -317,7 +333,10 @@ export function PlaygroundForm({
         ) : (
           <div className="mt-4 flex flex-col gap-4">
             <label>
-              <span className={LABEL_CLS}>{f.briefLabel}</span>
+              <span className={LABEL_CLS}>
+                {f.briefLabel}
+                <InfoDot text={f.hints.brief} />
+              </span>
               <textarea
                 value={custom.brief}
                 onChange={(e) => setCustomField('brief', e.target.value)}
@@ -328,7 +347,10 @@ export function PlaygroundForm({
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
               <label>
-                <span className={LABEL_CLS}>{f.agentRoleLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.agentRoleLabel}
+                  <InfoDot text={f.hints.agentRole} />
+                </span>
                 <input
                   value={custom.agentRole}
                   onChange={(e) => setCustomField('agentRole', e.target.value)}
@@ -337,7 +359,10 @@ export function PlaygroundForm({
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>{f.counterpartRoleLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.counterpartRoleLabel}
+                  <InfoDot text={f.hints.counterpartRole} />
+                </span>
                 <input
                   value={custom.counterpartRole}
                   onChange={(e) => setCustomField('counterpartRole', e.target.value)}
@@ -347,7 +372,10 @@ export function PlaygroundForm({
               </label>
             </div>
             <label>
-              <span className={LABEL_CLS}>{f.metricLabel}</span>
+              <span className={LABEL_CLS}>
+                {f.metricLabel}
+                <InfoDot text={f.hints.metric} />
+              </span>
               <input
                 value={custom.metricLabel}
                 onChange={(e) => setCustomField('metricLabel', e.target.value)}
@@ -357,7 +385,10 @@ export function PlaygroundForm({
             </label>
             <div className="grid gap-4 sm:grid-cols-3">
               <label>
-                <span className={LABEL_CLS}>{f.openingLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.openingLabel}
+                  <InfoDot text={f.hints.opening} />
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -369,7 +400,10 @@ export function PlaygroundForm({
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>{f.floorLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.floorLabel}
+                  <InfoDot text={f.hints.floor} />
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -381,7 +415,10 @@ export function PlaygroundForm({
                 />
               </label>
               <label>
-                <span className={LABEL_CLS}>{f.targetLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.targetLabel}
+                  <InfoDot text={f.hints.target} />
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -396,7 +433,10 @@ export function PlaygroundForm({
             <p className="font-mono text-[11px] text-dim">{f.floorTargetHint}</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <label>
-                <span className={LABEL_CLS}>{f.roundsLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.roundsLabel}
+                  <InfoDot text={f.hints.rounds} />
+                </span>
                 <input
                   type="number"
                   min="2"
@@ -408,7 +448,10 @@ export function PlaygroundForm({
                 />
               </label>
               <div>
-                <span className={LABEL_CLS}>{f.styleLabel}</span>
+                <span className={LABEL_CLS}>
+                  {f.styleLabel}
+                  <InfoDot text={f.hints.style} />
+                </span>
                 <div className="mt-1.5 flex gap-1">
                   {f.styles.map((s) => (
                     <button
