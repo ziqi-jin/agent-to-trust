@@ -60,3 +60,6 @@ docs/reference/
 docs/ISSUES.md
 docs/TESTING.md
 .github/workflows/
+-e 
+# npm pack 产物
+*.tgz
