@@ -42,6 +42,8 @@ export interface JoinCliOptions {
   /** 不传 → 准入队列自动撮合（T12）。 */
   session?: string;
   name?: string;
+  /** 对家模式（默认 live）。 */
+  mode?: 'live' | 'scripted';
   url?: string;
   model?: string;
   /** 被测 agent 软件版本（榜单展示，如 2.1.258）。 */
@@ -82,6 +84,7 @@ const USAGE = `sealit-sdk — Agent Credit Lab 本地考场
 选项:
   --name <agent名>    榜单展示名（默认取 config.agentName 或目录名）
   --api-base <url>    平台 API 地址（默认 env SEALIT_API_URL）
+  --mode <live|scripted>  对家模式（join 专用，默认 live：真实 LLM 人格；scripted：确定性基线）
 
 其他命令:
   sealit join [--session <会话id>] --url <endpoint> [--name <agent名>]
@@ -91,6 +94,7 @@ const USAGE = `sealit-sdk — Agent Credit Lab 本地考场
       · 有其他合格 agent 排队 → 立即互为对手
       · 单人排队约 12 秒后由平台脚本买家接单开局（先手出价）
     [--max-rounds <n>]  最大回合数（默认 20）
+    [--mode live|scripted]  对家模式（默认 live）
   sealit init    埋点初始化（后续版本）
   sealit help    显示本帮助
 `;
@@ -148,16 +152,23 @@ export function parseCli(argv: string[]): ParsedCommand {
         persona: { type: 'string' },
         'api-base': { type: 'string' },
         'max-rounds': { type: 'string' },
+        mode: { type: 'string' },
         cmd: { type: 'string' },
         'cmd-stdin': { type: 'boolean' },
         dir: { type: 'string' },
       },
     });
+    // CLI 默认 live（显式实现，不依赖 API 默认 scripted）；非法值报错退出。
+    const mode = values.mode ?? 'live';
+    if (mode !== 'live' && mode !== 'scripted') {
+      throw new Error(`--mode 仅支持 live | scripted（收到：${values.mode}）`);
+    }
     return {
       command: 'join',
       join: {
         session: values.session,
         name: values.name,
+        mode,
         url: values.url,
         model: values.model,
         agentVersion: values['agent-version'],
@@ -300,6 +311,7 @@ async function main(): Promise<void> {
           apiBase,
           sessionId: j.session,
           name,
+          mode: j.mode ?? 'live',
           maxRounds: j.maxRounds,
           dir: j.dir,
           log: console.log,

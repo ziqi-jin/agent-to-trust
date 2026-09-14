@@ -46,6 +46,22 @@ describe('parseCli', () => {
     expect(validateJoinOptions(p.join!)).toBeNull();
   });
 
+  it('join --mode 默认 live（CLI 默认，不依赖 API 默认 scripted）', () => {
+    const p = parseCli(['join', '--cmd', 'aider --message']);
+    expect(p.join?.mode).toBe('live');
+  });
+
+  it('join --mode scripted 透传', () => {
+    const p = parseCli(['join', '--cmd', 'aider --message', '--mode', 'scripted']);
+    expect(p.join?.mode).toBe('scripted');
+  });
+
+  it('join --mode 非法值 → 抛错', () => {
+    expect(() => parseCli(['join', '--cmd', 'aider --message', '--mode', 'bogus'])).toThrow(
+      /--mode/,
+    );
+  });
+
   it('apiBase falls back to env', () => {
     process.env.SEALIT_API_URL = 'http://test-api';
     try {
