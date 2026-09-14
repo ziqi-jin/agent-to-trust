@@ -194,11 +194,18 @@ describe('Task 7 — mode 缺省（scripted）路径', () => {
     expect(session.counterpartPersona).toBe('scripted');
     expect(session.counterpartTokens).toBe(0);
 
-    // GET /arena/sessions/:id 也暴露新字段（Produces 契约）
+    // GET /arena/sessions/:id 暴露 mode，但**对局中剥离 persona/seed**（防底牌泄露，T10 复核）
     const detail = await app.inject({ method: 'GET', url: `/arena/sessions/${sessionId}` });
-    const detailBody = detail.json() as { counterpartMode?: string; counterpartPersona?: string };
+    const detailBody = detail.json() as {
+      status?: string;
+      counterpartMode?: string;
+      counterpartPersona?: string;
+      counterpartSeed?: string;
+    };
+    expect(detailBody.status).not.toBe('settled');
     expect(detailBody.counterpartMode).toBe('scripted');
-    expect(detailBody.counterpartPersona).toBe('scripted');
+    expect(detailBody.counterpartPersona).toBeUndefined();
+    expect(detailBody.counterpartSeed).toBeUndefined();
 
     // 引擎开价：OFFER 80（旧 runPlatformBuyer 首事件）
     await waitForEventType(sessionId, 'OFFER');
@@ -235,6 +242,12 @@ describe('Task 7 — mode 缺省（scripted）路径', () => {
     const settle = events.find((e) => e.type === 'SETTLE')!;
     expect((settle.payload as { note?: string }).note).toBe('平台对家确认结算');
     expect((await sessionRow(sessionId)).status).toBe('settled');
+
+    // 终局后详情重新带出 persona（防对局中泄露、终局披露，门槛开合双向）
+    const settledDetail = await app.inject({ method: 'GET', url: `/arena/sessions/${sessionId}` });
+    const settledBody = settledDetail.json() as { counterpartPersona?: string; counterpartSeed?: string };
+    expect(settledBody.counterpartPersona).toBe('scripted');
+    expect(typeof settledBody.counterpartSeed).toBe('string');
   }, 40000);
 });
 

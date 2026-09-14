@@ -137,8 +137,8 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
       .where(eq(arenaEvents.sessionId, id))
       .orderBy(asc(arenaEvents.seq));
 
-    // 防对局中泄露人格：仅终局（settled/failed）才随详情带出人格对应的理论根。
-    // 进行中（open/negotiating）一律不带，否则对手能读到自己的「底牌」。
+    // 防对局中泄露人格：人格/seed/理论根都是服务端秘密（人格可推出理论根，seed 可预测台词）。
+    // 进行中（open/negotiating）一律剥离；仅终局（settled/failed）才随详情带出。
     const isTerminal = session.status === 'settled' || session.status === 'failed';
     const personaKey = session.counterpartPersona as CounterpartTheoryKey | null;
     const theory = isTerminal && personaKey ? COUNTERPART_THEORY[personaKey] : undefined;
@@ -152,7 +152,16 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
         }
       : undefined;
 
-    return { ...session, events, ...(counterpartTheory ? { counterpartTheory } : {}) };
+    // 对局中剥离秘密字段（persona/seed），终局才放回（见上）。
+    const { counterpartPersona, counterpartSeed, ...sessionSafe } = session;
+    const personaFields = isTerminal ? { counterpartPersona, counterpartSeed } : {};
+
+    return {
+      ...sessionSafe,
+      ...personaFields,
+      events,
+      ...(counterpartTheory ? { counterpartTheory } : {}),
+    };
   });
 
   /** 推事件：完整安全校验链后入库。 */
