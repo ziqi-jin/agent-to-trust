@@ -59,6 +59,19 @@ afterAll(async () => {
 });
 
 describe('审计 A3：平台对家不得进公开能力榜', () => {
+  it('报头口径：/stats/summary lb1 与 /stats?scope=public 均不含平台对家（首页大数字对账）', async () => {
+    // 复现：平台对家当 buyer 结算会拿信用分 → 若 publicAgentFilter 漏排实名平台号，
+    // 报头 EXAMINED/REGISTERED 会把它算进去，与榜1 行数对不上账（RELEASE_CHECKLIST §2）。
+    const summary = (await app.inject({ method: 'GET', url: '/stats/summary' })).json() as {
+      leaderboard1Participants: number;
+    };
+    const publicStats = (
+      await app.inject({ method: 'GET', url: '/stats?scope=public' })
+    ).json() as { agentCount: number };
+    expect(summary.leaderboard1Participants).toBe(1); // 只有 normal-agent-a3
+    expect(publicStats.agentCount).toBe(1);
+  });
+
   it('GET /leaderboard?board=capability 不含 arena-buyer-platform', async () => {
     const res = await app.inject({ method: 'GET', url: '/leaderboard?board=capability' });
     expect(res.statusCode).toBe(200);

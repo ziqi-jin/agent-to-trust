@@ -13,6 +13,7 @@
 import { randomUUID } from 'node:crypto';
 import { ensureKeypair, signPayload } from './keys.js';
 import type { SealitAgent } from './agent/types.js';
+import type { Locale } from './counterpart/types.js';
 
 export const ARENA_EVENT_TYPES = [
   'OFFER',
@@ -59,6 +60,11 @@ export interface JoinOptions {
   apiBase: string;
   /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，冷启动 400）。 */
   sessionId?: string;
+  /** 对家模式：`live` = 真实 LLM 人格，`scripted` = 确定性基线。
+   *  注意：API 默认 `scripted`；CLI 侧默认 `live`（见 cli.ts），此处不设默认以免覆盖 API 语义。 */
+  mode?: 'live' | 'scripted';
+  /** 披露文案语言（默认 zh；仅影响结算披露，不影响协议）。 */
+  locale?: Locale;
   name?: string;
   /** 密钥目录（默认 ~/.sealit；同钥即同身份）。 */
   dir?: string;
@@ -194,6 +200,24 @@ interface SessionView {
   deadline: string | null;
   buyerAgentId: string | null;
   sellerAgentId: string | null;
+  counterpartMode?: string;
+  counterpartPersona?: string | null;
+  /** 仅终局（settled/failed）随详情返回，防对局中泄露人格（T10）。 */
+  counterpartTheory?: CounterpartTheoryView;
+}
+
+export interface Bilingual {
+  zh: string;
+  en: string;
+}
+
+/** 对手人格的理论背书（公开可展示；服务端仅终局返回）。 */
+export interface CounterpartTheoryView {
+  key: string;
+  label: Bilingual;
+  anchor: Bilingual;
+  quote: Bilingual;
+  source: string;
 }
 
 interface EventRow {
@@ -235,11 +259,14 @@ async function joinQueue(
   log: (msg: string) => void,
   model?: string,
   version?: string,
+  mode?: 'live' | 'scripted',
 ): Promise<string> {
   log('[sealit] 未指定会话，进入准入队列（门槛：考场分≥400）…');
   const q = await api(doFetch, base, '/arena/queue', {
     method: 'POST',
-    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version }),
+    // mode 未定义时不入 body（JSON.stringify 丢 undefined），由 API 默认 scripted；
+    // CLI 始终显式传值（默认 live），不依赖该默认。
+    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version, mode }),
   });
   if (q.status === 'matched') return q.sessionId as string;
   const ticket = q.ticket as string;
@@ -255,6 +282,28 @@ async function joinQueue(
     if (s.status === 'matched') return s.sessionId as string;
   }
   throw new Error('排队超时（约 5 分钟）仍未撮合，稍后重试');
+}
+
+/**
+ * 结算披露：打印本局对手人格 + 理论根 + 一句原文引文（zh/en 按 locale）。
+ * 人格仅终局才由服务端披露（T10），此处不再自行把关。
+ */
+export function printCounterpartDisclosure(
+  log: (msg: string) => void,
+  persona: string | null | undefined,
+  theory: CounterpartTheoryView,
+  locale: Locale,
+): void {
+  const name = persona ?? theory.key;
+  if (locale === 'en') {
+    log(`[sealit] Counterpart: ${name} (${theory.label.en})`);
+    log(`[sealit] Theory: ${theory.anchor.en}`);
+    log(`[sealit] Quote: ${theory.quote.en}`);
+  } else {
+    log(`[sealit] 本局对手：${name}（${theory.label.zh}）`);
+    log(`[sealit] 理论根：${theory.anchor.zh}`);
+    log(`[sealit] 引文：${theory.quote.zh}`);
+  }
 }
 
 /**
@@ -297,6 +346,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       log,
       opts.model,
       opts.agentVersion,
+      opts.mode,
     ));
   if (!opts.sessionId) log(`[sealit] ✓ 已撮合对手，会话 ${sessionId}`);
   const session = (await api(
@@ -491,11 +541,14 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
 
   if (!stoppedReason) stoppedReason = 'max-rounds';
 
-  // 6. 终态确认
+  // 6. 终态确认 + 结算披露（对手人格理论根，仅终局服务端才返回）
   let finalStatus = 'unknown';
   try {
     const s = (await api(doFetch, base, `/arena/sessions/${sessionId}`)) as unknown as SessionView;
     finalStatus = s.status;
+    if (s.counterpartTheory) {
+      printCounterpartDisclosure(log, s.counterpartPersona, s.counterpartTheory, opts.locale ?? 'zh');
+    }
   } catch {
     /* 会话可能已关 */
   }

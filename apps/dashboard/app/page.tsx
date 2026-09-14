@@ -14,6 +14,7 @@ import { DIMENSIONS } from '@acl/core';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
+import { CounterpartTheory } from '@/components/CounterpartTheory';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Quickstart } from '@/components/Quickstart';
 import { OneMoreThing } from '@/components/OneMoreThing';
@@ -66,13 +67,14 @@ export default function Page() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [board, setBoard] = useState<'capability' | 'behavior'>('capability');
   const [dims, setDims] = useState<string[]>([]);
+  const [mode, setMode] = useState<'scripted' | 'live' | 'all'>('all');
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
       const [s, lb, ev, sum] = await Promise.all([
         api.stats(),
-        api.leaderboard(board, dims),
+        api.leaderboard(board, dims, mode),
         api.events(),
         api.statsSummary(),
       ]);
@@ -84,7 +86,7 @@ export default function Page() {
       const msg = (e as Error).message;
       setError(locale === 'zh' ? msg : mapApiError(msg, t.apiError));
     }
-  }, [board, dims, locale, t]);
+  }, [board, dims, mode, locale, t]);
 
   useEffect(() => {
     refresh();
@@ -208,6 +210,7 @@ export default function Page() {
       ) : (
         <>
           <Hero stats={stats} onTestAgent={scrollToQuickstart} />
+          <CounterpartTheory variant="card" />
           <Leaderboard
             entries={entries}
             onSelect={onSelectAgent}
@@ -216,6 +219,8 @@ export default function Page() {
             summary={summary}
             dims={dims}
             setDims={changeDims}
+            mode={mode}
+            setMode={setMode}
           />
           <Ticker events={events} nameMap={nameMap} />
           <HowItWorks />

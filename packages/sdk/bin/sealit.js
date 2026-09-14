@@ -1102,11 +1102,13 @@ async function api(fetchImpl, base, path, init) {
   }
   return body;
 }
-async function joinQueue(doFetch, base, name, pubkeyPem, log, model, version) {
+async function joinQueue(doFetch, base, name, pubkeyPem, log, model, version, mode) {
   log("[sealit] \u672A\u6307\u5B9A\u4F1A\u8BDD\uFF0C\u8FDB\u5165\u51C6\u5165\u961F\u5217\uFF08\u95E8\u69DB\uFF1A\u8003\u573A\u5206\u2265400\uFF09\u2026");
   const q = await api(doFetch, base, "/arena/queue", {
     method: "POST",
-    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version })
+    // mode 未定义时不入 body（JSON.stringify 丢 undefined），由 API 默认 scripted；
+    // CLI 始终显式传值（默认 live），不依赖该默认。
+    body: JSON.stringify({ name, pubkey: pubkeyPem, model, version, mode })
   });
   if (q.status === "matched") return q.sessionId;
   const ticket = q.ticket;
@@ -1122,6 +1124,18 @@ async function joinQueue(doFetch, base, name, pubkeyPem, log, model, version) {
     if (s.status === "matched") return s.sessionId;
   }
   throw new Error("\u6392\u961F\u8D85\u65F6\uFF08\u7EA6 5 \u5206\u949F\uFF09\u4ECD\u672A\u64AE\u5408\uFF0C\u7A0D\u540E\u91CD\u8BD5");
+}
+function printCounterpartDisclosure(log, persona, theory, locale) {
+  const name = persona ?? theory.key;
+  if (locale === "en") {
+    log(`[sealit] Counterpart: ${name} (${theory.label.en})`);
+    log(`[sealit] Theory: ${theory.anchor.en}`);
+    log(`[sealit] Quote: ${theory.quote.en}`);
+  } else {
+    log(`[sealit] \u672C\u5C40\u5BF9\u624B\uFF1A${name}\uFF08${theory.label.zh}\uFF09`);
+    log(`[sealit] \u7406\u8BBA\u6839\uFF1A${theory.anchor.zh}`);
+    log(`[sealit] \u5F15\u6587\uFF1A${theory.quote.zh}`);
+  }
 }
 async function runJoinLoop(opts) {
   const doFetch = opts.fetchImpl ?? fetch;
@@ -1148,7 +1162,8 @@ async function runJoinLoop(opts) {
     keypair.publicKeyPem,
     log,
     opts.model,
-    opts.agentVersion
+    opts.agentVersion,
+    opts.mode
   );
   if (!opts.sessionId) log(`[sealit] \u2713 \u5DF2\u64AE\u5408\u5BF9\u624B\uFF0C\u4F1A\u8BDD ${sessionId}`);
   const session = await api(
@@ -1326,6 +1341,9 @@ async function runJoinLoop(opts) {
   try {
     const s = await api(doFetch, base, `/arena/sessions/${sessionId}`);
     finalStatus = s.status;
+    if (s.counterpartTheory) {
+      printCounterpartDisclosure(log, s.counterpartPersona, s.counterpartTheory, opts.locale ?? "zh");
+    }
   } catch {
   }
   return {
@@ -1357,6 +1375,7 @@ var USAGE = `sealit-sdk \u2014 Agent Credit Lab \u672C\u5730\u8003\u573A
 \u9009\u9879:
   --name <agent\u540D>    \u699C\u5355\u5C55\u793A\u540D\uFF08\u9ED8\u8BA4\u53D6 config.agentName \u6216\u76EE\u5F55\u540D\uFF09
   --api-base <url>    \u5E73\u53F0 API \u5730\u5740\uFF08\u9ED8\u8BA4 env SEALIT_API_URL\uFF09
+  --mode <live|scripted>  \u5BF9\u5BB6\u6A21\u5F0F\uFF08join \u4E13\u7528\uFF0C\u9ED8\u8BA4 live\uFF1A\u771F\u5B9E LLM \u4EBA\u683C\uFF1Bscripted\uFF1A\u786E\u5B9A\u6027\u57FA\u7EBF\uFF09
 
 \u5176\u4ED6\u547D\u4EE4:
   sealit join [--session <\u4F1A\u8BDDid>] --url <endpoint> [--name <agent\u540D>]
@@ -1366,6 +1385,7 @@ var USAGE = `sealit-sdk \u2014 Agent Credit Lab \u672C\u5730\u8003\u573A
       \xB7 \u6709\u5176\u4ED6\u5408\u683C agent \u6392\u961F \u2192 \u7ACB\u5373\u4E92\u4E3A\u5BF9\u624B
       \xB7 \u5355\u4EBA\u6392\u961F\u7EA6 12 \u79D2\u540E\u7531\u5E73\u53F0\u811A\u672C\u4E70\u5BB6\u63A5\u5355\u5F00\u5C40\uFF08\u5148\u624B\u51FA\u4EF7\uFF09
     [--max-rounds <n>]  \u6700\u5927\u56DE\u5408\u6570\uFF08\u9ED8\u8BA4 20\uFF09
+    [--mode live|scripted]  \u5BF9\u5BB6\u6A21\u5F0F\uFF08\u9ED8\u8BA4 live\uFF09
   sealit init    \u57CB\u70B9\u521D\u59CB\u5316\uFF08\u540E\u7EED\u7248\u672C\uFF09
   sealit help    \u663E\u793A\u672C\u5E2E\u52A9
 `;
@@ -1422,16 +1442,22 @@ function parseCli(argv) {
         persona: { type: "string" },
         "api-base": { type: "string" },
         "max-rounds": { type: "string" },
+        mode: { type: "string" },
         cmd: { type: "string" },
         "cmd-stdin": { type: "boolean" },
         dir: { type: "string" }
       }
     });
+    const mode = values.mode ?? "live";
+    if (mode !== "live" && mode !== "scripted") {
+      throw new Error(`--mode \u4EC5\u652F\u6301 live | scripted\uFF08\u6536\u5230\uFF1A${values.mode}\uFF09`);
+    }
     return {
       command: "join",
       join: {
         session: values.session,
         name: values.name,
+        mode,
         url: values.url,
         model: values.model,
         agentVersion: values["agent-version"],
@@ -1555,6 +1581,7 @@ async function main() {
           apiBase,
           sessionId: j.session,
           name,
+          mode: j.mode ?? "live",
           maxRounds: j.maxRounds,
           dir: j.dir,
           log: console.log

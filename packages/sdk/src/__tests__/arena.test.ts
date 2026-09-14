@@ -455,4 +455,144 @@ describe('runJoinLoop', () => {
     expect(types).toContain('NEGOTIATE'); // 回退事件
     expect(result.eventsSent).toBeGreaterThanOrEqual(2);
   });
+
+  it('join --mode 透传到准入队列 body（live / scripted）', async () => {
+    for (const mode of ['live', 'scripted'] as const) {
+      const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+      const keypair = ensureKeypair(dir);
+      const calls: Call[] = [];
+      const handlers: Handler[] = [
+        {
+          match: (p) => p === '/arena/register',
+          handle: () => ({ status: 201, body: { agentId: 'agent-b', reused: false } }),
+        },
+        {
+          match: (p) => p === '/arena/queue',
+          handle: () => ({ status: 201, body: { status: 'matched', sessionId: 'as-1' } }),
+        },
+        {
+          match: (p) => p === '/arena/sessions/as-1',
+          handle: () => ({ body: sessionJson({ status: 'settled' }) }),
+        },
+      ];
+
+      await runJoinLoop({
+        agent: queueAgent([]),
+        apiBase,
+        name: 'q-agent',
+        dir,
+        keypair,
+        mode,
+        fetchImpl: makeFetch(handlers, calls),
+        log: () => {},
+      });
+
+      const queueCall = calls.find((c) => c.path === '/arena/queue');
+      expect(queueCall?.body).toMatchObject({ mode });
+    }
+  });
+
+  it('结算后打印对手披露：persona + label + 理论根 + 引文（zh）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const keypair = ensureKeypair(dir);
+    const calls: Call[] = [];
+    const theory = {
+      key: 'llm-stubborn',
+      label: { zh: '强硬型', en: 'The Hardliner' },
+      anchor: { zh: 'Schelling 的承诺与可信威胁', en: "Schelling's commitment problem" },
+      quote: { zh: '威胁要可信，就得先把自己绑住。', en: 'To make a threat credible, bind yourself.' },
+      source: 'Thomas C. Schelling, The Strategy of Conflict, 1960',
+    };
+    const handlers = baseHandlers(calls, [
+      [], // 初始拉取（空会话）
+      [{ seq: 2, type: 'SETTLE', fromAgent: 'agent-s', payload: {}, ts: 't2' }],
+    ]);
+    // 第 1 次 GET session（join 开始时）→ open；第 2 次（终态确认）→ settled + 披露字段
+    let sessionGets = 0;
+    handlers.splice(1, 1, {
+      match: (p) => p === '/arena/sessions/as-1',
+      handle: () => {
+        sessionGets += 1;
+        return {
+          body:
+            sessionGets >= 2
+              ? sessionJson({
+                  status: 'settled',
+                  counterpartMode: 'live',
+                  counterpartPersona: 'llm-stubborn',
+                  counterpartTheory: theory,
+                })
+              : sessionJson(),
+        };
+      },
+    });
+
+    const logs: string[] = [];
+    const result = await runJoinLoop({
+      agent: queueAgent(['{"type":"OFFER","payload":{"price":25}}']),
+      apiBase,
+      sessionId: 'as-1',
+      dir,
+      keypair,
+      fetchImpl: makeFetch(handlers, calls),
+      log: (m) => logs.push(m),
+    });
+
+    expect(result.stoppedReason).toBe('settled');
+    const out = logs.join('\n');
+    expect(out).toContain('本局对手：llm-stubborn（强硬型）');
+    expect(out).toContain('威胁要可信，就得先把自己绑住。');
+    expect(out).toContain('Schelling 的承诺与可信威胁');
+  });
+
+  it('结算披露 locale=en 走英文文案', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const keypair = ensureKeypair(dir);
+    const calls: Call[] = [];
+    const theory = {
+      key: 'llm-lure',
+      label: { zh: '诱导型', en: 'The Manipulator' },
+      anchor: { zh: 'Cialdini 说服六原则', en: "Cialdini's six principles" },
+      quote: { zh: '当议题被换掉，价格已经被重定价。', en: 'The price has already been quietly repriced.' },
+      source: 'Robert Cialdini, Influence, 1984',
+    };
+    const handlers = baseHandlers(calls, [
+      [],
+      [{ seq: 2, type: 'SETTLE', fromAgent: 'agent-s', payload: {}, ts: 't2' }],
+    ]);
+    let sessionGets = 0;
+    handlers.splice(1, 1, {
+      match: (p) => p === '/arena/sessions/as-1',
+      handle: () => {
+        sessionGets += 1;
+        return {
+          body:
+            sessionGets >= 2
+              ? sessionJson({
+                  status: 'settled',
+                  counterpartMode: 'live',
+                  counterpartPersona: 'llm-lure',
+                  counterpartTheory: theory,
+                })
+              : sessionJson(),
+        };
+      },
+    });
+
+    const logs: string[] = [];
+    await runJoinLoop({
+      agent: queueAgent(['{"type":"OFFER","payload":{"price":25}}']),
+      apiBase,
+      sessionId: 'as-1',
+      dir,
+      keypair,
+      locale: 'en',
+      fetchImpl: makeFetch(handlers, calls),
+      log: (m) => logs.push(m),
+    });
+
+    const out = logs.join('\n');
+    expect(out).toContain('Counterpart: llm-lure (The Manipulator)');
+    expect(out).toContain('The price has already been quietly repriced.');
+  });
 });

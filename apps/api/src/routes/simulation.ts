@@ -109,8 +109,14 @@ export async function simulationRoutes(app: FastifyInstance) {
     if (leaderboardLimited(req)) {
       return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
     }
-    const q = req.query as { board?: string; dims?: string };
+    const q = req.query as { board?: string; dims?: string; mode?: string };
     const board = q.board === 'behavior' ? 'behavior' : 'capability';
+    // 榜2 对家模式筛选（Task 8）：scripted=脚本买家 / live=LLM 人格对家 / all=不过滤（缺省）。
+    // 仅作用于行为榜（能力榜忽略该参数）；非法值 → 400（与 dims 白名单同风格，防静默错筛）。
+    const mode = q.mode ?? 'all';
+    if (mode !== 'all' && mode !== 'scripted' && mode !== 'live') {
+      return reply.code(400).send({ error: `非法对家模式：${mode}` });
+    }
     // 视图层维度筛选/重排（0912 老大拍板：榜单支持组合维度条件重排）。
     // 白名单校验：非法维度名 → 400（防注入/防静默错排）。不改变底层分数，仅改排序键。
     const selectedDims: Dimension[] = [];
@@ -134,6 +140,21 @@ export async function simulationRoutes(app: FastifyInstance) {
       where: eq(evidence.source, 'arena'),
     });
     const arenaAgents = new Set(arenaEvidence.map((e) => e.agentId));
+    // 对家模式集合：直接读 evidence.source_type（免 join arena_sessions，Task 8 裁定口径）。
+    // 'arena-behavior' → scripted，'arena-behavior-live' → live；其余证据不算行为口径。
+    const counterpartModesByAgent = new Map<string, Set<'scripted' | 'live'>>();
+    for (const e of arenaEvidence) {
+      const m =
+        e.sourceType === 'arena-behavior-live'
+          ? 'live'
+          : e.sourceType === 'arena-behavior'
+            ? 'scripted'
+            : null;
+      if (!m) continue;
+      const set = counterpartModesByAgent.get(e.agentId);
+      if (set) set.add(m);
+      else counterpartModesByAgent.set(e.agentId, new Set([m]));
+    }
     // 行为榜资格红线：必须有真实证据——考场（real-benchmark）或酒馆真实交易（real / real-confidential，
     // bearer 机构级上报，2026-09-10 与 arenaQueue gate 同口径放宽）——
     // 防止纯仿真行为证据把 score 推高绕过门槛（simulation 源依然不算，防刷语义保留）
@@ -226,6 +247,12 @@ export async function simulationRoutes(app: FastifyInstance) {
           isSimulated: source === 'simulation',
           behaviorScore,
           isE2E,
+          // 该 agent 有行为证据的对家模式集合（排序稳定：scripted 在前）。
+          counterpartModes: (() => {
+            const set = counterpartModesByAgent.get(a.id);
+            if (!set) return [];
+            return ['scripted', 'live'].filter((m) => set.has(m as 'scripted' | 'live'));
+          })(),
           inArena: arenaAgents.has(a.id),
           hasBenchmark: benchmarkAgents.has(a.id),
           // T6：可见性（行内不过滤，过滤集中在下方 filtered——两榜共用同一判定）
@@ -245,7 +272,8 @@ export async function simulationRoutes(app: FastifyInstance) {
               r.leaderboardVisible &&
               r.inArena &&
               r.hasBenchmark &&
-              (r.score ?? 0) >= ARENA_GATE_SCORE,
+              (r.score ?? 0) >= ARENA_GATE_SCORE &&
+              (mode === 'all' || r.counterpartModes.includes(mode)),
           )
         : rows.filter(
             (r) =>

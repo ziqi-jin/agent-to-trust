@@ -35,9 +35,11 @@ export async function settleSession(
   const onTime = payload.onTime !== false;
 
   const rows: Array<typeof evidence.$inferInsert> = [];
+  // 双口径（Task 7）：LLM 人格对家（live）与脚本买家（scripted）分开统计，榜单可信度可区分。
+  const sourceType = session.counterpartMode === 'live' ? 'arena-behavior-live' : 'arena-behavior';
   const base = {
     source: 'arena',
-    sourceType: 'arena-behavior',
+    sourceType,
     issuer: 'arena-engine',
     evidenceUri: `acl://arena/${sessionId}`,
   };

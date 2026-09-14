@@ -80,6 +80,11 @@ function Row({
             </span>
           )}
           <SourceTag source={e.source} />
+          {isBehavior && e.counterpartModes?.includes('live') && (
+            <span className="shrink-0 border border-seal/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-seal">
+              {t.leaderboard.liveBadge}
+            </span>
+          )}
           {e.verificationLevel === 'verified' && (
             <span className="hidden shrink-0 bg-brass px-1.5 py-0.5 font-mono text-[10px] font-semibold text-paper sm:inline">
               VERIFIED ✦
@@ -141,6 +146,8 @@ export function Leaderboard({
   summary,
   dims,
   setDims,
+  mode,
+  setMode,
 }: {
   entries: LeaderboardEntry[];
   onSelect: (id: string) => void;
@@ -149,6 +156,8 @@ export function Leaderboard({
   summary: StatsSummary | null;
   dims: string[];
   setDims: (d: string[]) => void;
+  mode: 'scripted' | 'live' | 'all';
+  setMode: (m: 'scripted' | 'live' | 'all') => void;
 }) {
   const t = useT();
   const top10 = entries.slice(0, 10);
@@ -194,6 +203,16 @@ export function Leaderboard({
         </div>
       </div>
 
+      {/* 特色位（榜2）：真实环境 · 真实 agent 评测 */}
+      {isBehavior && (
+        <div className="mb-6 border border-seal/40 bg-seal/5 px-4 py-3">
+          <p className="font-display text-sm font-bold text-seal">
+            {t.leaderboard.highlightTitle}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-dim">{t.leaderboard.highlightBody}</p>
+        </div>
+      )}
+
       {/* 参与统计一行 */}
       <p className="mb-4 font-mono text-[11px] tracking-wide text-dim">
         {fill(t.leaderboard.statsLine, {
@@ -208,6 +227,37 @@ export function Leaderboard({
 
       {/* 维度筛选 / 组合重排（0912）：勾选维度 → 按所选维度均分降序重排；不改底层分数 */}
       <div className="mb-5 border border-hairline bg-panel px-4 py-3">
+        {/* 处理方式筛选（榜2）：脚本 / 真实 / 全部——两套分数各自成榜（T8 /leaderboard?mode=） */}
+        {isBehavior && (
+          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline pb-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
+              {t.leaderboard.modeLabel}
+            </span>
+            {(
+              [
+                ['all', t.leaderboard.modeAll],
+                ['live', t.leaderboard.modeLive],
+                ['scripted', t.leaderboard.modeScripted],
+              ] as const
+            ).map(([m, label]) => {
+              const on = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  aria-pressed={on}
+                  className={`border px-2 py-1 font-mono text-[11px] transition ${
+                    on
+                      ? 'border-ledger bg-ledger text-paper'
+                      : 'border-hairline text-dim hover:border-ink hover:text-ink'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
             {t.leaderboard.filterLabel}

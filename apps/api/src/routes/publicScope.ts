@@ -13,18 +13,24 @@
  *  - `__platform__`：平台保留名（内部哨兵账号，绝不进公开面）。
  *
  * 注：线上平台对家实名 `arena-buyer-platform`（PLATFORM_NAME）已在 lb2（stats.ts）
- * 与 capability/behavior 榜（审计 A3）显式排除；本过滤器沿用既有 publicAgentFilter
- * 语义（不含 PLATFORM_NAME），以对齐 0909 拍板目标 EXAMINED=31。
+ * 与 capability/behavior 榜（审计 A3）显式排除。
+ *
+ * 2026-09-14 补（RELEASE_CHECKLIST §2「首页大数字对账」）：live 对局上线后，平台对家
+ * 当 buyer 结算会拿到信用分（arenaSettle 给 buyer 记 reliability），于是被 publicAgentFilter
+ * 计入报头 EXAMINED/REGISTERED，而榜1 按名排除它 → 报头 7 / 榜单 6 对不上账。
+ * 修法：本过滤器一并排 PLATFORM_NAME，与榜1 / lb2 同一口径（单一实现，防口径漂移）。
  */
 import { and, ilike, like, ne, not } from 'drizzle-orm';
 import { agents } from '../db/schema';
+import { PLATFORM_NAME } from './arenaQueue';
 
 /** 平台保留名（内部哨兵账号，绝不进公开面）。 */
 export const RESERVED_PLATFORM_NAME = '__platform__';
 
-/** 公开面 agent 过滤：仿真号 / E2E 号 / 平台保留名一律剔除。 */
+/** 公开面 agent 过滤：仿真号 / E2E 号 / 平台保留名（哨兵 + 实名平台对家）一律剔除。 */
 export const publicAgentFilter = and(
   not(ilike(agents.name, 'e2e%')),
   not(like(agents.name, 'sim-agent-%')),
   ne(agents.name, RESERVED_PLATFORM_NAME),
+  ne(agents.name, PLATFORM_NAME),
 );

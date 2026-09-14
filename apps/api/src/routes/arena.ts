@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { verifyPayload } from 'sealit-sdk';
+import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@acl/core';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { settleSession } from '../services/arenaSettle';
@@ -135,7 +136,32 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
       .from(arenaEvents)
       .where(eq(arenaEvents.sessionId, id))
       .orderBy(asc(arenaEvents.seq));
-    return { ...session, events };
+
+    // 防对局中泄露人格：人格/seed/理论根都是服务端秘密（人格可推出理论根，seed 可预测台词）。
+    // 进行中（open/negotiating）一律剥离；仅终局（settled/failed）才随详情带出。
+    const isTerminal = session.status === 'settled' || session.status === 'failed';
+    const personaKey = session.counterpartPersona as CounterpartTheoryKey | null;
+    const theory = isTerminal && personaKey ? COUNTERPART_THEORY[personaKey] : undefined;
+    const counterpartTheory = theory
+      ? {
+          key: personaKey,
+          label: theory.label,
+          anchor: theory.anchor,
+          quote: theory.quote,
+          source: theory.source,
+        }
+      : undefined;
+
+    // 对局中剥离秘密字段（persona/seed），终局才放回（见上）。
+    const { counterpartPersona, counterpartSeed, ...sessionSafe } = session;
+    const personaFields = isTerminal ? { counterpartPersona, counterpartSeed } : {};
+
+    return {
+      ...sessionSafe,
+      ...personaFields,
+      events,
+      ...(counterpartTheory ? { counterpartTheory } : {}),
+    };
   });
 
   /** 推事件：完整安全校验链后入库。 */

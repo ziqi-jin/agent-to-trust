@@ -96,6 +96,12 @@ CREATE TABLE IF NOT EXISTS arena_sessions (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- 对家引擎模式落库（Task 7）：scripted（脚本买家，默认）| live（LLM 人格买家）
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS counterpart_mode text DEFAULT 'scripted';
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS counterpart_persona text;
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS counterpart_seed text;
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS counterpart_tokens integer DEFAULT 0;
+
 CREATE TABLE IF NOT EXISTS arena_events (
   id text PRIMARY KEY,
   session_id text NOT NULL REFERENCES arena_sessions(id),
@@ -124,6 +130,9 @@ CREATE TABLE IF NOT EXISTS test_queue (
 );
 
 CREATE INDEX IF NOT EXISTS idx_test_queue_lane_status ON test_queue(lane, status);
+
+-- 放行时要知道期望对家模式（Task 7）：持久排队路径曾丢 mode → 放行只能默认脚本。
+ALTER TABLE test_queue ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'scripted';
 
 CREATE TABLE IF NOT EXISTS feedback (
   id text PRIMARY KEY,

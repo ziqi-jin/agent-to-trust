@@ -21,8 +21,24 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from 'sealit-sdk';
+import { DeepSeekClient } from '@acl/adapters';
 import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
+import {
+  createLiveBrain,
+  createScriptedBrain,
+  type BrainState,
+  type BuyerAction,
+  type BuyerBrain,
+} from '../counterpart/brains';
+import {
+  chargeDaily,
+  dailyExceeded,
+  newSessionBudget,
+  type SessionBudget,
+} from '../counterpart/budget';
+import { personaById } from '../counterpart/personas';
+import { jitterParams, pickPersona, seedFromSession } from '../counterpart/select';
 
 /** 准入门槛：最近考场分须达此线（与行为榜资格同源，simulation.ts 榜单2过滤用同一常量）。冷启动 400：门槛放低，更多 agent 进得来。 */
 export const ARENA_GATE_SCORE = 400;
@@ -46,6 +62,8 @@ interface QueueEntry {
   status: 'waiting' | 'matched';
   sessionId?: string;
   soloTimer?: ReturnType<typeof setTimeout>;
+  /** 期望对家模式：live 且客户端可用时编 live brain，否则降级 scripted（Ruling 3）。 */
+  mode: 'scripted' | 'live';
 }
 
 /** 内存队列（单实例部署够用；服务重启清空，SDK 侧重排队即可）。 */
@@ -115,8 +133,13 @@ async function createMatchSession(
   app: FastifyInstance,
   buyerAgentId: string,
   sellerAgentId: string,
-): Promise<string> {
+  opts: { mode?: 'scripted' | 'live' } = {},
+): Promise<{ sessionId: string; seed: string; personaId: string; mode: 'scripted' | 'live' }> {
   const id = `as-${randomUUID().slice(0, 8)}`;
+  const mode = opts.mode ?? 'scripted';
+  // seed 由 sessionId 派生（服务端生成，用户不可预测，但可复现）；人格按 seed 均权抽签
+  const seed = seedFromSession(id);
+  const personaId = pickPersona({ mode, seed }).id;
   await app.db.insert(arenaSessions).values({
     id,
     scenario: '标准交易',
@@ -124,8 +147,11 @@ async function createMatchSession(
     budget: 100,
     buyerAgentId,
     sellerAgentId,
+    counterpartMode: mode,
+    counterpartSeed: seed,
+    counterpartPersona: personaId,
   });
-  return id;
+  return { sessionId: id, seed, personaId, mode };
 }
 
 /** 活跃会话数（open/negotiating）——并发上限的计量口径。 */
@@ -142,6 +168,7 @@ async function enqueueWaitingRow(
   db: FastifyInstance['db'],
   agentId: string,
   lane: 'arena' | 'exam',
+  mode: 'scripted' | 'live' = 'scripted',
 ): Promise<{ ticket: string }> {
   const [existing] = await db
     .select({ ticket: testQueue.ticket })
@@ -156,8 +183,42 @@ async function enqueueWaitingRow(
     .limit(1);
   if (existing) return { ticket: existing.ticket };
   const ticket = `aq-${randomUUID().slice(0, 8)}`;
-  await db.insert(testQueue).values({ ticket, agentId, lane });
+  await db.insert(testQueue).values({ ticket, agentId, lane, mode });
   return { ticket };
+}
+
+/**
+ * 按模式构造买家 brain（live 需 client+persona，缺则脚本）。返回 brain + 可选预算句柄。
+ * 抽签/抖动由 personaId+seed 决定（可复现）；live 的 token 逐轮上报预算。
+ */
+function buildBuyerBrain(
+  mode: 'scripted' | 'live',
+  seed: string,
+  personaId: string,
+  client: DeepSeekClient | null,
+): { brain: BuyerBrain; budget?: SessionBudget } {
+  const persona = mode === 'live' ? personaById(personaId) : undefined;
+  if (client && persona) {
+    const b = newSessionBudget();
+    return {
+      budget: b,
+      brain: createLiveBrain(client, {
+        persona,
+        params: jitterParams(persona, seed),
+        maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
+        onTokens: (n) => {
+          b.add(n);
+          chargeDaily(n);
+        },
+      }),
+    };
+  }
+  return {
+    brain: createScriptedBrain({
+      price: PLATFORM_OFFER_PRICE,
+      maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
+    }),
+  };
 }
 
 /** 排队位置：同 lane FIFO（按 created_at），position 从 1 起。 */
@@ -214,7 +275,7 @@ export async function promoteWaiting(app: FastifyInstance): Promise<void> {
   if (rows.length === 0) return;
 
   for (let i = 0; i + 1 < rows.length; i += 2) {
-    const sessionId = await createMatchSession(app, rows[i].agentId, rows[i + 1].agentId);
+    const { sessionId } = await createMatchSession(app, rows[i].agentId, rows[i + 1].agentId);
     await markAdmitted(app.db, rows[i].ticket, sessionId);
     await markAdmitted(app.db, rows[i + 1].ticket, sessionId);
   }
@@ -230,10 +291,19 @@ export async function promoteWaiting(app: FastifyInstance): Promise<void> {
       if (identity.error === 'name-taken') {
         throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
       }
-      const sessionId = await createMatchSession(app, identity.agentId, solo.agentId);
+      // 放行时重算 live 可用性（请求→放行期间日预算可能已超 → 降级脚本，Ruling 3）
+      const client = solo.mode === 'live' ? buildLiveClient() : null;
+      const mode: 'scripted' | 'live' = client ? 'live' : 'scripted';
+      const { sessionId, seed, personaId } = await createMatchSession(
+        app,
+        identity.agentId,
+        solo.agentId,
+        { mode },
+      );
       await markAdmitted(app.db, solo.ticket, sessionId);
+      const { brain, budget } = buildBuyerBrain(mode, seed, personaId, client);
       // 引擎异步跑，不阻塞 tick
-      void runPlatformBuyer(app, sessionId, identity.agentId, keys);
+      void runBuyerEngine(app, sessionId, identity.agentId, keys, brain, budget);
     } catch (e) {
       console.error(`[arenaQueue] 排队放行（平台撮合）失败 ticket=${solo.ticket}:`, (e as Error).message);
       // 保守：留在 waiting，下一轮 tick 重试
@@ -242,14 +312,30 @@ export async function promoteWaiting(app: FastifyInstance): Promise<void> {
 }
 
 /* ------------------------------------------------------------------ */
-/* 平台脚本买家引擎（buyer 先手，规则确定，非 LLM）                      */
+/* 买家引擎（通用）：驱动 BuyerBrain 走完整安全链 push + 轮询 + 超时收尾。   */
+/* 脚本路径 = runPlatformBuyer 薄包装 createScriptedBrain（事件序列不变）。 */
 /* ------------------------------------------------------------------ */
 
-async function runPlatformBuyer(
+/** live 客户端工厂：缺 DEEPSEEK_API_KEY 或日预算超限 → null（调用侧降级 scripted，Ruling 3）。 */
+export function buildLiveClient(): DeepSeekClient | null {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) return null;
+  if (dailyExceeded()) return null;
+  return new DeepSeekClient({ apiKey, baseUrl: process.env.DEEPSEEK_BASE_URL });
+}
+
+/**
+ * 通用买家引擎：开局 brain.opening() → 轮询对家事件 brain.react() → 超时 brain.onTimeout()。
+ * 语义（与旧 runPlatformBuyer 等价）：DELIVER → 引擎推 VERIFY_RESULT(pass,onTime)+SETTLE；
+ * REJECT/SETTLE → 退出；live 超 token 上限 → 提前 REJECT 收尾（会话 failed，不写行为证据）。
+ */
+export async function runBuyerEngine(
   app: FastifyInstance,
   sessionId: string,
-  platformAgentId: string,
+  buyerAgentId: string,
   keys: { publicKeyPem: string; privateKeyPem: string },
+  brain: BuyerBrain,
+  budget?: SessionBudget,
 ): Promise<void> {
   let stopped = false;
   const handle = { stop: () => { stopped = true; } };
@@ -257,15 +343,16 @@ async function runPlatformBuyer(
 
   let nextSeq = 1;
   let maxSeenSeq = 0;
-  let negotiateRounds = 0;
-  let accepted = false;
+  const state: BrainState = { currentPrice: 0, accepted: false, negotiateRounds: 0 };
+  // 对家决策连续故障计数：单次 LLM/网络抖动不杀局，连续 ≥3 次才按降级链（§6）终止。
+  let counterpartFailStreak = 0;
 
   const push = async (type: string, payload: Record<string, unknown>): Promise<boolean> => {
     const envelope = {
       sessionId,
       seq: nextSeq,
       type,
-      fromAgent: platformAgentId,
+      fromAgent: buyerAgentId,
       payload,
       nonce: `plat-${randomUUID()}`,
       ts: Date.now(),
@@ -285,14 +372,20 @@ async function runPlatformBuyer(
   };
 
   try {
-    if (!(await push('OFFER', { price: PLATFORM_OFFER_PRICE, note: '平台一口价，接受即交付' }))) {
-      return;
-    }
+    const opening = brain.opening();
+    if (typeof opening.payload.price === 'number') state.currentPrice = opening.payload.price;
+    if (!(await push(opening.type, opening.payload))) return;
 
     const deadline = Date.now() + ENGINE_MAX_WAIT_MS;
     while (!stopped && Date.now() < deadline) {
       await sleep(ENGINE_POLL_MS);
       if (stopped) return;
+
+      // live 成本护栏：已超单局 token 上限 → 提前 REJECT 收尾，不再继续烧 token
+      if (budget?.over()) {
+        await push('REJECT', { reason: '对家 token 上限，终止' });
+        return;
+      }
 
       const fresh = await app.db
         .select()
@@ -303,53 +396,95 @@ async function runPlatformBuyer(
       for (const e of fresh) {
         maxSeenSeq = Math.max(maxSeenSeq, e.seq);
         nextSeq = Math.max(nextSeq, e.seq + 1);
-        if (e.fromAgent === platformAgentId) continue; // 自己的回放
+        if (e.fromAgent === buyerAgentId) continue; // 自己的回放
 
-        if (e.type === 'ACCEPT' && !accepted) {
-          accepted = true;
-          // 催交付：给 seller 一个明确的"该 DELIVER 了"信号事件
-          if (!(await push('NEGOTIATE', { note: '已接受报价，请交付' }))) return;
-        } else if (e.type === 'DELIVER') {
-          if (
-            !(await push('VERIFY_RESULT', {
-              verdict: 'pass',
-              onTime: true,
-              note: '平台验收通过',
-            }))
-          ) {
+        let action: BuyerAction | null;
+        try {
+          action = await brain.react(
+            { type: e.type, payload: (e.payload ?? null) as Record<string, unknown> | null },
+            state,
+          );
+          // 任意一次成功决策即清零连续故障计数
+          counterpartFailStreak = 0;
+        } catch (err) {
+          counterpartFailStreak += 1;
+          console.error(
+            `[arena] 对家引擎决策异常（会话 ${sessionId}，连续 ${counterpartFailStreak} 次）：`,
+            err,
+          );
+          if (counterpartFailStreak >= 3) {
+            // 连续 ≥3 次对家决策故障：按设计降级链（§6 live→scripted→failed）终止本局。
+            // 否则异常会掀翻引擎循环，会话永久停在 negotiating（不结算、不通知）。
+            await push('REJECT', { reason: '对家连续决策异常，终止' });
             return;
           }
-          await push('SETTLE', { note: '平台对家确认结算' });
-          return;
-        } else if (e.type === 'NEGOTIATE' || e.type === 'OFFER') {
-          // 用户继续谈价（或反向报价）：重发一口价，超限 REJECT
-          negotiateRounds += 1;
-          if (negotiateRounds > PLATFORM_MAX_NEGOTIATE_ROUNDS) {
-            await push('REJECT', { reason: '平台一口价，磋商超限，终止' });
-            return;
-          }
-          if (
-            !(await push('OFFER', {
-              price: PLATFORM_OFFER_PRICE,
-              note: `价格不变（磋商 ${negotiateRounds}/${PLATFORM_MAX_NEGOTIATE_ROUNDS}）`,
-            }))
-          ) {
-            return;
-          }
-        } else if (e.type === 'REJECT' || e.type === 'SETTLE') {
-          return; // 用户终止 / 用户抢先结算
+          // 单次/两次故障容忍：推一条中性对家话术，保持当前价，让对局继续推进（不结算、不动价格）。
+          action = { type: 'NEGOTIATE', payload: { note: '对家暂缓回应，请继续' } };
         }
-        // VERIFY_RESULT/其他：buyer 侧不该收到，忽略
+        // 状态推进（brain.react 读到的 state 为事件前值）
+        if (e.type === 'ACCEPT') state.accepted = true;
+        if (e.type === 'NEGOTIATE' || e.type === 'OFFER') state.negotiateRounds += 1;
+
+        if (action === null) {
+          if (e.type === 'DELIVER') {
+            // 脚本/LLM brain 都把「验收 + 结算」交给引擎
+            if (
+              !(await push('VERIFY_RESULT', {
+                verdict: 'pass',
+                onTime: true,
+                note: '平台验收通过',
+              }))
+            ) {
+              return;
+            }
+            await push('SETTLE', { note: '平台对家确认结算' });
+            return;
+          }
+          if (e.type === 'REJECT' || e.type === 'SETTLE') return; // 用户终止 / 用户抢先结算
+          continue; // VERIFY_RESULT/其他：buyer 侧不该收到，忽略
+        }
+
+        if (typeof action.payload.price === 'number') state.currentPrice = action.payload.price;
+        if (!(await push(action.type, action.payload))) return;
+        // 终局动作（磋商超限 REJECT 等）：推完即退出，与旧 runPlatformBuyer 收尾一致
+        if (action.type === 'REJECT') return;
       }
     }
     // 兜底超时：REJECT 收尾（会话仍 open/negotiating 时生效）
-    await push('REJECT', { reason: '平台对家等待超时，收尾退出' });
+    const timeout = brain.onTimeout();
+    await push(timeout.type, timeout.payload);
   } finally {
+    // live 会话落 token 消耗（审计/计费）
+    if (budget) {
+      try {
+        await app.db
+          .update(arenaSessions)
+          .set({ counterpartTokens: budget.used() })
+          .where(eq(arenaSessions.id, sessionId));
+      } catch {
+        /* 落库失败不阻塞收尾 */
+      }
+    }
     engines.delete(handle);
   }
 }
 
-/** 单人排队超时 → 配平台买家。 */
+/** 旧调用点/旧测试兼容：平台脚本买家 = 通用引擎 + 脚本 brain（事件序列字节级不变）。 */
+export async function runPlatformBuyer(
+  app: FastifyInstance,
+  sessionId: string,
+  platformAgentId: string,
+  keys: { publicKeyPem: string; privateKeyPem: string },
+): Promise<void> {
+  await runBuyerEngine(
+    app,
+    sessionId,
+    platformAgentId,
+    keys,
+    createScriptedBrain({ price: PLATFORM_OFFER_PRICE, maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS }),
+  );
+}
+/** 单人排队超时 → 配平台买家（live 可用则 LLM 人格买家，否则脚本买家）。 */
 async function soloMatchPlatform(app: FastifyInstance, entry: QueueEntry): Promise<void> {
   if (entry.status !== 'waiting' || !queue.has(entry.ticket)) return;
   try {
@@ -362,12 +497,22 @@ async function soloMatchPlatform(app: FastifyInstance, entry: QueueEntry): Promi
     if (identity.error === 'name-taken') {
       throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
     }
-    const sessionId = await createMatchSession(app, identity.agentId, entry.agentId);
+    // Ruling 3：live 期望但客户端不可用（缺 key/日预算超限）→ 静默降级 scripted，撮合不阻塞
+    const client = entry.mode === 'live' ? buildLiveClient() : null;
+    const mode: 'scripted' | 'live' = client ? 'live' : 'scripted';
+    const { sessionId, seed, personaId } = await createMatchSession(
+      app,
+      identity.agentId,
+      entry.agentId,
+      { mode },
+    );
+    // 先构造 brain（persona/预算失败则不置 matched，避免留下无引擎的活会话）
+    const { brain, budget } = buildBuyerBrain(mode, seed, personaId, client);
     entry.status = 'matched';
     entry.sessionId = sessionId;
     entry.soloTimer = undefined;
     // 引擎异步跑，不阻塞队列响应
-    void runPlatformBuyer(app, sessionId, identity.agentId, keys);
+    void runBuyerEngine(app, sessionId, identity.agentId, keys, brain, budget);
   } catch (e) {
     console.error(`[arenaQueue] 平台撮合失败 ticket=${entry.ticket}:`, (e as Error).message);
     // 保守：回到 waiting 继续等真人（solo timer 不再重排，由下一次 join 撮合）
@@ -396,6 +541,14 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     if (lane !== 'arena' && lane !== 'exam') {
       return reply.code(400).send({ error: "lane 仅支持 'arena' | 'exam'" });
     }
+    // 对家模式：仅 'scripted'|'live'（缺省 scripted）；live 缺客户端/超日预算 → 降级（Ruling 3）
+    const requestedMode = body.mode ?? 'scripted';
+    if (requestedMode !== 'scripted' && requestedMode !== 'live') {
+      return reply.code(400).send({ error: "mode 仅支持 'scripted' | 'live'" });
+    }
+    const liveClient = requestedMode === 'live' ? buildLiveClient() : null;
+    const mode: 'scripted' | 'live' = liveClient ? 'live' : 'scripted';
+    const degraded = requestedMode === 'live' && liveClient === null;
     const { model, version } = body as { model?: unknown; version?: unknown };
     const identity = await upsertAgentIdentity(app.db, {
       name: name.trim(),
@@ -416,20 +569,20 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
       (e) => e.agentId === agentId && e.status === 'waiting',
     );
     if (existing) {
-      return reply.code(201).send({ ticket: existing.ticket, status: 'waiting' });
+      return reply.code(201).send({ ticket: existing.ticket, status: 'waiting', degraded });
     }
 
     // 满载或 exam lane：持久化排队（重启不丢，FIFO 由 tick 放行）
     const maxActive = Number(process.env.QUEUE_MAX_ACTIVE ?? QUEUE_MAX_ACTIVE_DEFAULT);
     const active = await activeSessionCount(app.db);
     if (lane === 'exam' || active >= maxActive) {
-      const { ticket } = await enqueueWaitingRow(app.db, agentId, lane);
+      const { ticket } = await enqueueWaitingRow(app.db, agentId, lane, mode);
       const { position, waitingAhead } = await queuePosition(app.db, ticket);
-      return reply.code(201).send({ ticket, status: 'waiting', lane, position, waitingAhead });
+      return reply.code(201).send({ ticket, status: 'waiting', lane, position, waitingAhead, degraded });
     }
 
     const ticket = `aq-${randomUUID().slice(0, 8)}`;
-    const entry: QueueEntry = { ticket, agentId, name: name.trim(), status: 'waiting' };
+    const entry: QueueEntry = { ticket, agentId, name: name.trim(), status: 'waiting', mode };
     queue.set(ticket, entry);
 
     // 同步撮合（Node 单线程原子）：找一个 waiting 对手；先入队者当 buyer
@@ -441,7 +594,8 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
         clearTimeout(partner.soloTimer);
         partner.soloTimer = undefined;
       }
-      const sessionId = await createMatchSession(app, partner.agentId, entry.agentId);
+      // 真人 vs 真人：无平台 brain，不写 live 口径（否则污染 live 行为分桶，见 T7 评审）。
+      const { sessionId } = await createMatchSession(app, partner.agentId, entry.agentId);
       // 先入队者的 SDK 还在轮询它的内存 ticket：同步撮合删 entry 后必须把 admitted
       // 落库，否则它 GET 404 只能傻等到 5 分钟排队超时（0902 双真实撮合实锤的 bug）
       await app.db.insert(testQueue).values({
@@ -458,10 +612,10 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
       entry.sessionId = sessionId;
       queue.delete(partner.ticket);
       queue.delete(ticket);
-      return reply.code(201).send({ ticket, status: 'matched', sessionId });
+      return reply.code(201).send({ ticket, status: 'matched', sessionId, degraded });
     }
 
-    // 单人：QUEUE_SOLO_WAIT_MS 后配平台脚本买家
+    // 单人：QUEUE_SOLO_WAIT_MS 后配平台买家（live 可用则 LLM 人格）
     const soloWait = Number(process.env.QUEUE_SOLO_WAIT_MS ?? 12000);
     const timer = setTimeout(() => {
       void soloMatchPlatform(app, entry);
@@ -469,7 +623,7 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     timer.unref?.(); // 不阻止进程退出
     entry.soloTimer = timer;
 
-    return reply.code(201).send({ ticket, status: 'waiting' });
+    return reply.code(201).send({ ticket, status: 'waiting', degraded });
   });
 
   /** 查排队状态。内存未命中 → 读库（重启恢复 / 已放行）。 */

@@ -99,6 +99,14 @@ export const zh = {
     filterHint: '勾选维度 → 按所选维度均分重排（不改分数）',
     filterClear: '清除',
     filterActive: '按 {n} 个维度重排',
+    modeLabel: '处理方式',
+    modeAll: '全部',
+    modeLive: '真实',
+    modeScripted: '脚本',
+    liveBadge: '真实',
+    highlightTitle: '真实环境 · 真实 agent 评测',
+    highlightBody:
+      '你的 agent 与平台托管的真实 LLM 对手真刀真枪谈一局，而不是对着写死的脚本走流程。',
     statsLine: '考场 {exam} · 行为 {behavior} · 排队 {queue}',
     colEvidence: '证据',
     colConfidence: '置信',
@@ -120,6 +128,16 @@ export const zh = {
     footnoteBench: '真实评测',
     footnoteBenchDetail: '（source=benchmark，DeepSeek 实跑）',
     footnotePost: '。仿真数据仅用于引擎自测，不在榜单展示；SDK 数据经签名验证后才可升级 verified。',
+  },
+
+  // ── 理论背书（对家人格的理论根，公开可展示）──
+  theory: {
+    eyebrow: '§ — THEORY',
+    title: '理论背书',
+    quote:
+      '我们的对手不是随手编的人设，而是各自站得住脚的理论立场——每一局，都是拿真问题和真理论过招。',
+    anchorLabel: '理论锚',
+    sourceLabel: '出处',
   },
 
   // ── 勋章（维度×三档）──
@@ -548,6 +566,14 @@ export const en: Dict = {
     filterHint: 'Pick dimensions \u2192 re-sort by their average (scores unchanged)',
     filterClear: 'Clear',
     filterActive: 'Re-sorted by {n} dimension(s)',
+    modeLabel: 'Counterpart',
+    modeAll: 'All',
+    modeLive: 'Live',
+    modeScripted: 'Scripted',
+    liveBadge: 'Live',
+    highlightTitle: 'Real environment \u00b7 Real-agent evaluation',
+    highlightBody:
+      'Your agent negotiates for real against a platform-hosted LLM counterpart \u2014 not a hard-coded script walking through the motions.',
     statsLine: 'Exam {exam} \u00b7 Behavior {behavior} \u00b7 Queued {queue}',
     colEvidence: 'Evidence',
     colConfidence: 'Confidence',
@@ -571,6 +597,16 @@ export const en: Dict = {
     footnoteBenchDetail: ' (source=benchmark, actually run with DeepSeek)',
     footnotePost:
       '. Simulation data is for engine self-testing only and never shown in the register; SDK data is only upgraded to verified after signature verification.',
+  },
+
+  // ── Theoretical backing (the animating theory behind each counterpart) ──
+  theory: {
+    eyebrow: '\u00a7 \u2014 THEORY',
+    title: 'Theoretical backing',
+    quote:
+      'Our counterparts are not personas pulled from thin air \u2014 each stands on a defensible theory. Every match pits you against a real problem and a real idea.',
+    anchorLabel: 'Anchor',
+    sourceLabel: 'Source',
   },
 
   // ── Medals (dimension \u00d7 three tiers) ──
