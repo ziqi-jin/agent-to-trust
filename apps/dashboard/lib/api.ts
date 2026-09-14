@@ -87,6 +87,8 @@ export interface LeaderboardEntry {
   behaviorScore: number | null;
   /** 是否已进入 Arena（有行为证据）。 */
   inArena: boolean;
+  /** 该 agent 有行为证据的对家模式集合（榜2 口径：scripted / live，scripted 在前）。 */
+  counterpartModes: string[];
   /** 被测 agent 用的模型名（未上报为 null，前端显示 —）。 */
   model: string | null;
   /** 被测 agent 软件版本（未上报为 null）。 */
@@ -297,9 +299,14 @@ export const api = {
 
   // 榜单 / 统计 / 证据流
   // dims（可选）：视图层组合维度重排——按所选维度均分降序，不改底层分数。
-  leaderboard: (board: 'capability' | 'behavior' = 'capability', dims: string[] = []) => {
+  leaderboard: (
+    board: 'capability' | 'behavior' = 'capability',
+    dims: string[] = [],
+    mode: 'scripted' | 'live' | 'all' = 'all',
+  ) => {
     const qs = new URLSearchParams({ board });
     if (dims.length > 0) qs.set('dims', dims.join(','));
+    qs.set('mode', mode);
     return http<LeaderboardEntry[]>(`/leaderboard?${qs.toString()}`);
   },
   // scope=public：门面展示口径（排仿真号/E2E 测试号），api 默认全量保 P0-10 可溯红线
