@@ -63,3 +63,6 @@ docs/TESTING.md
 -e 
 # npm pack 产物
 *.tgz
+
+# 生产库备份快照（含数据，不入库）
+backups/
