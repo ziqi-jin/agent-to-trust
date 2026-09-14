@@ -2,8 +2,9 @@
  * /stats/summary 路由测试：
  * - 空库 → 三项全 0
  * - 榜单1 参与数 = 持考场分（credit_scores）的去重 agent 数
- * - 榜单2 参与数 = 参与 Arena 会话（buyer/seller）的去重 agent 数，剔除平台对家
- * - 同一 agent 多场会话只算一次
+ * - 榜单2 参与数 = **持有 Arena 行为证据**（成交后才写）的去重 agent 数，剔除平台对家
+ * - 进入过会话但未成交（无证据）不计入——与行为榜行数同口径（报头对账红线）
+ * - 同一 agent 多条证据只算一次
  * - queueWaiting = test_queue 中 status=waiting 的行数
  */
 
@@ -13,7 +14,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
-import { agents, arenaSessions, creditScores, testQueue } from '../../db/schema';
+import { agents, arenaSessions, creditScores, evidence, testQueue } from '../../db/schema';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
 if (!TEST_URL) throw new Error('TEST_DATABASE_URL 未设置');
@@ -74,29 +75,51 @@ describe('GET /stats/summary', () => {
     expect(res.json().leaderboard1Participants).toBe(2);
   });
 
-  it('榜单2：参与 Arena 会话的去重 agent 数，剔除平台对家', async () => {
-    const buyer = await seedAgent('arena-buyer');
+  it('榜单2：持 Arena 行为证据的去重 agent 数；进入未成交不计、平台对家剔除', async () => {
     const seller = await seedAgent('arena-seller');
+    const dropped = await seedAgent('arena-dropped');
     const platform = await seedAgent('arena-buyer-platform');
-    // buyer 同一 agent 参加两场 → 仍算 1
-    await db.insert(arenaSessions).values([
+    // seller 同一 agent 两条 arena 证据 → 仍算 1；platform 有证据但被 publicAgentFilter 剔除
+    await db.insert(evidence).values([
       {
-        id: `as-${randomUUID().slice(0, 8)}`,
-        scenario: '标准交易',
-        buyerAgentId: buyer,
-        sellerAgentId: seller,
+        id: `ev-${randomUUID().slice(0, 8)}`,
+        agentId: seller,
+        dimension: 'delivery',
+        source: 'arena',
+        sourceType: 'arena-behavior-live',
+        result: 'success',
+        value: 1,
       },
       {
-        id: `as-${randomUUID().slice(0, 8)}`,
-        scenario: '标准交易',
-        buyerAgentId: buyer,
-        sellerAgentId: platform, // 平台对家不计入
+        id: `ev-${randomUUID().slice(0, 8)}`,
+        agentId: seller,
+        dimension: 'reliability',
+        source: 'arena',
+        sourceType: 'arena-behavior-live',
+        result: 'success',
+        value: 1,
+      },
+      {
+        id: `ev-${randomUUID().slice(0, 8)}`,
+        agentId: platform,
+        dimension: 'reliability',
+        source: 'arena',
+        sourceType: 'arena-behavior-live',
+        result: 'success',
+        value: 1,
       },
     ]);
+    // dropped 进过会话但未成交 → 无 arena 证据，不计入
+    await db.insert(arenaSessions).values({
+      id: `as-${randomUUID().slice(0, 8)}`,
+      scenario: '标准交易',
+      buyerAgentId: seller,
+      sellerAgentId: dropped,
+    });
 
     const res = await app.inject({ method: 'GET', url: '/stats/summary' });
     expect(res.statusCode).toBe(200);
-    expect(res.json().leaderboard2Participants).toBe(2);
+    expect(res.json().leaderboard2Participants).toBe(1);
   });
 
   it('queueWaiting：test_queue 中 waiting 行数（含 exam lane）', async () => {

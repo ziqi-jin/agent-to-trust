@@ -20,7 +20,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
-import { agents, arenaSessions, creditScores, evidence } from '../../db/schema';
+import { agents, creditScores, evidence } from '../../db/schema';
 import { tavernExternalId } from '../../services/tavernIdentity';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
@@ -391,9 +391,26 @@ describe('T6：/stats/summary 参与数同步吃可见性过滤', () => {
     const visible = 'ag-stats-visible';
     await seedScoredAgent({ id: hidden, name: 'stats-hidden', score: 700, leaderboardVisible: false });
     await seedScoredAgent({ id: visible, name: 'stats-visible', score: 700 });
-    await db.insert(arenaSessions).values([
-      { id: `as-${hidden}`, scenario: '标准交易', buyerAgentId: hidden, sellerAgentId: visible },
-      { id: `as-${visible}-2`, scenario: '标准交易', buyerAgentId: visible, sellerAgentId: null },
+    // 榜单2 口径 = 持 Arena 行为证据（成交才写）；两者都有证据，但 hidden 可见性=false 被剔除。
+    await db.insert(evidence).values([
+      {
+        id: `ev-${hidden}`,
+        agentId: hidden,
+        dimension: 'delivery',
+        source: 'arena',
+        sourceType: 'arena-behavior-live',
+        result: 'success',
+        value: 1,
+      },
+      {
+        id: `ev-${visible}`,
+        agentId: visible,
+        dimension: 'delivery',
+        source: 'arena',
+        sourceType: 'arena-behavior-live',
+        result: 'success',
+        value: 1,
+      },
     ]);
     const res = await app.inject({ method: 'GET', url: '/stats/summary' });
     const body = res.json() as { leaderboard1Participants: number; leaderboard2Participants: number };
