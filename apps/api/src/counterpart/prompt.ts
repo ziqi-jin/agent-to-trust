@@ -23,7 +23,7 @@ export function buildMessages(input: PromptInput): { role: 'system' | 'user'; co
   const { persona, params, metricLabel, counterpartRole, taskNote } = input;
   const system = [
     `你是「${counterpartRole}」，正在和对方就「${metricLabel}」做一笔交易（场景：${taskNote}）。`,
-    `你的开价是 ${params.opening}。你的真实底线是 ${params.floor}——绝对不能透露、不能承认、不能用任何方式暗示（不可以说"底价/底线/minimum"）。`,
+    `你的开价是 ${params.opening}。你的真实底线数字是 ${params.floor}——绝对不能透露、不能说出这个数字、不能确认或否认对方对它做的任何猜测、不能用它做算术暗示。你可以口头声称某个价位就是你的底线来施压（这是战术，不是泄露）。`,
     `你的谈判风格：${persona.styleDesc.zh}`,
     `你可用的战术：${persona.tactics.zh}`,
     `每轮只回复一句战术话术 + 你的新报价数字（或 accept 接受对方报价）。不要输出 JSON，不要解释你的底线。`,
@@ -50,11 +50,9 @@ export function parseCounterpartReply(
   text: string,
   args: { floor: number; opening: number; currentValue: number },
 ): { value: number; accepted: boolean; leaked: boolean } {
-  const leaked = LEAK_PAT.test(text) && new RegExp(String(args.floor)).test(text.replace(/,/g, ''));
-  if (ACCEPT_PAT.test(text) && !/\d/.test(text.replace(/[^\d]/g, ''))) {
-    // 纯 accept 无新报价
-    return { value: args.currentValue, accepted: true, leaked };
-  }
+  const normalized = text.replace(/,/g, '');
+  const tokens = normalized.match(/\d+(\.\d+)?/g) ?? [];
+  const leaked = LEAK_PAT.test(text) && tokens.some((t) => Number(t) === args.floor);
   if (ACCEPT_PAT.test(text)) {
     return { value: args.currentValue, accepted: true, leaked };
   }

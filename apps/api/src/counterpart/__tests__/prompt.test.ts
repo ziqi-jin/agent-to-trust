@@ -19,6 +19,7 @@ describe('buildMessages', () => {
     });
     expect(msgs[0].role).toBe('system');
     expect(msgs[0].content).toContain('72');
+    expect(msgs[0].content.split('72').length - 1).toBe(1);
     expect(msgs[0].content).toContain(persona.styleDesc.zh);
     expect(msgs[0].content).toContain('不能透露');
   });
@@ -66,5 +67,14 @@ describe('parseCounterpartReply', () => {
   it('泄露底价 → leaked=true', () => {
     const r = parseCounterpartReply('说实话我的底价就是 70', args);
     expect(r.leaked).toBe(true);
+  });
+  it('含泄露词但数字不是 floor → leaked=false（防子串误报）', () => {
+    const r = parseCounterpartReply('我这底价都 170 了，真的', args);
+    expect(r.leaked).toBe(false);
+  });
+  it('accept 带数字 → 仍按 currentValue 成交', () => {
+    const r = parseCounterpartReply('deal，就 90 吧', args);
+    expect(r.accepted).toBe(true);
+    expect(r.value).toBe(90);
   });
 });
