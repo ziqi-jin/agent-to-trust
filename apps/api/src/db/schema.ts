@@ -142,6 +142,14 @@ export const arenaSessions = pgTable('arena_sessions', {
   taskSpec: jsonb('task_spec'),
   budget: real('budget'),
   deadline: timestamp('deadline', { withTimezone: true }),
+  /** 对家引擎模式：'scripted'（脚本买家，默认）| 'live'（LLM 人格买家）。 */
+  counterpartMode: text('counterpart_mode').default('scripted'),
+  /** 本局抽中的人格 id（scripted 恒 'scripted'；live 为 llm-* 之一）。 */
+  counterpartPersona: text('counterpart_persona'),
+  /** 抽签/参数抖动 seed（可复现）。 */
+  counterpartSeed: text('counterpart_seed'),
+  /** live 引擎本局消耗 token 数（计费/审计用）。 */
+  counterpartTokens: integer('counterpart_tokens').default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
