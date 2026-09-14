@@ -432,8 +432,8 @@ describe('Task 7 — arenaSettle 双口径', () => {
   }, 20000);
 });
 
-describe('Task 12 — live 引擎故障收敛', () => {
-  it('对家模型调用抛错 → 引擎推 REJECT、会话 failed（不静默挂死）', async () => {
+describe('Task 12 — live 引擎故障收敛（终局评审修复）', () => {
+  it('单次模型抛错 → 容忍不终止；连续 3 次 → REJECT 收尾、会话 failed', async () => {
     const origFetch = (globalThis as { fetch?: unknown }).fetch;
     process.env.DEEPSEEK_API_KEY = 'test-bogus-key';
     process.env.QUEUE_SOLO_WAIT_MS = '20';
@@ -457,13 +457,26 @@ describe('Task 12 — live 引擎故障收敛', () => {
       expect(session.counterpartMode).toBe('live');
       expect(String(session.counterpartPersona)).toMatch(/^llm-/);
 
-      // 开价不调模型；推一条 NEGOTIATE 触发模型调用 → 抛错 → 引擎应 REJECT 收尾
+      // 开价不调模型；推一条 NEGOTIATE 触发模型调用 → 第 1 次抛错 → 引擎容忍（不 REJECT、不 failed）
       await waitForEventType(sessionId, 'OFFER');
       await pushAsSeller(sessionId, session.sellerAgentId!, keys, 'NEGOTIATE', { price: 60 });
+      // 引擎每轮推一条中性 NEGOTIATE 兜底 → NEGOTIATE 计数达 2 表示第 1 次故障已被容忍处理
+      await waitForEventCount(sessionId, 'NEGOTIATE', 2);
+      let events = await readEvents(sessionId);
+      expect(events.filter((e) => e.type === 'REJECT')).toHaveLength(0);
+      expect((await sessionRow(sessionId)).status).not.toBe('failed');
 
-      const events = await waitForEventType(sessionId, 'REJECT', 12000);
+      // 逐条推（每次等引擎处理完），连续第 2 次故障 → 仍容忍
+      await pushAsSeller(sessionId, session.sellerAgentId!, keys, 'NEGOTIATE', { price: 55 });
+      await waitForEventCount(sessionId, 'NEGOTIATE', 4);
+      expect((await sessionRow(sessionId)).status).not.toBe('failed');
+
+      // 连续第 3 次故障 → 达到阈值 → REJECT 收尾、会话 failed
+      await pushAsSeller(sessionId, session.sellerAgentId!, keys, 'NEGOTIATE', { price: 50 });
+
+      events = await waitForEventType(sessionId, 'REJECT', 15000);
       const reject = events.find((e) => e.type === 'REJECT')!;
-      expect((reject.payload as { reason?: string }).reason).toBe('对家决策异常，终止');
+      expect((reject.payload as { reason?: string }).reason).toBe('对家连续决策异常，终止');
       expect((await sessionRow(sessionId)).status).toBe('failed');
       expect(events.some((e) => e.type === 'SETTLE')).toBe(false);
     } finally {
@@ -471,5 +484,5 @@ describe('Task 12 — live 引擎故障收敛', () => {
       delete process.env.DEEPSEEK_API_KEY;
       delete process.env.QUEUE_SOLO_WAIT_MS;
     }
-  }, 30000);
+  }, 60000);
 });

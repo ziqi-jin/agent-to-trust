@@ -44,9 +44,11 @@ export function createLiveBrain(
 ): BuyerBrain {
   const history: { from: 'counterpart' | 'agent'; text: string }[] = [];
   return {
+    // 人格是服务端秘密：开局 note 必须角色通用，绝不携带 persona.id / 理论键 / llm-* 记号
+    // （该 OFFER 会作为 seq-1 事件进 arena_events，SDK 会把 payload stringify 进被测 agent 提示词）。
     opening: () => ({
       type: 'OFFER',
-      payload: { price: ctx.params.opening, note: `${ctx.persona.id} 开价` },
+      payload: { price: ctx.params.opening, note: '平台对家开价' },
     }),
     async react(e, state) {
       if (e.type === 'DELIVER') return null;              // 引擎负责验收+结算
@@ -55,8 +57,18 @@ export function createLiveBrain(
         return { type: 'NEGOTIATE', payload: { note: '已接受，请按约定交付' } };
       }
       const raw = e.payload?.price;
-      const agentOffer = typeof raw === 'number' ? raw : 'accept';
-      history.push({ from: 'agent', text: typeof raw === 'number' ? `报价 ${raw}` : String(e.type) });
+      // 缺价 ≠ 接受：只有 ACCEPT 事件才是接受信号；无价消息走 message-only，不误导模型。
+      let agentOffer: number | 'accept' | 'message';
+      let agentText: string | undefined;
+      if (e.type === 'ACCEPT') {
+        agentOffer = 'accept';
+      } else if (typeof raw === 'number') {
+        agentOffer = raw;
+      } else {
+        agentOffer = 'message';
+        agentText = (typeof e.payload?.note === 'string' && e.payload.note) || e.type;
+      }
+      history.push({ from: 'agent', text: typeof raw === 'number' ? `报价 ${raw}` : agentText ?? String(e.type) });
       const d = await decideCounterpart(client, {
         persona: ctx.persona,
         metricLabel: '价格',
@@ -67,11 +79,13 @@ export function createLiveBrain(
         maxRounds: ctx.maxRounds,
         history,
         agentOffer,
+        agentText,
       }, state.currentPrice);
       ctx.onTokens(d.tokens);
       history.push({ from: 'counterpart', text: d.text });
       if (d.accepted) return { type: 'ACCEPT', payload: { price: state.currentPrice } };
-      return { type: 'OFFER', payload: { price: d.value, note: d.text.slice(0, 120), leaked: d.leaked } };
+      // leaked 是服务端审计信号（oracle），不进 agent 可见的 wire payload（见 engine.LiveDecision）。
+      return { type: 'OFFER', payload: { price: d.value, note: d.text.slice(0, 120) } };
     },
     onTimeout: () => ({ type: 'REJECT', payload: { reason: '对家等待超时，收尾退出' } }),
   };

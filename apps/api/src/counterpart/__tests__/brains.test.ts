@@ -63,4 +63,67 @@ describe('createLiveBrain', () => {
     const a = await brain.react({ type: 'OFFER', payload: { price: 75 } }, st);
     expect(a?.type).toBe('ACCEPT');
   });
+
+  it('开局 OFFER payload 不含人格 id / llm-* / leaked（评审 Critical 修复）', () => {
+    const client = { chat: async () => ({ content: 'x', model: 'x', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 1, totalTokens: 1 } }) } as unknown as DeepSeekClient;
+    const brain = createLiveBrain(client, {
+      persona: personaById('llm-stubborn')!, params: { opening: 96, floor: 72 },
+      maxRounds: 6, onTokens: () => {},
+    });
+    const payload = brain.opening().payload as Record<string, unknown>;
+    expect(payload.note).toBe('平台对家开价');
+    const wire = JSON.stringify(payload);
+    expect(wire).not.toMatch(/llm-/);
+    expect(wire).not.toContain('stubborn');
+    expect('leaked' in payload).toBe(false);
+  });
+
+  it('轮次 OFFER payload 不含内部审计字段 leaked（评审 Critical 修复）', async () => {
+    const client = { chat: async () => ({
+      content: '就 10 块吧', model: 'x', finishReason: 'stop',
+      usage: { promptTokens: 1, completionTokens: 1, totalTokens: 5 },
+    }) } as unknown as DeepSeekClient;
+    const brain = createLiveBrain(client, {
+      persona: personaById('llm-stubborn')!, params: { opening: 96, floor: 72 },
+      maxRounds: 6, onTokens: () => {},
+    });
+    const a = await brain.react({ type: 'OFFER', payload: { price: 70 } }, st);
+    expect(a?.type).toBe('OFFER');
+    const payload = a!.payload as Record<string, unknown>;
+    expect('leaked' in payload).toBe(false);
+    expect(JSON.stringify(payload)).not.toMatch(/llm-/);
+  });
+
+  it('无价消息（NEGOTIATE 只有 note）→ 不误判为接受，模型收到 message-only 提示', async () => {
+    const calls: { role: string; content: string }[][] = [];
+    const client = { chat: async (messages: { role: string; content: string }[]) => {
+      calls.push(messages);
+      return { content: '我再想想', model: 'x', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 1, totalTokens: 5 } };
+    } } as unknown as DeepSeekClient;
+    const brain = createLiveBrain(client, {
+      persona: personaById('llm-softer')!, params: { opening: 90, floor: 60 },
+      maxRounds: 6, onTokens: () => {},
+    });
+    await brain.react({ type: 'NEGOTIATE', payload: { note: '这价格还能再谈谈吗' } }, st);
+    const user = calls[0][1].content;
+    expect(user).not.toContain('对方表示接受你的报价');
+    expect(user).toContain('这价格还能再谈谈吗');
+    expect(user).toContain('未给出新报价');
+  });
+
+  it('数字 OFFER → 模型仍收到「对方最新报价：<n>」', async () => {
+    const calls: { role: string; content: string }[][] = [];
+    const client = { chat: async (messages: { role: string; content: string }[]) => {
+      calls.push(messages);
+      return { content: '我再想想', model: 'x', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 1, totalTokens: 5 } };
+    } } as unknown as DeepSeekClient;
+    const brain = createLiveBrain(client, {
+      persona: personaById('llm-stubborn')!, params: { opening: 96, floor: 72 },
+      maxRounds: 6, onTokens: () => {},
+    });
+    await brain.react({ type: 'OFFER', payload: { price: 70 } }, st);
+    const user = calls[0][1].content;
+    expect(user).toContain('对方最新报价：70');
+    expect(user).not.toContain('对方表示接受你的报价');
+  });
 });

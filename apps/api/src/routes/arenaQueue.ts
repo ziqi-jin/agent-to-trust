@@ -344,6 +344,8 @@ export async function runBuyerEngine(
   let nextSeq = 1;
   let maxSeenSeq = 0;
   const state: BrainState = { currentPrice: 0, accepted: false, negotiateRounds: 0 };
+  // 对家决策连续故障计数：单次 LLM/网络抖动不杀局，连续 ≥3 次才按降级链（§6）终止。
+  let counterpartFailStreak = 0;
 
   const push = async (type: string, payload: Record<string, unknown>): Promise<boolean> => {
     const envelope = {
@@ -402,12 +404,22 @@ export async function runBuyerEngine(
             { type: e.type, payload: (e.payload ?? null) as Record<string, unknown> | null },
             state,
           );
+          // 任意一次成功决策即清零连续故障计数
+          counterpartFailStreak = 0;
         } catch (err) {
-          // 对家决策故障（LLM/网络）：按设计降级链（§6 live→…→failed）终止本局。
-          // 否则异常会掀翻引擎循环，会话永久停在 negotiating（不结算、不通知）。
-          console.error(`[arena] 对家引擎决策异常（会话 ${sessionId}，事件 ${e.type}）：`, err);
-          await push('REJECT', { reason: '对家决策异常，终止' });
-          return;
+          counterpartFailStreak += 1;
+          console.error(
+            `[arena] 对家引擎决策异常（会话 ${sessionId}，连续 ${counterpartFailStreak} 次）：`,
+            err,
+          );
+          if (counterpartFailStreak >= 3) {
+            // 连续 ≥3 次对家决策故障：按设计降级链（§6 live→scripted→failed）终止本局。
+            // 否则异常会掀翻引擎循环，会话永久停在 negotiating（不结算、不通知）。
+            await push('REJECT', { reason: '对家连续决策异常，终止' });
+            return;
+          }
+          // 单次/两次故障容忍：推一条中性对家话术，保持当前价，让对局继续推进（不结算、不动价格）。
+          action = { type: 'NEGOTIATE', payload: { note: '对家暂缓回应，请继续' } };
         }
         // 状态推进（brain.react 读到的 state 为事件前值）
         if (e.type === 'ACCEPT') state.accepted = true;

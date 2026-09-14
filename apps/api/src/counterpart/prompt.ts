@@ -13,7 +13,10 @@ export interface PromptInput {
   round: number;
   maxRounds: number;
   history: { from: 'counterpart' | 'agent'; text: string }[];
-  agentOffer: number | 'accept';
+  /** 对家最新报价信号：数字=报价、'accept'=接受、'message'=只有消息未给新报价。 */
+  agentOffer: number | 'accept' | 'message';
+  /** message-only 时对家的原始消息文本（agentOffer==='message' 时用于上下文）。 */
+  agentText?: string;
 }
 
 const ACCEPT_PAT = /accept|成交|deal/i;
@@ -33,7 +36,9 @@ export function buildMessages(input: PromptInput): { role: 'system' | 'user'; co
   const offerLine =
     input.agentOffer === 'accept'
       ? '对方表示接受你的报价。'
-      : `对方最新报价：${input.agentOffer}。`;
+      : typeof input.agentOffer === 'number'
+        ? `对方最新报价：${input.agentOffer}。`
+        : `对方说：「${input.agentText ?? ''}」（未给出新报价，请回应这条消息）。`;
   const user = [
     history.length ? `【谈判历史】\n${history.join('\n')}` : '【谈判历史】（空）',
     '',

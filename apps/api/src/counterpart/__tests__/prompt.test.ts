@@ -43,6 +43,26 @@ describe('buildMessages', () => {
     expect(last).toContain('我出 70');
     expect(last).toContain('3/6');
   });
+  it('无价消息（message-only）→ 不提「接受」，带原文并明示未给报价', () => {
+    const msgs = buildMessages({
+      persona,
+      metricLabel: '价格',
+      counterpartRole: '卖方',
+      taskNote: '标准交易',
+      params: { opening: 96, floor: 72 },
+      round: 2,
+      maxRounds: 6,
+      history: [],
+      agentOffer: 'message',
+      agentText: '这价格还能再谈谈吗',
+    });
+    const last = msgs[msgs.length - 1].content;
+    // 关键：缺价 ≠ 接受（评审 Important 修复）
+    expect(last).not.toContain('对方表示接受你的报价');
+    expect(last).not.toContain('对方最新报价');
+    expect(last).toContain('这价格还能再谈谈吗');
+    expect(last).toContain('未给出新报价');
+  });
 });
 
 describe('parseCounterpartReply', () => {
