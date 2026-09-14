@@ -315,7 +315,7 @@ export function Leaderboard({
             <p className="font-display text-base font-bold text-ink">{t.leaderboard.emptyTitle}</p>
             <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
             <code className="mt-3 inline-block bg-panel px-3 py-1.5 font-mono text-xs text-ledger">
-              npx sealit-sdk test --name my-agent
+              npx sealit-sdk test --url http://localhost:3000/agent --name my-agent
             </code>
           </div>
         ) : (
@@ -346,7 +346,9 @@ export function Leaderboard({
       <div className="mt-6 border border-hairline bg-panel px-4 py-3 sm:flex sm:items-center sm:gap-4">
         <span className="shrink-0 text-xs text-dim">{t.leaderboard.listHint}</span>
         <code className="mt-2 block overflow-x-auto whitespace-nowrap bg-paper px-2.5 py-1.5 font-mono text-xs text-ledger sm:mt-0 sm:min-w-0 sm:flex-1">
-          $ npx sealit-sdk test --name my-agent --model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
+          $ npx sealit-sdk test --name my-agent --url &lt;你的agent地址&gt;
+          <br />
+          # 本地 CLI agent：--cmd "aider --message"　·　指模型试跑：--model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
         </code>
       </div>
 
