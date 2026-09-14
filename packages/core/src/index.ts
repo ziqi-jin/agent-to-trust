@@ -77,3 +77,6 @@ export interface Evidence {
 export function isDimension(value: string): value is Dimension {
   return (DIMENSIONS as string[]).includes(value);
 }
+
+export type { Bilingual, CounterpartTheoryKey, TheoryEntry } from './counterpartTheory';
+export { COUNTERPART_THEORY } from './counterpartTheory';
