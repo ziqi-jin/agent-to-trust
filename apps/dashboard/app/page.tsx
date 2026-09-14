@@ -14,6 +14,7 @@ import { DIMENSIONS } from '@acl/core';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
+import { CounterpartTheory } from '@/components/CounterpartTheory';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Quickstart } from '@/components/Quickstart';
 import { OneMoreThing } from '@/components/OneMoreThing';
@@ -209,6 +210,7 @@ export default function Page() {
       ) : (
         <>
           <Hero stats={stats} onTestAgent={scrollToQuickstart} />
+          <CounterpartTheory variant="card" />
           <Leaderboard
             entries={entries}
             onSelect={onSelectAgent}

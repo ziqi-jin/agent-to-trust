@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { verifyPayload } from 'sealit-sdk';
+import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@acl/core';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { settleSession } from '../services/arenaSettle';
@@ -135,7 +136,23 @@ export async function arenaRoutes(app: FastifyInstance): Promise<void> {
       .from(arenaEvents)
       .where(eq(arenaEvents.sessionId, id))
       .orderBy(asc(arenaEvents.seq));
-    return { ...session, events };
+
+    // 防对局中泄露人格：仅终局（settled/failed）才随详情带出人格对应的理论根。
+    // 进行中（open/negotiating）一律不带，否则对手能读到自己的「底牌」。
+    const isTerminal = session.status === 'settled' || session.status === 'failed';
+    const personaKey = session.counterpartPersona as CounterpartTheoryKey | null;
+    const theory = isTerminal && personaKey ? COUNTERPART_THEORY[personaKey] : undefined;
+    const counterpartTheory = theory
+      ? {
+          key: personaKey,
+          label: theory.label,
+          anchor: theory.anchor,
+          quote: theory.quote,
+          source: theory.source,
+        }
+      : undefined;
+
+    return { ...session, events, ...(counterpartTheory ? { counterpartTheory } : {}) };
   });
 
   /** 推事件：完整安全校验链后入库。 */

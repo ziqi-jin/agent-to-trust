@@ -130,6 +130,16 @@ export const zh = {
     footnotePost: '。仿真数据仅用于引擎自测，不在榜单展示；SDK 数据经签名验证后才可升级 verified。',
   },
 
+  // ── 理论背书（对家人格的理论根，公开可展示）──
+  theory: {
+    eyebrow: '§ — THEORY',
+    title: '理论背书',
+    quote:
+      '我们的对手不是随手编的人设，而是各自站得住脚的理论立场——每一局，都是拿真问题和真理论过招。',
+    anchorLabel: '理论锚',
+    sourceLabel: '出处',
+  },
+
   // ── 勋章（维度×三档）──
   medal: {
     title: '维度勋章',
@@ -587,6 +597,16 @@ export const en: Dict = {
     footnoteBenchDetail: ' (source=benchmark, actually run with DeepSeek)',
     footnotePost:
       '. Simulation data is for engine self-testing only and never shown in the register; SDK data is only upgraded to verified after signature verification.',
+  },
+
+  // ── Theoretical backing (the animating theory behind each counterpart) ──
+  theory: {
+    eyebrow: '\u00a7 \u2014 THEORY',
+    title: 'Theoretical backing',
+    quote:
+      'Our counterparts are not personas pulled from thin air \u2014 each stands on a defensible theory. Every match pits you against a real problem and a real idea.',
+    anchorLabel: 'Anchor',
+    sourceLabel: 'Source',
   },
 
   // ── Medals (dimension \u00d7 three tiers) ──
