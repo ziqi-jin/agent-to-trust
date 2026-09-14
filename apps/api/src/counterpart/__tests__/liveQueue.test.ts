@@ -18,13 +18,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, ne } from 'drizzle-orm';
 import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
-import { arenaEvents, arenaSessions, creditScores, evidence } from '../../db/schema';
-import { resetQueueForTests, stopAllQueueEngines } from '../../routes/arenaQueue';
+import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../../db/schema';
+import { promoteWaiting, resetQueueForTests, stopAllQueueEngines } from '../../routes/arenaQueue';
 import { settleSession } from '../../services/arenaSettle';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
@@ -131,6 +131,17 @@ async function waitForEventType(sessionId: string, type: string, timeoutMs = 800
   throw new Error(`等待事件 ${type} 超时`);
 }
 
+/** 等某类事件计数达到 n（脚本引擎 2s 轮询，慢于普通 waitForEventType 单次出现）。 */
+async function waitForEventCount(sessionId: string, type: string, n: number, timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const events = await readEvents(sessionId);
+    if (events.filter((e) => e.type === type).length >= n) return events;
+    await sleep(150);
+  }
+  throw new Error(`等待事件 ${type} 达到 ${n} 次超时`);
+}
+
 /** 以 seller（真实用户 agent）身份签名推一条事件；seq 自动取当前 max+1。 */
 async function pushAsSeller(
   sessionId: string,
@@ -225,6 +236,99 @@ describe('Task 7 — mode 缺省（scripted）路径', () => {
     expect((settle.payload as { note?: string }).note).toBe('平台对家确认结算');
     expect((await sessionRow(sessionId)).status).toBe('settled');
   }, 40000);
+});
+
+describe('Task 7 — 脚本磋商轮次路径（Ruling 1 保真）', () => {
+  it('NEGOTIATE 重发一口价并按 r/max 计数；超限 REJECT 后引擎收尾退出、无重复事件', async () => {
+    process.env.QUEUE_SOLO_WAIT_MS = '20';
+    const dir = mkdtempSync(join(tmpdir(), 't7-agent-'));
+    dirs.push(dir);
+    const keys = ensureKeypair(dir);
+    const name = `t7-rounds-${randomUUID().slice(0, 6)}`;
+    const sellerAgentId = await makeQualifiedAgent(name, keys.publicKeyPem);
+
+    const res = await enqueue(name, keys.publicKeyPem);
+    expect(res.statusCode).toBe(201);
+    const sessionId = await waitForSession(res.json().ticket as string);
+    await waitForEventType(sessionId, 'OFFER');
+
+    // 第 1 轮谈价：OFFER(80) → 用户 NEGOTIATE(60) → 引擎 OFFER（价格不变 1/3，价仍 80）
+    await pushAsSeller(sessionId, sellerAgentId, keys, 'NEGOTIATE', { price: 60 });
+    let events = await waitForEventCount(sessionId, 'OFFER', 2);
+    expect(events.map((e) => e.type).slice(0, 3)).toEqual(['OFFER', 'NEGOTIATE', 'OFFER']);
+    const offer2 = events.find((e, i) => e.type === 'OFFER' && i > 0)!;
+    expect((offer2.payload as { price?: number }).price).toBe(80);
+    expect((offer2.payload as { note?: string }).note).toBe('价格不变（磋商 1/3）');
+
+    // 第 2、3 轮：仍重发一口价
+    await pushAsSeller(sessionId, sellerAgentId, keys, 'NEGOTIATE', { price: 50 });
+    await waitForEventCount(sessionId, 'OFFER', 3);
+    events = await readEvents(sessionId);
+    expect((events.filter((e) => e.type === 'OFFER')[2].payload as { note?: string }).note).toBe(
+      '价格不变（磋商 2/3）',
+    );
+    await pushAsSeller(sessionId, sellerAgentId, keys, 'NEGOTIATE', { price: 40 });
+    await waitForEventCount(sessionId, 'OFFER', 4);
+
+    // 第 4 轮超限 → REJECT（磋商超限）；会话 failed；引擎收尾退出，不再推重复 REJECT / onTimeout
+    await pushAsSeller(sessionId, sellerAgentId, keys, 'NEGOTIATE', { price: 30 });
+    await waitForEventType(sessionId, 'REJECT');
+    // 会话变 failed 后，引擎应已 return（再等一轮轮询周期确认无新事件）
+    await sleep(2500);
+    events = await readEvents(sessionId);
+    const rejects = events.filter((e) => e.type === 'REJECT');
+    expect(rejects).toHaveLength(1);
+    expect((rejects[0].payload as { reason?: string }).reason).toBe('平台一口价，磋商超限，终止');
+    expect(events.filter((e) => e.type === 'SETTLE')).toHaveLength(0);
+    expect((await sessionRow(sessionId)).status).toBe('failed');
+  }, 60000);
+});
+
+describe('Task 7 — 持久排队路径保留 mode（评审 Important 回归）', () => {
+  it('满载入队：mode 落库不丢，放行按 live 建会话（修复前放行只能默认脚本）', async () => {
+    process.env.QUEUE_MAX_ACTIVE = '1';
+    process.env.DEEPSEEK_API_KEY = 't7-fake-key';
+    try {
+      // 造一个 active 会话占满并发位 → 后续 enqueue 走持久排队（enqueueWaitingRow）
+      await db.insert(arenaSessions).values({
+        id: `as-t7-busy-${randomUUID().slice(0, 6)}`,
+        scenario: '占位',
+        status: 'open',
+        buyerAgentId: 'busy-b',
+        sellerAgentId: 'busy-s',
+      });
+      const dir = mkdtempSync(join(tmpdir(), 't7-agent-'));
+      dirs.push(dir);
+      const keys = ensureKeypair(dir);
+      const name = `t7-persist-${randomUUID().slice(0, 6)}`;
+      await makeQualifiedAgent(name, keys.publicKeyPem);
+
+      const res = await enqueue(name, keys.publicKeyPem, { mode: 'live' });
+      expect(res.statusCode).toBe(201);
+      expect(res.json().status).toBe('waiting');
+      expect(res.json().degraded).toBe(false); // 有 key → 不降级
+      const ticket = res.json().ticket as string;
+
+      const [q] = await db.select().from(testQueue).where(eq(testQueue.ticket, ticket));
+      expect(q.mode).toBe('live'); // ← 修复前此处为默认 'scripted'（mode 在入队时丢失）
+
+      // 腾出并发位后放行：会话必须按 live + llm-* 人格建立
+      process.env.QUEUE_MAX_ACTIVE = '2';
+      await promoteWaiting(app);
+      const [session] = await db
+        .select()
+        .from(arenaSessions)
+        .where(ne(arenaSessions.sellerAgentId, 'busy-s'))
+        .orderBy(desc(arenaSessions.createdAt))
+        .limit(1);
+      expect(session.counterpartMode).toBe('live');
+      expect(session.counterpartPersona).toMatch(/^llm-/);
+    } finally {
+      delete process.env.DEEPSEEK_API_KEY;
+      delete process.env.QUEUE_MAX_ACTIVE;
+      stopAllQueueEngines();
+    }
+  }, 30000);
 });
 
 describe('Task 7 — mode 校验', () => {

@@ -131,6 +131,9 @@ CREATE TABLE IF NOT EXISTS test_queue (
 
 CREATE INDEX IF NOT EXISTS idx_test_queue_lane_status ON test_queue(lane, status);
 
+-- 放行时要知道期望对家模式（Task 7）：持久排队路径曾丢 mode → 放行只能默认脚本。
+ALTER TABLE test_queue ADD COLUMN IF NOT EXISTS mode text NOT NULL DEFAULT 'scripted';
+
 CREATE TABLE IF NOT EXISTS feedback (
   id text PRIMARY KEY,
   message text NOT NULL,

@@ -105,6 +105,8 @@ export const testQueue = pgTable(
     lane: text('lane').notNull().default('arena'),
     /** waiting → admitted → active → done / cancelled。 */
     status: text('status').notNull().default('waiting'),
+    /** 期望对家模式：'scripted'|'live'（arena lane 放行时据此建会话；非平台对家场次不用）。 */
+    mode: text('mode').notNull().default('scripted'),
     /** 撮合成功后关联的 Arena 会话。 */
     sessionId: text('session_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

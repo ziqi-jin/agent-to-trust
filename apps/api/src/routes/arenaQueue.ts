@@ -162,6 +162,7 @@ async function enqueueWaitingRow(
   db: FastifyInstance['db'],
   agentId: string,
   lane: 'arena' | 'exam',
+  mode: 'scripted' | 'live' = 'scripted',
 ): Promise<{ ticket: string }> {
   const [existing] = await db
     .select({ ticket: testQueue.ticket })
@@ -176,8 +177,42 @@ async function enqueueWaitingRow(
     .limit(1);
   if (existing) return { ticket: existing.ticket };
   const ticket = `aq-${randomUUID().slice(0, 8)}`;
-  await db.insert(testQueue).values({ ticket, agentId, lane });
+  await db.insert(testQueue).values({ ticket, agentId, lane, mode });
   return { ticket };
+}
+
+/**
+ * 按模式构造买家 brain（live 需 client+persona，缺则脚本）。返回 brain + 可选预算句柄。
+ * 抽签/抖动由 personaId+seed 决定（可复现）；live 的 token 逐轮上报预算。
+ */
+function buildBuyerBrain(
+  mode: 'scripted' | 'live',
+  seed: string,
+  personaId: string,
+  client: DeepSeekClient | null,
+): { brain: BuyerBrain; budget?: SessionBudget } {
+  const persona = mode === 'live' ? personaById(personaId) : undefined;
+  if (client && persona) {
+    const b = newSessionBudget();
+    return {
+      budget: b,
+      brain: createLiveBrain(client, {
+        persona,
+        params: jitterParams(persona, seed),
+        maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
+        onTokens: (n) => {
+          b.add(n);
+          chargeDaily(n);
+        },
+      }),
+    };
+  }
+  return {
+    brain: createScriptedBrain({
+      price: PLATFORM_OFFER_PRICE,
+      maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
+    }),
+  };
 }
 
 /** 排队位置：同 lane FIFO（按 created_at），position 从 1 起。 */
@@ -250,10 +285,19 @@ export async function promoteWaiting(app: FastifyInstance): Promise<void> {
       if (identity.error === 'name-taken') {
         throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
       }
-      const { sessionId } = await createMatchSession(app, identity.agentId, solo.agentId);
+      // 放行时重算 live 可用性（请求→放行期间日预算可能已超 → 降级脚本，Ruling 3）
+      const client = solo.mode === 'live' ? buildLiveClient() : null;
+      const mode: 'scripted' | 'live' = client ? 'live' : 'scripted';
+      const { sessionId, seed, personaId } = await createMatchSession(
+        app,
+        identity.agentId,
+        solo.agentId,
+        { mode },
+      );
       await markAdmitted(app.db, solo.ticket, sessionId);
+      const { brain, budget } = buildBuyerBrain(mode, seed, personaId, client);
       // 引擎异步跑，不阻塞 tick
-      void runPlatformBuyer(app, sessionId, identity.agentId, keys);
+      void runBuyerEngine(app, sessionId, identity.agentId, keys, brain, budget);
     } catch (e) {
       console.error(`[arenaQueue] 排队放行（平台撮合）失败 ticket=${solo.ticket}:`, (e as Error).message);
       // 保守：留在 waiting，下一轮 tick 重试
@@ -375,6 +419,8 @@ export async function runBuyerEngine(
 
         if (typeof action.payload.price === 'number') state.currentPrice = action.payload.price;
         if (!(await push(action.type, action.payload))) return;
+        // 终局动作（磋商超限 REJECT 等）：推完即退出，与旧 runPlatformBuyer 收尾一致
+        if (action.type === 'REJECT') return;
       }
     }
     // 兜底超时：REJECT 收尾（会话仍 open/negotiating 时生效）
@@ -397,7 +443,7 @@ export async function runBuyerEngine(
 }
 
 /** 旧调用点/旧测试兼容：平台脚本买家 = 通用引擎 + 脚本 brain（事件序列字节级不变）。 */
-async function runPlatformBuyer(
+export async function runPlatformBuyer(
   app: FastifyInstance,
   sessionId: string,
   platformAgentId: string,
@@ -433,31 +479,11 @@ async function soloMatchPlatform(app: FastifyInstance, entry: QueueEntry): Promi
       entry.agentId,
       { mode },
     );
+    // 先构造 brain（persona/预算失败则不置 matched，避免留下无引擎的活会话）
+    const { brain, budget } = buildBuyerBrain(mode, seed, personaId, client);
     entry.status = 'matched';
     entry.sessionId = sessionId;
     entry.soloTimer = undefined;
-
-    let brain: BuyerBrain;
-    let budget: SessionBudget | undefined;
-    const persona = mode === 'live' ? personaById(personaId) : undefined;
-    if (client && persona) {
-      const b = newSessionBudget();
-      budget = b;
-      brain = createLiveBrain(client, {
-        persona,
-        params: jitterParams(persona, seed),
-        maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
-        onTokens: (n) => {
-          b.add(n);
-          chargeDaily(n);
-        },
-      });
-    } else {
-      brain = createScriptedBrain({
-        price: PLATFORM_OFFER_PRICE,
-        maxRounds: PLATFORM_MAX_NEGOTIATE_ROUNDS,
-      });
-    }
     // 引擎异步跑，不阻塞队列响应
     void runBuyerEngine(app, sessionId, identity.agentId, keys, brain, budget);
   } catch (e) {
@@ -523,7 +549,7 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     const maxActive = Number(process.env.QUEUE_MAX_ACTIVE ?? QUEUE_MAX_ACTIVE_DEFAULT);
     const active = await activeSessionCount(app.db);
     if (lane === 'exam' || active >= maxActive) {
-      const { ticket } = await enqueueWaitingRow(app.db, agentId, lane);
+      const { ticket } = await enqueueWaitingRow(app.db, agentId, lane, mode);
       const { position, waitingAhead } = await queuePosition(app.db, ticket);
       return reply.code(201).send({ ticket, status: 'waiting', lane, position, waitingAhead, degraded });
     }
@@ -541,7 +567,8 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
         clearTimeout(partner.soloTimer);
         partner.soloTimer = undefined;
       }
-      const { sessionId } = await createMatchSession(app, partner.agentId, entry.agentId, { mode });
+      // 真人 vs 真人：无平台 brain，不写 live 口径（否则污染 live 行为分桶，见 T7 评审）。
+      const { sessionId } = await createMatchSession(app, partner.agentId, entry.agentId);
       // 先入队者的 SDK 还在轮询它的内存 ticket：同步撮合删 entry 后必须把 admitted
       // 落库，否则它 GET 404 只能傻等到 5 分钟排队超时（0902 双真实撮合实锤的 bug）
       await app.db.insert(testQueue).values({
