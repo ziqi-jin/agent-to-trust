@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DeepSeekClient } from '@acl/adapters';
+import type { ChatCompletionOptions, DeepSeekClient } from '@acl/adapters';
 import { decideCounterpart, LIVE_COUNTERPART_MODEL } from '../engine';
 import { personaById } from '../personas';
 
@@ -16,23 +16,38 @@ const baseInput = {
   agentOffer: 70,
 };
 
-function fakeClient(content: string, totalTokens = 42): DeepSeekClient {
-  return {
-    chat: async () => ({
-      content, model: LIVE_COUNTERPART_MODEL, finishReason: 'stop',
-      usage: { promptTokens: 30, completionTokens: 12, totalTokens },
-    }),
+function fakeClient(
+  content: string,
+  totalTokens = 42,
+): { client: DeepSeekClient; calls: ChatCompletionOptions[] } {
+  const calls: ChatCompletionOptions[] = [];
+  const client = {
+    chat: async (_messages: unknown, opts: ChatCompletionOptions) => {
+      calls.push(opts);
+      return {
+        content, model: LIVE_COUNTERPART_MODEL, finishReason: 'stop',
+        usage: { promptTokens: 30, completionTokens: 12, totalTokens },
+      };
+    },
   } as unknown as DeepSeekClient;
+  return { client, calls };
 }
 
 describe('decideCounterpart', () => {
-  it('模型报 50 → 引擎 clamp 到 floor 60', async () => {
-    const r = await decideCounterpart(fakeClient('就 50 吧'), { ...baseInput });
+  it('引擎把所有决策转发给解析层（clamp + 模型锁死 + text/leaked 透传）', async () => {
+    const { client, calls } = fakeClient('就 50 吧');
+    const r = await decideCounterpart(client, { ...baseInput });
     expect(r.value).toBe(60);
     expect(r.tokens).toBe(42);
+    // 模型锁死：引擎必须把 LIVE_COUNTERPART_MODEL 原样转发给 client.chat
+    expect(calls[0].model).toBe(LIVE_COUNTERPART_MODEL);
+    // text（trim 后）/leaked 透传自解析层
+    expect(r.text).toBe('就 50 吧');
+    expect(r.leaked).toBe(false);
   });
   it('模型 accept → 成交于当前价', async () => {
-    const r = await decideCounterpart(fakeClient('成交，deal'), { ...baseInput });
+    const { client } = fakeClient('成交，deal');
+    const r = await decideCounterpart(client, { ...baseInput });
     expect(r.accepted).toBe(true);
   });
   it('模型报错 → 抛错（由上层降级处理）', async () => {

@@ -1,5 +1,6 @@
 /**
- * LLM 对家决策引擎：调 DeepSeek → 解析 → 引擎侧硬约束（clamp / 泄露标记）。
+ * LLM 对家决策引擎：调 DeepSeek → 把决策转交 parseCounterpartReply 解析
+ * （clamp / 泄露标记等硬约束在该解析层实现）→ 组装 LiveDecision。
  * 模型锁死（不开放用户指定）；env 仅供运维调价，不进 API 契约。
  */
 import type { DeepSeekClient } from '@acl/adapters';
