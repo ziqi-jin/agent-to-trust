@@ -80,7 +80,7 @@ function Row({
             </span>
           )}
           <SourceTag source={e.source} />
-          {isBehavior && e.counterpartModes.includes('live') && (
+          {isBehavior && e.counterpartModes?.includes('live') && (
             <span className="shrink-0 border border-seal/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-seal">
               {t.leaderboard.liveBadge}
             </span>
