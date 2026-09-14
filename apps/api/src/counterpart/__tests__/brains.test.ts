@@ -16,6 +16,11 @@ describe('createScriptedBrain（复刻旧语义）', () => {
     expect(a?.type).toBe('NEGOTIATE');
     expect(a?.payload.note).toBe('已接受报价，请交付');
   });
+  it('重复 ACCEPT（accepted 已置位）→ null（不再重发催交付，保 Ruling 1 保真）', async () => {
+    const a = await createScriptedBrain({ price: 80, maxRounds: 3 })
+      .react({ type: 'ACCEPT', payload: { price: 80 } }, { ...st, accepted: true });
+    expect(a).toBeNull();
+  });
   it('DELIVER → null（验收+结算由引擎按序推两条，见 Task 7）', async () => {
     const a = await createScriptedBrain({ price: 80, maxRounds: 3 })
       .react({ type: 'DELIVER', payload: { item: 'x' } }, st);
