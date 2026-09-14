@@ -24,7 +24,9 @@ export async function decideCounterpart(
   const res = await client.chat(buildMessages(input), {
     model: LIVE_COUNTERPART_MODEL,
     temperature: 0.8, // 人格需要变化；复现性靠多次取样，不靠单局
-    maxTokens: 160,
+    // 推理模型（deepseek-v4-flash）的思维链吃 max_tokens 配额：160 实测大量 finish=length
+    // 且 content 为空（对家「说不出话」）。留足思考 + 正文预算，单局成本由 T5/T7 预算护栏兜。
+    maxTokens: 1024,
   });
   const parsed = parseCounterpartReply(res.content, {
     floor: input.params.floor,

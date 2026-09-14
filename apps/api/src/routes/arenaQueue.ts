@@ -24,7 +24,13 @@ import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { DeepSeekClient } from '@acl/adapters';
 import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
-import { createLiveBrain, createScriptedBrain, type BrainState, type BuyerBrain } from '../counterpart/brains';
+import {
+  createLiveBrain,
+  createScriptedBrain,
+  type BrainState,
+  type BuyerAction,
+  type BuyerBrain,
+} from '../counterpart/brains';
 import {
   chargeDaily,
   dailyExceeded,
@@ -390,10 +396,19 @@ export async function runBuyerEngine(
         nextSeq = Math.max(nextSeq, e.seq + 1);
         if (e.fromAgent === buyerAgentId) continue; // 自己的回放
 
-        const action = await brain.react(
-          { type: e.type, payload: (e.payload ?? null) as Record<string, unknown> | null },
-          state,
-        );
+        let action: BuyerAction | null;
+        try {
+          action = await brain.react(
+            { type: e.type, payload: (e.payload ?? null) as Record<string, unknown> | null },
+            state,
+          );
+        } catch (err) {
+          // 对家决策故障（LLM/网络）：按设计降级链（§6 live→…→failed）终止本局。
+          // 否则异常会掀翻引擎循环，会话永久停在 negotiating（不结算、不通知）。
+          console.error(`[arena] 对家引擎决策异常（会话 ${sessionId}，事件 ${e.type}）：`, err);
+          await push('REJECT', { reason: '对家决策异常，终止' });
+          return;
+        }
         // 状态推进（brain.react 读到的 state 为事件前值）
         if (e.type === 'ACCEPT') state.accepted = true;
         if (e.type === 'NEGOTIATE' || e.type === 'OFFER') state.negotiateRounds += 1;

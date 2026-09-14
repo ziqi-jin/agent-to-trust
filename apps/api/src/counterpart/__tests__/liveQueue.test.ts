@@ -431,3 +431,45 @@ describe('Task 7 — arenaSettle 双口径', () => {
     }
   }, 20000);
 });
+
+describe('Task 12 — live 引擎故障收敛', () => {
+  it('对家模型调用抛错 → 引擎推 REJECT、会话 failed（不静默挂死）', async () => {
+    const origFetch = (globalThis as { fetch?: unknown }).fetch;
+    process.env.DEEPSEEK_API_KEY = 'test-bogus-key';
+    process.env.QUEUE_SOLO_WAIT_MS = '20';
+    // 模型调用直接抛错，模拟 LLM/网络故障（密闭，不走真网）
+    (globalThis as { fetch?: unknown }).fetch = async () => {
+      throw new Error('boom');
+    };
+    try {
+      const dir = mkdtempSync(join(tmpdir(), 't12-fault-'));
+      dirs.push(dir);
+      const keys = ensureKeypair(dir);
+      const name = `t12-fault-${randomUUID().slice(0, 6)}`;
+      await makeQualifiedAgent(name, keys.publicKeyPem);
+
+      const res = await enqueue(name, keys.publicKeyPem, { mode: 'live' });
+      expect(res.statusCode).toBe(201);
+      expect((res.json() as { degraded?: boolean }).degraded).toBe(false);
+      const sessionId = await waitForSession(res.json().ticket as string);
+
+      const session = await sessionRow(sessionId);
+      expect(session.counterpartMode).toBe('live');
+      expect(String(session.counterpartPersona)).toMatch(/^llm-/);
+
+      // 开价不调模型；推一条 NEGOTIATE 触发模型调用 → 抛错 → 引擎应 REJECT 收尾
+      await waitForEventType(sessionId, 'OFFER');
+      await pushAsSeller(sessionId, session.sellerAgentId!, keys, 'NEGOTIATE', { price: 60 });
+
+      const events = await waitForEventType(sessionId, 'REJECT', 12000);
+      const reject = events.find((e) => e.type === 'REJECT')!;
+      expect((reject.payload as { reason?: string }).reason).toBe('对家决策异常，终止');
+      expect((await sessionRow(sessionId)).status).toBe('failed');
+      expect(events.some((e) => e.type === 'SETTLE')).toBe(false);
+    } finally {
+      (globalThis as { fetch?: unknown }).fetch = origFetch;
+      delete process.env.DEEPSEEK_API_KEY;
+      delete process.env.QUEUE_SOLO_WAIT_MS;
+    }
+  }, 30000);
+});
