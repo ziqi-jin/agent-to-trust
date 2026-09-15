@@ -141,11 +141,13 @@ export async function simulationRoutes(app: FastifyInstance) {
     });
     const arenaAgents = new Set(arenaEvidence.map((e) => e.agentId));
     // 对家模式集合：直接读 evidence.source_type（免 join arena_sessions，Task 8 裁定口径）。
-    // 'arena-behavior' → scripted，'arena-behavior-live' → live；其余证据不算行为口径。
+    // 三口径（Task 11 补 A2A）：'arena-behavior' → scripted；'arena-behavior-live' **或**
+    // 'arena-behavior-a2a' → live（spec §4.3：A2A 与 SDK 面对同一对家，how 轴 sdk/a2a 区分延后 P1）；
+    // 其余证据不算行为口径。
     const counterpartModesByAgent = new Map<string, Set<'scripted' | 'live'>>();
     for (const e of arenaEvidence) {
       const m =
-        e.sourceType === 'arena-behavior-live'
+        e.sourceType === 'arena-behavior-live' || e.sourceType === 'arena-behavior-a2a'
           ? 'live'
           : e.sourceType === 'arena-behavior'
             ? 'scripted'
