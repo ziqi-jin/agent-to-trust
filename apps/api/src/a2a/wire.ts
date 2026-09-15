@@ -23,7 +23,12 @@ export interface KernelEvent {
   type: string;
   payload?: any;
   sessionId?: string;
+  /** 会话级全量事件序号（内核填充）；**不**作轮次用（Ruling 7）。 */
   seq?: number;
+  /** 本局 A2A 往返轮数（Ruling 7：轮次语义的唯一权威来源，可选）。 */
+  round?: number;
+  /** 事件发起方 agentId（Ruling 8：历史人称归属用，可选）。 */
+  fromAgent?: string;
 }
 
 /** 默认回合截止（毫秒）。 */
@@ -78,21 +83,38 @@ function describeEvent(e: KernelEvent): string {
   }
 }
 
-/** 最近历史摘要（`第N轮 <措辞>`，取末尾若干条，按 seq 稳定展示）。 */
-function summarizeHistory(history: KernelEvent[]): string {
+/** 历史条目轮次：优先 `e.round`（有限正数），否则用其在整段历史里的位置 + 1。 */
+function roundOfEntry(e: KernelEvent, indexInHistory: number): number {
+  if (typeof e.round === 'number' && Number.isFinite(e.round) && e.round > 0) return e.round;
+  return indexInHistory + 1;
+}
+
+/**
+ * 最近历史摘要（取末尾若干条）。
+ * 提供 `selfAgentId` 时按 `fromAgent` 归属人称（`第N轮 你 报价 72` / `第N轮 对家 还价 87`，Ruling 8）；
+ * 未提供时退化为旧格式 `第N轮 <措辞>`（向后兼容）。
+ */
+function summarizeHistory(history: KernelEvent[], selfAgentId?: string): string {
   if (history.length === 0) return '';
-  const recent = history.slice(-HISTORY_SUMMARY_LIMIT);
+  const start = Math.max(0, history.length - HISTORY_SUMMARY_LIMIT);
+  const recent = history.slice(start);
   return recent
     .map((e, i) => {
-      const round = typeof e.seq === 'number' && Number.isFinite(e.seq) ? e.seq : i + 1;
-      return `第${round}轮 ${describeEvent(e)}`;
+      const round = roundOfEntry(e, start + i);
+      const who = selfAgentId === undefined ? '' : `${e.fromAgent === selfAgentId ? '你' : '对家'} `;
+      return `第${round}轮 ${who}${describeEvent(e)}`;
     })
     .join('；');
 }
 
-/** round 规则：优先事件自带 seq；缺省用「历史计数 + 1」兜底（稳定、可测）。 */
+/**
+ * round 规则（Ruling 7）：轮次 = 本局 A2A 往返轮数。
+ * 优先 `event.round`（有限正数），否则 `history.length + 1`；**彻底不再依赖 `event.seq`**。
+ */
 function roundOf(event: KernelEvent, history: KernelEvent[]): number {
-  if (typeof event.seq === 'number' && Number.isFinite(event.seq) && event.seq > 0) return event.seq;
+  if (typeof event.round === 'number' && Number.isFinite(event.round) && event.round > 0) {
+    return event.round;
+  }
   return history.length + 1;
 }
 
@@ -101,13 +123,17 @@ function roundOf(event: KernelEvent, history: KernelEvent[]): number {
  *
  * `parts[0].text` 形态：`[第N轮] 对家 <措辞>（历史：…）请回复 OFFER / NEGOTIATE / ACCEPT / REJECT / DELIVER。`
  * 历史为空时省略「（历史：…）」，保证文本仍自洽。
+ *
+ * `opts.selfAgentId` 提供时，历史摘要按「你/对家」归属说话方（Ruling 8）；
+ * 未提供时退化为旧格式 `第N轮 <措辞>`（向后兼容）。
  */
 export function toA2aMessage(
   event: KernelEvent,
   history: KernelEvent[] = [],
+  opts?: { selfAgentId?: string },
 ): { text: string; metadata: { acl: { sessionId: string; round: number; deadlineMs: number } } } {
   const round = roundOf(event, history);
-  const summary = summarizeHistory(history);
+  const summary = summarizeHistory(history, opts?.selfAgentId);
   const body = `[第${round}轮] 对家 ${describeEvent(event)}`;
   const historyPart = summary === '' ? '' : `（历史：${summary}）`;
   const ask = '请回复 OFFER / NEGOTIATE / ACCEPT / REJECT / DELIVER。';
@@ -129,8 +155,15 @@ export function toA2aMessage(
 /**
  * T2 解析结果 → 内核事件载荷。
  * `ok:false` → `null`（调用方据此计 `invalid_rounds`）；`ok:true` → 五动作各自映射。
+ *
+ * DELIVER（Ruling 9，落实 Ruling 1 的「唯一拦截点」）：若提供 `parts`，则**强制**走 `normalizeArtifact`，
+ *   归一化失败 → 返回 `null`（调用方计无效回合），成功 → `payload.artifact` 用归一化对象（而非 T2 的脏 artifact）。
+ *   `parts` 未提供时保持旧行为（透传 `a.artifact`），其余四动作行为不变。
  */
-export function fromParsedAction(a: ParsedAction): { type: string; payload: object } | null {
+export function fromParsedAction(
+  a: ParsedAction,
+  parts?: A2aPart[],
+): { type: string; payload: object } | null {
   if (!a || a.ok !== true) return null;
   switch (a.type) {
     case 'OFFER':
@@ -139,10 +172,20 @@ export function fromParsedAction(a: ParsedAction): { type: string; payload: obje
       return { type: 'NEGOTIATE', payload: { price: a.price, note: a.note } };
     case 'ACCEPT':
       return { type: 'ACCEPT', payload: {} };
-    case 'REJECT':
-      return { type: 'REJECT', payload: { reason: a.note } };
-    case 'DELIVER':
+    case 'REJECT': {
+      // Minor：无 note 时不放 `reason` 键，避免 {reason: undefined}（JSON 丢键但对象里在）。
+      const payload: { reason?: string } = {};
+      if (typeof a.note === 'string') payload.reason = a.note;
+      return { type: 'REJECT', payload };
+    }
+    case 'DELIVER': {
+      if (parts !== undefined) {
+        const artifact = normalizeArtifact(parts);
+        if (artifact === null) return null;
+        return { type: 'DELIVER', payload: { artifact } };
+      }
       return { type: 'DELIVER', payload: { artifact: a.artifact } };
+    }
     default:
       return null;
   }

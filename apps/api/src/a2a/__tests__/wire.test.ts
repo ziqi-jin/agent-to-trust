@@ -20,7 +20,7 @@ import {
 
 describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
   it('OFFER：text 含价格，metadata.acl 的 sessionId/round/deadlineMs 正确', () => {
-    const event: KernelEvent = { type: 'OFFER', payload: { price: 80 }, sessionId: 'sess-1', seq: 2 };
+    const event: KernelEvent = { type: 'OFFER', payload: { price: 80 }, sessionId: 'sess-1', round: 2 };
     const msg = toA2aMessage(event, []);
 
     expect(msg.text).toContain('80');
@@ -28,9 +28,9 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
   });
 
   it('带 history：text 自包含（含最近历史摘要）', () => {
-    const event: KernelEvent = { type: 'OFFER', payload: { price: 80 }, sessionId: 'sess-1', seq: 2 };
+    const event: KernelEvent = { type: 'OFFER', payload: { price: 80 }, sessionId: 'sess-1', round: 2 };
     const history: KernelEvent[] = [
-      { type: 'OFFER', payload: { price: 72 }, sessionId: 'sess-1', seq: 1 },
+      { type: 'OFFER', payload: { price: 72 }, sessionId: 'sess-1', round: 1 },
     ];
     const msg = toA2aMessage(event, history);
 
@@ -43,8 +43,8 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
     expect(msg.metadata.acl.deadlineMs).toBe(60_000);
   });
 
-  it('round 兜底：无 seq 时用 history 计数 + 1', () => {
-    const history: KernelEvent[] = [{ type: 'OFFER', payload: { price: 72 }, seq: 1 }];
+  it('round 兜底：无 round 时用 history 计数 + 1', () => {
+    const history: KernelEvent[] = [{ type: 'OFFER', payload: { price: 72 }, round: 1 }];
     const msg = toA2aMessage({ type: 'NEGOTIATE', payload: { price: 70 } }, history);
     expect(msg.metadata.acl.round).toBe(2);
   });
@@ -61,6 +61,56 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
   it('VERIFY_RESULT / SETTLE 有兜底文案且不抛', () => {
     expect(toA2aMessage({ type: 'VERIFY_RESULT', payload: {} }, []).text.trim().length).toBeGreaterThan(0);
     expect(toA2aMessage({ type: 'SETTLE', payload: {} }, []).text.trim().length).toBeGreaterThan(0);
+  });
+
+  // —— Ruling 7：round 语义（本局 A2A 往返轮数，不再看 seq） ——
+
+  it('Ruling 7①：event.round=5 → metadata.round=5', () => {
+    const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 }, round: 5 }, []);
+    expect(msg.metadata.acl.round).toBe(5);
+  });
+
+  it('Ruling 7②：无 round + history 长度 3 → metadata.round=4', () => {
+    const history: KernelEvent[] = [
+      { type: 'OFFER', payload: { price: 1 } },
+      { type: 'NEGOTIATE', payload: { price: 2 } },
+      { type: 'NEGOTIATE', payload: { price: 3 } },
+    ];
+    const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 } }, history);
+    expect(msg.metadata.acl.round).toBe(4);
+  });
+
+  it('Ruling 7③：event.seq=99 但无 round + 空 history → metadata.round=1（锁死「不再看 seq」）', () => {
+    const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 }, seq: 99 }, []);
+    expect(msg.metadata.acl.round).toBe(1);
+  });
+
+  // —— Ruling 8：历史人称归属（spec §3.2 自包含） ——
+
+  it('Ruling 8：传 selfAgentId → 历史按「你/对家」归属', () => {
+    const history: KernelEvent[] = [
+      { type: 'OFFER', payload: { price: 72 }, round: 2, fromAgent: 'me' },
+      { type: 'NEGOTIATE', payload: { price: 87 }, round: 3, fromAgent: 'other' },
+    ];
+    const msg = toA2aMessage({ type: 'ACCEPT', payload: {} }, history, { selfAgentId: 'me' });
+    expect(msg.text).toContain('第2轮 你 报价 72');
+    expect(msg.text).toContain('第3轮 对家 还价 87');
+  });
+
+  it('Ruling 8：不传 selfAgentId → 退化为旧格式（无人称）', () => {
+    const history: KernelEvent[] = [
+      { type: 'OFFER', payload: { price: 72 }, round: 2, fromAgent: 'me' },
+    ];
+    const msg = toA2aMessage({ type: 'ACCEPT', payload: {} }, history);
+    expect(msg.text).toContain('第2轮 报价 72');
+    expect(msg.text).not.toContain('你 ');
+  });
+
+  // —— Minor：sessionId 缺省锁行为 ——
+
+  it('Minor：event.sessionId 缺失 → metadata.acl.sessionId 为 ""（锁当前行为）', () => {
+    const msg = toA2aMessage({ type: 'ACCEPT', payload: {} }, []);
+    expect(msg.metadata.acl.sessionId).toBe('');
   });
 });
 
@@ -92,7 +142,13 @@ describe('fromParsedAction — 入站映射', () => {
     });
   });
 
-  it('DELIVER → { type:DELIVER, payload:{artifact} }（artifact 透传）', () => {
+  it('Minor：REJECT 无 note → payload 无 reason 键（不再产生 {reason: undefined}）', () => {
+    const r = fromParsedAction({ ok: true, type: 'REJECT' });
+    expect(r).toEqual({ type: 'REJECT', payload: {} });
+    expect(Object.prototype.hasOwnProperty.call(r!.payload, 'reason')).toBe(false);
+  });
+
+  it('DELIVER（无 parts）→ { type:DELIVER, payload:{artifact} }（artifact 透传）', () => {
     const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'acl://x.patch' };
     const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact });
     expect(r).toEqual({ type: 'DELIVER', payload: { artifact } });
@@ -102,6 +158,34 @@ describe('fromParsedAction — 入站映射', () => {
   it('ok:false → null（调用方据此计 invalid_rounds）', () => {
     const bad: ParsedAction = { ok: false, reason: '无法解析' };
     expect(fromParsedAction(bad)).toBeNull();
+  });
+
+  // —— Ruling 9：DELIVER 归一化强制路径（落实 Ruling 1） ——
+
+  it('Ruling 9①：DELIVER + 合法 parts → payload.artifact 为归一化对象（非 T2 脏对象）', () => {
+    const dirty = { artifactKind: 'patch' as const }; // T2 只做轻量提取，可能是脏的
+    const parts = [
+      deliveryPart({ artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'acl://x.patch' }),
+    ];
+    const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact: dirty }, parts);
+    expect(r).toEqual({
+      type: 'DELIVER',
+      payload: { artifact: { artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'acl://x.patch' } },
+    });
+    expect((r?.payload as { artifact: unknown }).artifact).not.toBe(dirty);
+  });
+
+  it('Ruling 9②：DELIVER + 脏 artifact parts（未知 artifactKind）→ null', () => {
+    const parts = [deliveryPart({ artifactKind: 'wormhole', uri: 'acl://x' })];
+    expect(
+      fromParsedAction({ ok: true, type: 'DELIVER', artifact: { artifactKind: 'patch' } }, parts),
+    ).toBeNull();
+  });
+
+  it('Ruling 9③：DELIVER + 无 parts → 旧行为（透传 a.artifact）', () => {
+    const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'acl://x.patch' };
+    const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact });
+    expect(r).toEqual({ type: 'DELIVER', payload: { artifact } });
   });
 });
 
