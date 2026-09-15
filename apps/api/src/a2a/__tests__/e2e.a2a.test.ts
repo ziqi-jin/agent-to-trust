@@ -234,14 +234,19 @@ describe('Task 10 — 免 SDK 端到端全链路（mock A2A server）', () => {
     expect(agentRow.name).toBe(USER_AGENT_NAME);
     expect(agentRow.pubkey, '登记时 pubkey 为空（开局才绑平台公钥）').toBeNull();
 
-    // 代表「已过考场门槛」的真实证据（行为榜资格三件套之一；arena 证据由本局结算产出）
-    await db.insert(evidence).values({
-      id: `ev-${agentId}-bench`,
-      agentId,
-      dimension: 'delivery',
-      source: 'real-benchmark',
-      result: 'success',
-    });
+    // 代表「已过考场门槛」的真实证据（行为榜资格三件套之一；arena 证据由本局结算产出）。
+    // v0.2 绝对分口径：考场合计 4 维（capability/delivery/integrity/negotiation，权重和 0.5），
+    // 全 success ⇒ 绝对分 500（≥ 门槛 350）。旧口径「单维即 1000」的归一化缺陷已随 v0.2 修复，
+    // 故此处必须按真实考场维度播种，单维证据会得 150 分而被榜2 门槛挡下。
+    await db.insert(evidence).values(
+      (['capability', 'delivery', 'integrity', 'negotiation'] as const).map((dimension) => ({
+        id: `ev-${agentId}-bench-${dimension}`,
+        agentId,
+        dimension,
+        source: 'real-benchmark' as const,
+        result: 'success' as const,
+      })),
+    );
 
     // ② 注入 fetch：card 读取 + message/send 都真打本机 mock server（全链路真 HTTP）
     __setA2aRunOverrides({
