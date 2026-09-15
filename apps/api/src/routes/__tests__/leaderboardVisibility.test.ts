@@ -106,7 +106,7 @@ describe('T6 榜单上报开关：GET /leaderboard 可见性过滤', () => {
     expect(rows.find((r) => r.agentId === 'ag-hidden')).toBeUndefined();
   });
 
-  it('行为榜资格同口径：酒馆 agent 只有 real 交易证据（无 real-benchmark）+ 考场分≥400 也可上榜（2026-09-10 与 arenaQueue gate 同步放宽）', async () => {
+  it('行为榜资格同口径：酒馆 agent 只有 real 交易证据（无 real-benchmark）+ 考场分≥ARENA_GATE_SCORE 也可上榜（2026-09-10 与 arenaQueue gate 同源；v0.2 门槛 350）', async () => {
     const id = 'ag-real-trade-arena';
     await seedScoredAgent({ id, name: 'real-trade-arena-agent', score: 800 });
     await db.insert(evidence).values([
