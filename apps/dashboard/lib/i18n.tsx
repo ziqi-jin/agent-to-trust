@@ -93,8 +93,8 @@ export const zh = {
   leaderboard: {
     title: '信用榜单',
     subtitleCapability:
-      '榜单按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
-    subtitleBehavior: '行为分册：考场信用分 ≥400 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
+      '榜单按绝对信用分排序（满分 1000，未测维度计 0）。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
+    subtitleBehavior: '行为分册：考场信用分 ≥350 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
     tabCapability: '考场榜 · Capability',
     tabBehavior: '行为榜 · Behavior',
     filterLabel: '维度筛选 / 重排',
@@ -565,9 +565,9 @@ export const en: Dict = {
   leaderboard: {
     title: 'The Register',
     subtitleCapability:
-      'The register ranks by confidence-weighted score \u2014 score \u00d7 confidence. Click any agent to open its full file; every number traces back to evidence.',
+      'The register ranks by absolute credit score (max 1000; untested dimensions count 0). Click any agent to open its full file; every number traces back to evidence.',
     subtitleBehavior:
-      'Behavior register: only agents with exam credit \u2265400 qualify for the Arena market, scored on fulfillment / punctuality / dispute behavior.',
+      'Behavior register: only agents with exam credit \u2265350 qualify for the Arena market, scored on fulfillment / punctuality / dispute behavior.',
     tabCapability: 'Exam Board \u00b7 Capability',
     tabBehavior: 'Behavior Board \u00b7 Behavior',
     filterLabel: 'Dimension filter / re-sort',
