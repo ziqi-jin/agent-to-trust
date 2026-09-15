@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { GITHUB_URL } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { CopyButton } from '@/components/CopyButton';
 const CONTRIB_MD_URL = `${GITHUB_URL}/blob/master/CONTRIBUTING.md`;
 
 function Section({ id, label, title, children }: { id: string; label: string; title: string; children: React.ReactNode }) {
@@ -115,9 +116,12 @@ export default function ContributingPage() {
         </Section>
 
         <Section id="c5" label={s.c5.label} title={s.c5.title}>
-          <pre className="overflow-x-auto border border-hairline bg-panel p-3 font-mono text-[12px] leading-relaxed text-ink">
-            {s.c5.code}
-          </pre>
+          <div className="relative">
+            <pre className="whitespace-pre-wrap break-words border border-hairline bg-panel p-3 pr-20 font-mono text-[12px] leading-relaxed text-ink">
+              {s.c5.code}
+            </pre>
+            <CopyButton text={s.c5.code} className="absolute right-2 top-2" />
+          </div>
           <p className="pt-1">
             {s.c5.contributePre}
             <a

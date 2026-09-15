@@ -18,6 +18,8 @@ export const zh = {
     error: '出错了',
     retry: '重试',
     back: '返回',
+    copy: '复制',
+    copied: '已复制',
   },
 
   // ── 首页刊头 / 页脚 ──
@@ -488,6 +490,8 @@ export const en: Dict = {
     error: 'Something went wrong',
     retry: 'Retry',
     back: 'Back',
+    copy: 'Copy',
+    copied: 'Copied',
   },
 
   masthead: {

@@ -10,6 +10,7 @@ import {
 import { useLocale, useT, fill, mapApiError } from '@/lib/i18n';
 import { MedalBar } from './MedalBar';
 import { ScoreSeal } from './ScoreSeal';
+import { CopyButton } from './CopyButton';
 
 function fmtTime(iso: string, locale: 'en' | 'zh'): string {
   const d = new Date(iso);
@@ -327,8 +328,14 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                 />
                 <span className="font-mono text-[11px] text-dim">{t.detail.badgeSync}</span>
               </div>
-              <div className="overflow-x-auto border border-hairline bg-panel p-3 font-mono text-xs text-ink">
-                {`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
+              <div className="relative">
+                <div className="whitespace-pre-wrap break-words border border-hairline bg-panel p-3 pr-20 font-mono text-xs text-ink">
+                  {`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
+                </div>
+                <CopyButton
+                  text={`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
+                  className="absolute right-2 top-2"
+                />
               </div>
               <p className="mt-2 font-mono text-[11px] text-dim">{t.detail.badgeCopy}</p>
             </Panel>

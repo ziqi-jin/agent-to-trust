@@ -1,4 +1,5 @@
 import { useT } from '@/lib/i18n';
+import { CopyButton } from './CopyButton';
 
 export function Quickstart() {
   const t = useT();
@@ -24,9 +25,12 @@ export function Quickstart() {
             </span>
             <h3 className="mt-2 font-display text-base font-bold text-ink">{s.title}</h3>
             <p className="mt-2 min-h-10 text-[13px] leading-relaxed text-dim">{s.desc}</p>
-            <pre className="mt-3 overflow-x-auto border border-hairline bg-panel p-3 font-mono text-[11px] leading-relaxed text-ink">
-              <code>{s.cmd}</code>
-            </pre>
+            <div className="relative mt-3">
+              <pre className="whitespace-pre-wrap break-words border border-hairline bg-panel p-3 pr-20 font-mono text-[11px] leading-relaxed text-ink">
+                <code>{s.cmd}</code>
+              </pre>
+              <CopyButton text={s.cmd} className="absolute right-2 top-2" />
+            </div>
           </div>
         ))}
       </div>
