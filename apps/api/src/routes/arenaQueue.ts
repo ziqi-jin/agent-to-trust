@@ -17,12 +17,15 @@
  *   → SETTLE；用户 NEGOTIATE → 重发同价 OFFER（≤3 轮，超限 REJECT）；用户 REJECT → 退出。
  */
 
-import { randomUUID } from 'node:crypto';
-import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { DeepSeekClient } from '@acl/adapters';
-import { arenaEvents, arenaSessions, creditScores, evidence, testQueue } from '../db/schema';
+import { fetchAgentCard, isArenaReady, type AclAgentCard } from '../a2a/card.js';
+import { runA2aBridge, type A2aBridgeStats } from '../a2a/bridge.js';
+import { agents, arenaEvents, arenaSessions, agentConnections, creditScores, evidence, testQueue } from '../db/schema';
+import { hashConnectionToken } from './connections';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import {
   createLiveBrain,
@@ -94,6 +97,33 @@ export function resetQueueForTests(): void {
   queue.clear();
 }
 
+/**
+ * A2A 开局的可注入覆盖（仅测试用；生产恒 undefined，走真实 fetch / 默认桥参数）。
+ * TypeScript 模块级单例：测试经 `__setA2aRunOverrides` 注入假 fetchImpl，避免真发网络。
+ */
+export interface A2aRunOverrides {
+  fetchImpl?: typeof fetch;
+  pollMs?: number;
+  maxRounds?: number;
+  maxWaitMs?: number;
+  failStreakLimit?: number;
+}
+
+let a2aRunOverrides: A2aRunOverrides | undefined;
+
+/** 测试注入点：覆盖 A2A 开局的网络/桥参数。传 undefined 复位。 */
+export function __setA2aRunOverrides(o?: A2aRunOverrides): void {
+  a2aRunOverrides = o;
+}
+
+/** token 校验：与登记方同款 `hashConnectionToken`（sha256 hex）+ 常量时间比对（防时序侧信道）。 */
+function tokenMatches(token: string, tokenHash: string): boolean {
+  const got = Buffer.from(hashConnectionToken(token), 'hex');
+  const want = Buffer.from(tokenHash, 'hex');
+  if (got.length !== want.length || got.length === 0) return false;
+  return timingSafeEqual(got, want);
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -133,7 +163,7 @@ async function createMatchSession(
   app: FastifyInstance,
   buyerAgentId: string,
   sellerAgentId: string,
-  opts: { mode?: 'scripted' | 'live' } = {},
+  opts: { mode?: 'scripted' | 'live'; adapter?: 'polling' | 'a2a'; a2aCardUrl?: string } = {},
 ): Promise<{ sessionId: string; seed: string; personaId: string; mode: 'scripted' | 'live' }> {
   const id = `as-${randomUUID().slice(0, 8)}`;
   const mode = opts.mode ?? 'scripted';
@@ -150,6 +180,8 @@ async function createMatchSession(
     counterpartMode: mode,
     counterpartSeed: seed,
     counterpartPersona: personaId,
+    adapter: opts.adapter ?? 'polling',
+    a2aCardUrl: opts.a2aCardUrl ?? null,
   });
   return { sessionId: id, seed, personaId, mode };
 }
@@ -660,6 +692,130 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
       return { status: 'matched', sessionId: entry.sessionId };
     }
     return { status: 'waiting' };
+  });
+
+  /**
+   * A2A 开局入口（Task 8）：已登记连接 + 合法 token → 建 `adapter='a2a'` 会话并起双向桥。
+   *
+   * 语义（spec §2.3）：平台当 buyer（对家引擎走 live 人格抽签路径，出 OFFER），
+   * 用户当 seller；桥代表用户在表内注入其 A2A 回复（签名信封走既有安全链）。
+   * 失败路径一律 4xx（不抛穿）：连接不存在/已撤销、token 不符、卡片不可读/未过门槛。
+   */
+  app.post('/arena/connections/:id/runs', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = (req.body ?? {}) as Record<string, unknown>;
+
+    // 1) 取连接：不存在 → 404；已撤销 → 410。
+    const [conn] = await app.db
+      .select()
+      .from(agentConnections)
+      .where(eq(agentConnections.id, id));
+    if (!conn) return reply.code(404).send({ error: '连接不存在' });
+    if (conn.revokedAt) return reply.code(410).send({ error: '连接已撤销' });
+
+    // 2) 身份校验：body.token 或 Authorization: Bearer；不符 → 401（不建会话、不拉卡片）。
+    const auth = req.headers['authorization'];
+    const bearer =
+      typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).trim() : undefined;
+    const token = typeof body.token === 'string' && body.token ? body.token : bearer;
+    if (!token || !tokenMatches(token, conn.tokenHash)) {
+      return reply.code(401).send({ error: 'token 校验失败' });
+    }
+
+    // 3) 读 Agent Card + 分流：不可读 / 未过门槛 → 4xx（本局不建）。
+    const cardResult = await fetchAgentCard(conn.cardUrl, { fetchImpl: a2aRunOverrides?.fetchImpl });
+    if (!cardResult.ok) {
+      return reply.code(422).send({ error: `Agent Card 读取失败：${cardResult.reason}` });
+    }
+    const card: AclAgentCard = cardResult.card;
+    if (!isArenaReady(card)) {
+      return reply
+        .code(422)
+        .send({ error: 'Agent Card 未达 Arena 门槛（需 x-acl.arenaReady=true 且有 negotiation/trade skill）' });
+    }
+
+    // 4) 建会话 + 起桥（后台，不阻塞响应）。
+    try {
+      const platformDir = process.env.PLATFORM_KEY_DIR ?? '/app/data/.acl-platform';
+      const keys = ensureKeypair(platformDir);
+
+      // 身份绑定（Task 10 fix1，Ruling 16 收紧）：**先读卖家 agent，再分支**，绝不无条件覆写——
+      // 登记时显式给的 {agentId} 可能自持密钥，平台顶写会代其签名，违反「密钥即身份」。
+      //   1) 行不存在 → 404（防御；FK 下不应发生）
+      //   2) pubkey 为空（name 铸造的平台托管身份）→ 绑平台公钥（WHERE 保留幂等守卫）
+      //   3) pubkey 已是平台公钥 → 幂等，跳过 UPDATE
+      //   4) 其他值（自持密钥）→ 409，不覆写、不建会话
+      const [seller] = await app.db.select().from(agents).where(eq(agents.id, conn.agentId));
+      if (!seller) {
+        return reply.code(404).send({ error: '连接指向的 agent 不存在' });
+      }
+      if (seller.pubkey === null) {
+        await app.db
+          .update(agents)
+          .set({ pubkey: keys.publicKeyPem })
+          .where(and(eq(agents.id, conn.agentId), isNull(agents.pubkey)));
+      } else if (seller.pubkey !== keys.publicKeyPem) {
+        return reply.code(409).send({
+          error: '该 agent 已自持密钥，A2A 托管接入请另用 name 登记以铸造平台托管身份',
+        });
+      }
+
+      const identity = await upsertAgentIdentity(app.db, {
+        name: PLATFORM_NAME,
+        pubkey: keys.publicKeyPem,
+      });
+      if (identity.error === 'name-taken') {
+        throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
+      }
+
+      // live 可用则 LLM 人格对家；缺 key/超日预算 → 降级 scripted（Ruling 3），不影响建局。
+      const client = buildLiveClient();
+      const mode: 'scripted' | 'live' = client ? 'live' : 'scripted';
+      const { sessionId, seed, personaId } = await createMatchSession(
+        app,
+        identity.agentId, // buyer = 平台对家
+        conn.agentId, // seller = 用户（桥代表其注入签名事件）
+        { mode, adapter: 'a2a', a2aCardUrl: conn.cardUrl },
+      );
+      const { brain, budget } = buildBuyerBrain(mode, seed, personaId, client);
+      // 平台对家引擎（出 OFFER）异步跑
+      void runBuyerEngine(app, sessionId, identity.agentId, keys, brain, budget);
+
+      // 双向桥：代表用户侧（seller）把对家事件翻 A2A、把用户回复签名注入内核。
+      let lastStats: A2aBridgeStats | undefined;
+      void runA2aBridge(app, {
+        sessionId,
+        platformAgentId: conn.agentId,
+        keys,
+        card,
+        token,
+        fetchImpl: a2aRunOverrides?.fetchImpl,
+        pollMs: a2aRunOverrides?.pollMs,
+        maxRounds: a2aRunOverrides?.maxRounds,
+        maxWaitMs: a2aRunOverrides?.maxWaitMs,
+        failStreakLimit: a2aRunOverrides?.failStreakLimit,
+        onStats: (s) => {
+          lastStats = s;
+        },
+      })
+        .then(async () => {
+          // 桥终局后把轮次统计落库（Task 1 新列；审计/口径用）。
+          await app.db
+            .update(arenaSessions)
+            .set({
+              a2aRounds: lastStats?.rounds ?? 0,
+              a2aInvalidRounds: lastStats?.invalidRounds ?? 0,
+            })
+            .where(eq(arenaSessions.id, sessionId));
+        })
+        .catch(() => {
+          /* 落库失败不抛穿（桥已自行收敛失败路径） */
+        });
+
+      return reply.code(202).send({ sessionId, status: 'running' });
+    } catch (e) {
+      return reply.code(500).send({ error: 'A2A 开局失败：' + (e as Error).message });
+    }
   });
 
   // 放行 tick：定时扫持久化队列，有空位即撮合（测试可放大 QUEUE_TICK_MS 禁用）

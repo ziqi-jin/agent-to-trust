@@ -12,6 +12,21 @@ import type { FastifyInstance } from 'fastify';
 import { arenaEvents, arenaSessions, evidence } from '../db/schema';
 import { computeAndPersist } from '../routes/scores';
 
+/**
+ * 证据 `source_type` 三档口径（spec §4.3，两轴正交）：
+ *   scripted               + 任意 adapter → 'arena-behavior'
+ *   live                   + adapter='a2a' → 'arena-behavior-a2a'
+ *   live                   + 其他（polling/null/undefined）→ 'arena-behavior-live'
+ * 向后兼容：老会话无 adapter（null/undefined）仍产出 'arena-behavior-live'。
+ */
+export function sourceTypeFor(
+  counterpartMode: string | null | undefined,
+  adapter: string | null | undefined,
+): 'arena-behavior' | 'arena-behavior-live' | 'arena-behavior-a2a' {
+  if (counterpartMode !== 'live') return 'arena-behavior';
+  return adapter === 'a2a' ? 'arena-behavior-a2a' : 'arena-behavior-live';
+}
+
 export async function settleSession(
   app: FastifyInstance,
   sessionId: string,
@@ -35,8 +50,8 @@ export async function settleSession(
   const onTime = payload.onTime !== false;
 
   const rows: Array<typeof evidence.$inferInsert> = [];
-  // 双口径（Task 7）：LLM 人格对家（live）与脚本买家（scripted）分开统计，榜单可信度可区分。
-  const sourceType = session.counterpartMode === 'live' ? 'arena-behavior-live' : 'arena-behavior';
+  // 三档口径（Task 9）：scripted / live+polling / live+a2a 正交映射（spec §4.3）。
+  const sourceType = sourceTypeFor(session.counterpartMode, session.adapter);
   const base = {
     source: 'arena',
     sourceType,

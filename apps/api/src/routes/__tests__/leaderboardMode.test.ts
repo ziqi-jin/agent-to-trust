@@ -1,12 +1,12 @@
 /**
  * 榜2（行为榜）对家模式筛选 —— 2026-09-14 Live Counterpart Engine（Task 8）。
  *
- * 行为证据双口径落库（Task 7）：scripted → evidence.source_type='arena-behavior'，
- * live → 'arena-behavior-live'（source 均为 'arena'）。
+ * 行为证据三口径落库（Task 7 / Task 11）：scripted → evidence.source_type='arena-behavior'，
+ * live → 'arena-behavior-live'，A2A → 'arena-behavior-a2a'（source 均为 'arena'）。
  * 本测试覆盖 GET /leaderboard?board=behavior&mode=scripted|live|all：
  *  - mode=scripted 只返回仅有脚本证据的 agent（A）
- *  - mode=live 只返回仅有 live 证据的 agent（B）
- *  - mode=all / 缺省 返回两者
+ *  - mode=live 只返回 live 口径的 agent（B + A2A，spec §4.3：who 轴同为 live）
+ *  - mode=all / 缺省 返回三者
  *  - 非法 mode → 400
  *  - 每行 counterpartModes 正确反映该 agent 有行为证据的模式集合
  */
@@ -38,7 +38,7 @@ const dims = (
 async function seed(opts: {
   id: string;
   name: string;
-  sourceType: 'arena-behavior' | 'arena-behavior-live';
+  sourceType: 'arena-behavior' | 'arena-behavior-live' | 'arena-behavior-a2a';
 }): Promise<void> {
   await db.insert(agents).values({
     id: opts.id,
@@ -87,6 +87,7 @@ beforeAll(async () => {
   );
   await seed({ id: 'ag-scripted', name: 'scripted-agent', sourceType: 'arena-behavior' });
   await seed({ id: 'ag-live', name: 'live-agent', sourceType: 'arena-behavior-live' });
+  await seed({ id: 'ag-a2a', name: 'a2a-agent', sourceType: 'arena-behavior-a2a' });
 });
 
 afterAll(async () => {
@@ -115,22 +116,22 @@ describe('榜2 对家模式筛选（Task 8）', () => {
     expect(ids(rows)).toEqual(['ag-scripted']);
   });
 
-  it('mode=live 只返回仅有 live 证据的 agent', async () => {
+  it('mode=live 返回 live 与 A2A 口径的 agent（spec §4.3：who 轴同为 live）', async () => {
     const { status, rows } = await modeBoard('live');
     expect(status).toBe(200);
-    expect(ids(rows)).toEqual(['ag-live']);
+    expect(ids(rows)).toEqual(['ag-a2a', 'ag-live']);
   });
 
-  it('mode=all 返回两者', async () => {
+  it('mode=all 返回三者', async () => {
     const { status, rows } = await modeBoard('all');
     expect(status).toBe(200);
-    expect(ids(rows)).toEqual(['ag-live', 'ag-scripted']);
+    expect(ids(rows)).toEqual(['ag-a2a', 'ag-live', 'ag-scripted']);
   });
 
-  it('缺省 mode 等价于 all，返回两者', async () => {
+  it('缺省 mode 等价于 all，返回三者', async () => {
     const { status, rows } = await modeBoard();
     expect(status).toBe(200);
-    expect(ids(rows)).toEqual(['ag-live', 'ag-scripted']);
+    expect(ids(rows)).toEqual(['ag-a2a', 'ag-live', 'ag-scripted']);
   });
 
   it('非法 mode → 400', async () => {
@@ -142,7 +143,10 @@ describe('榜2 对家模式筛选（Task 8）', () => {
     const { rows } = await modeBoard('all');
     const a = rows.find((r) => r.agentId === 'ag-scripted')!;
     const b = rows.find((r) => r.agentId === 'ag-live')!;
+    const c = rows.find((r) => r.agentId === 'ag-a2a')!;
     expect(a.counterpartModes).toEqual(['scripted']);
     expect(b.counterpartModes).toEqual(['live']);
+    // Task 11：A2A 证据 who 轴归 live（how 轴 sdk/a2a 延后 P1）
+    expect(c.counterpartModes).toEqual(['live']);
   });
 });

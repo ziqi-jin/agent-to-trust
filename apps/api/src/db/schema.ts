@@ -152,6 +152,14 @@ export const arenaSessions = pgTable('arena_sessions', {
   counterpartSeed: text('counterpart_seed'),
   /** live 引擎本局消耗 token 数（计费/审计用）。 */
   counterpartTokens: integer('counterpart_tokens').default(0),
+  /** 接入适配器：'polling'（默认，轮询托管对家）| 'a2a'（Agent2Agent 直连）。 */
+  adapter: text('adapter').notNull().default('polling'),
+  /** A2A 对家的 agent card URL（adapter='a2a' 时有值）。 */
+  a2aCardUrl: text('a2a_card_url'),
+  /** A2A 会话总轮数（adapter='a2a' 时统计）。 */
+  a2aRounds: integer('a2a_rounds'),
+  /** A2A 会话中无效轮数（adapter='a2a' 时统计）。 */
+  a2aInvalidRounds: integer('a2a_invalid_rounds'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -175,4 +183,22 @@ export const arenaEvents = pgTable(
     uniqueIndex('uq_arena_events_session_seq').on(t.sessionId, t.seq),
     uniqueIndex('uq_arena_events_nonce').on(t.nonce),
   ],
+);
+
+/** A2A 接入连接：agent ↔ 其 agent card 的登记与健康状态（免 SDK 直连入口）。 */
+export const agentConnections = pgTable(
+  'agent_connections',
+  {
+    id: text('id').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    cardUrl: text('card_url').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    arenaReady: boolean('arena_ready').notNull().default(false),
+    lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (t) => [index('idx_agent_connections_agent_id').on(t.agentId)],
 );
