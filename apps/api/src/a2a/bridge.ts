@@ -28,7 +28,7 @@ import { signPayload } from 'sealit-sdk';
 import { arenaEvents } from '../db/schema';
 import { parseA2aAction } from './actions.js';
 import type { AclAgentCard } from './card.js';
-import { sendA2aMessage } from './client.js';
+import { sendA2aMessage, type A2aPart } from './client.js';
 import { fromParsedAction, toA2aMessage, type KernelEvent } from './wire.js';
 
 /** 轮询间隔（默认 2s，与对家引擎一致；测试可注入 `pollMs` 调小）。 */
@@ -130,36 +130,67 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
   let nextSeq = 1;
   let maxSeenSeq = 0;
   const history: KernelEvent[] = [];
+  /** 已注入事件的 seq → 当时 A2A 往返轮次（供自己事件回放时正确归轮）。 */
+  const roundBySeq = new Map<number, number>();
   const contextId = `acl-${sessionId}`;
   const deadline = Date.now() + maxWaitMs;
 
-  /** 与 arenaQueue 同构：包签名信封 → app.inject 注入；非 201 即安全失败（不抛）。 */
+  /**
+   * 与 arenaQueue 同构：包签名信封 → app.inject 注入；非 201 即安全失败（不抛）。
+   * 409（seq 冲突）时**重读事件校准 nextSeq 后重试一次**（有界），仅在重试仍失败时判注入失败；
+   * 非 409 错误直接安全失败。
+   */
   const push = async (type: string, payload: Record<string, unknown>): Promise<boolean> => {
-    try {
-      const envelope = {
-        sessionId,
-        seq: nextSeq,
-        type,
-        fromAgent: platformAgentId,
-        payload,
-        nonce: `bridge-${randomUUID()}`,
-        ts: Date.now(),
-      };
-      const sig = signPayload(keys.privateKeyPem, envelope);
-      const res = await app.inject({
-        method: 'POST',
-        url: `/arena/sessions/${sessionId}/events`,
-        payload: { ...envelope, sig, pubkey: keys.publicKeyPem },
-      });
-      if (res.statusCode === 201) {
-        nextSeq += 1;
-        return true;
+    const attempt = async (): Promise<{ ok: true } | { ok: false; conflict: boolean }> => {
+      try {
+        const seq = nextSeq;
+        const envelope = {
+          sessionId,
+          seq,
+          type,
+          fromAgent: platformAgentId,
+          payload,
+          nonce: `bridge-${randomUUID()}`,
+          ts: Date.now(),
+        };
+        const sig = signPayload(keys.privateKeyPem, envelope);
+        const res = await app.inject({
+          method: 'POST',
+          url: `/arena/sessions/${sessionId}/events`,
+          payload: { ...envelope, sig, pubkey: keys.publicKeyPem },
+        });
+        if (res.statusCode === 201) {
+          nextSeq = seq + 1;
+          roundBySeq.set(seq, stats.rounds);
+          return { ok: true };
+        }
+        // 409：会话已终结 / seq 冲突；其他错误同样安全退出
+        return { ok: false, conflict: res.statusCode === 409 };
+      } catch {
+        return { ok: false, conflict: false };
       }
-      // 409：会话已终结 / seq 冲突；其他错误同样安全退出
-      return false;
-    } catch {
-      return false;
+    };
+
+    let result = await attempt();
+    if (result.ok) return true;
+    if (result.conflict) {
+      // seq 竞争（对家/旁路事件抢先占号）→ 重读事件校准 nextSeq，再试一次（有界）
+      try {
+        const evs = await app.db
+          .select()
+          .from(arenaEvents)
+          .where(eq(arenaEvents.sessionId, sessionId));
+        for (const ev of evs) {
+          maxSeenSeq = Math.max(maxSeenSeq, ev.seq);
+          nextSeq = Math.max(nextSeq, ev.seq + 1);
+        }
+        result = await attempt();
+        if (result.ok) return true;
+      } catch {
+        /* 重读失败 → 放弃，按注入失败处理 */
+      }
     }
+    return false;
   };
 
   try {
@@ -191,7 +222,19 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
       for (const e of fresh) {
         maxSeenSeq = Math.max(maxSeenSeq, e.seq);
         nextSeq = Math.max(nextSeq, e.seq + 1);
-        if (e.fromAgent === platformAgentId) continue; // 自己注入的回放
+
+        // 自己注入的回放：只入历史（供下轮摘要按「你」归属），不再翻 A2A 打用户 agent
+        if (e.fromAgent === platformAgentId) {
+          history.push({
+            type: e.type,
+            payload: e.payload,
+            sessionId,
+            seq: e.seq,
+            round: roundBySeq.get(e.seq) ?? stats.rounds + 1,
+            fromAgent: e.fromAgent,
+          });
+          continue;
+        }
         onlyOwn = false;
 
         // 对家终局事件：桥退出，不再打扰用户 agent
@@ -206,17 +249,28 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
         }
         stats.rounds += 1;
 
+        // 轮次 = 桥自维护的 A2A 往返计数（Ruling 7）；**不**用内核 seq / 历史长度
+        const round = stats.rounds;
         const historyBefore = history.slice();
         const kernelEvent: KernelEvent = {
           type: e.type,
           payload: e.payload ?? null,
           sessionId,
           seq: e.seq,
+          round,
+          fromAgent: e.fromAgent,
         };
-        history.push({ type: e.type, payload: e.payload, sessionId, seq: e.seq });
+        history.push({
+          type: e.type,
+          payload: e.payload,
+          sessionId,
+          seq: e.seq,
+          round,
+          fromAgent: e.fromAgent,
+        });
 
-        // 内核事件 → A2A 自包含消息 → 打用户 agent
-        const { text, metadata } = toA2aMessage(kernelEvent, historyBefore);
+        // 内核事件 → A2A 自包含消息 → 打用户 agent（selfAgentId=平台侧身份 → 历史按「你/对家」归属）
+        const { text, metadata } = toA2aMessage(kernelEvent, historyBefore, { selfAgentId: platformAgentId });
         const taskId = `acl-${sessionId}-r${e.seq}`;
         const send = await sendA2aMessage(
           card,
@@ -225,6 +279,7 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
         );
 
         if (!send.ok) {
+          // failStreak 按「入站事件」计（与 runBuyerEngine 同构：每个失败回合 +1），非按时间/网络调用计
           stats.failStreak += 1;
           report();
           if (stats.failStreak >= failStreakLimit) {
@@ -237,9 +292,9 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
         }
         stats.failStreak = 0;
 
-        // A2A 回复 → 内核动作
+        // A2A 回复 → 内核动作（传 parts → DELIVER 强制走 normalizeArtifact 校验闭合）
         const parsed = parseA2aAction({ parts: send.parts as unknown[] });
-        const mapped = fromParsedAction(parsed);
+        const mapped = fromParsedAction(parsed, send.parts as A2aPart[]);
         if (!mapped) {
           stats.invalidRounds += 1;
           report();
