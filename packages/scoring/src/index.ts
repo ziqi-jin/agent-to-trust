@@ -15,7 +15,7 @@ import {
   type Source,
 } from '@acl/core';
 
-export const SCORE_MODEL_VERSION = 'baseline-v0.1';
+export const SCORE_MODEL_VERSION = 'baseline-v0.2';
 
 const RESULT_VALUE: Record<EvidenceResult, number> = {
   success: 1.0,
@@ -121,10 +121,12 @@ export function computeScore(evidence: EvidencePoint[], now: Date = new Date()):
   let score: number | null = null;
   let adjustedScore: number | null = null;
   if (available.length > 0) {
-    const weightedSum = available.reduce((sum, d) => sum + d.weight * (d.score ?? 0), 0);
-    const totalWeight = available.reduce((sum, d) => sum + d.weight, 0);
-    score = Math.round((weightedSum / totalWeight) * 10);
-    adjustedScore = Math.round(score * confidence(evidence, coverage) * freshness(evidence, now).factor);
+    // v0.2 绝对分：分母恒 = 全 8 维权重和（= 1.0），未测维度记 0。
+    // 「测得越少越占便宜」的旧口径作废：要冲高必须多维度覆盖 + 真实证据。
+    const weightedSum = dimensions.reduce((sum, d) => sum + d.weight * (d.score ?? 0), 0);
+    score = Math.round(weightedSum * 10);
+    // v0.2：adjustedScore 只保留时效衰减（coverage 已进 score，不再二次打折）。
+    adjustedScore = Math.round(score * freshness(evidence, now).factor);
   }
 
   const { days, factor } = freshness(evidence, now);
