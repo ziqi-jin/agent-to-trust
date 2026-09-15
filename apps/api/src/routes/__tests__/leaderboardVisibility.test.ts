@@ -119,7 +119,7 @@ describe('T6 榜单上报开关：GET /leaderboard 可见性过滤', () => {
   });
 
   it('一开关管两榜：opt-out agent 满足行为榜资格也进不了 behavior 榜', async () => {
-    // 行为榜资格：arena 证据 + real-benchmark 证据 + 考场分 ≥ ARENA_GATE_SCORE(400)
+    // 行为榜资格：arena 证据 + real-benchmark 证据 + 考场分 ≥ ARENA_GATE_SCORE(350)
     const id = 'ag-hidden-arena';
     await seedScoredAgent({
       id,

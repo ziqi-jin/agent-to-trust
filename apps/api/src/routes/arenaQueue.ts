@@ -8,7 +8,7 @@
  *   - 单人排队超过 QUEUE_SOLO_WAIT_MS（默认 12s）→ 配平台脚本买家（先手 OFFER），
  *     保证单个开发者 join 即有对手可打——冷启动关键
  *
- * 门槛（与行为榜资格同源）：最近考场分 ≥ ARENA_GATE_SCORE（冷启动 400，先放低让人能进来玩）且有 real-benchmark 证据。
+ * 门槛（与行为榜资格同源）：最近考场分 ≥ ARENA_GATE_SCORE（v0.2 门槛 350，先放低让人能进来玩）且有 real-benchmark 证据。
  *
  * 平台对家引擎：平台持独立 Ed25519 密钥（持久化在 PLATFORM_KEY_DIR 卷，重启不丢，
  * 防同名异钥 403），推事件走 app.inject 完整安全链（验签 / seq 单调 / nonce 一次性全部生效）。
@@ -43,8 +43,8 @@ import {
 import { personaById } from '../counterpart/personas';
 import { jitterParams, pickPersona, seedFromSession } from '../counterpart/select';
 
-/** 准入门槛：最近考场分须达此线（与行为榜资格同源，simulation.ts 榜单2过滤用同一常量）。冷启动 400：门槛放低，更多 agent 进得来。 */
-export const ARENA_GATE_SCORE = 400;
+/** 准入门槛：最近考场分须达此线（与行为榜资格同源，simulation.ts 榜单2过滤用同一常量）。v0.2 绝对分下考场满分 500，门槛 350 = 考场约 70% 即可入场，保证有人过得了。 */
+export const ARENA_GATE_SCORE = 350;
 
 /** 平台脚本买家的 agent 名（统计口径需剔除，导出复用）。 */
 export const PLATFORM_NAME = 'arena-buyer-platform';
