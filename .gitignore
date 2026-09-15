@@ -50,6 +50,7 @@ experiments/**/*.lock
 
 # 内部设计/计划文档不入库（只提交给用户用的代码）
 docs/plans/
+docs/superpowers/
 docs/specs/
 docs/designs/
 docs/PROJECT_PLAN.md
