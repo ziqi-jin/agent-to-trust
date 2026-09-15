@@ -305,11 +305,11 @@ export async function simulationRoutes(app: FastifyInstance) {
         if (board === 'behavior') {
           return (y.behaviorScore ?? -1) - (x.behaviorScore ?? -1);
         }
-        // 榜单1：置信加权分优先——1000 分低置信不该压过 797 分高置信（dogfood 0901 发现）
-        const xa = x.adjustedScore ?? -1;
-        const ya = y.adjustedScore ?? -1;
-        if (ya !== xa) return ya - xa;
-        return (y.score ?? -1) - (x.score ?? -1);
+        // 榜单1：显示键 = 排序键 = 绝对分（v0.2）。绝对分不再虚高，「1000 压 797」的旧缺陷已在引擎层根治。
+        const xs = x.score ?? -1;
+        const ys = y.score ?? -1;
+        if (ys !== xs) return ys - xs;
+        return (y.adjustedScore ?? -1) - (x.adjustedScore ?? -1);
       })
       .map((row, i) => ({ ...row, rank: i + 1 }));
   });

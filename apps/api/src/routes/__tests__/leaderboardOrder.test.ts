@@ -1,7 +1,7 @@
 /**
- * GET /leaderboard 排序规则：榜单1（capability）按置信加权分 adjustedScore 降序，
- * 平分时按原始分。修复 dogfood 0901 发现的问题：三个 seed agent 原始 1000 分
- * （置信度 0.135）压顶，真实考出来的 797 分（置信度 0.46）排后面——榜单失去可信度。
+ * GET /leaderboard 排序规则：榜单1（capability）按绝对分 score 降序，
+ * 平分时按 adjustedScore。v0.2 绝对分下显示键 = 排序键：旧版「三个 seed agent 原始 1000 分
+ * （置信度 0.135）压顶、真实考出来的 797 分排后面」的问题已在引擎层根治（置信度折价不再改变分数口径）。
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -66,24 +66,22 @@ describe('GET /leaderboard 排序', () => {
     expect(rows.find((r) => r.agentId === 'ag-e2e')).toBeUndefined();
   });
 
-  it('capability 榜按 adjustedScore 降序：797(366) > 500(250) > 1000(135)', async () => {
+  it('capability 榜按绝对分 score 降序：1000 > 797 > 500', async () => {
     const res = await app.inject({ method: 'GET', url: '/leaderboard' });
     expect(res.statusCode).toBe(200);
     const rows = res.json() as Array<{ agentId: string; rank: number; score: number | null }>;
-    expect(rows.map((r) => r.agentId)).toEqual(['ag-real', 'ag-mid', 'ag-inflated']);
+    expect(rows.map((r) => r.agentId)).toEqual(['ag-inflated', 'ag-real', 'ag-mid']);
     expect(rows[0].rank).toBe(1);
   });
 
-  it('adjustedScore 相同时按原始分降序', async () => {
+  it('score 相同时按 adjustedScore 降序（次级排序键）', async () => {
     await db.insert(creditScores).values([
-      { id: 'cs-4', agentId: 'ag-inflated', score: 990, adjustedScore: 135, confidence: 0.136, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1'] },
+      { id: 'cs-5', agentId: 'ag-real', score: 500, adjustedScore: 300, confidence: 0.6, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1'] },
     ]);
     const res = await app.inject({ method: 'GET', url: '/leaderboard' });
-    const rows = res.json() as Array<{ agentId: string; score: number | null }>;
-    const scores = rows.filter((r) => r.agentId === 'ag-inflated').map((r) => r.score);
-    // 只保留每个 agent 的最新一条（cs-4 后插入，createdAt 更新）
-    expect(rows.map((r) => r.agentId)).toEqual(['ag-real', 'ag-mid', 'ag-inflated']);
-    expect(scores).toHaveLength(1);
+    const rows = res.json() as Array<{ agentId: string }>;
+    // 1000 居首；同为 500 时 ag-real(adj300) 应压过 ag-mid(adj250)
+    expect(rows.map((r) => r.agentId)).toEqual(['ag-inflated', 'ag-real', 'ag-mid']);
   });
 
   it('公开读限流 60/min/IP：第 61 次 → 429；他 IP 不受影响（plan §Task 12）', async () => {
