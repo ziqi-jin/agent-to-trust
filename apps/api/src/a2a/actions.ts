@@ -7,8 +7,10 @@
  * 设计裁决（spec §3.3）：
  *  1. 结构化优先：只要存在合法 `aclAction`，就用它，忽略文本档。
  *  2. 文本兜底：解析不出 → ok:false（无效回合），绝不猜测。
- *  3. 归一只做轻量提取：artifact 取到对象 + 最小结构检查（有 artifactKind）。
- *     sha256 校验 / 深度归一化是 `normalizeArtifact`（Task 5）的职责。
+ *  3. 归一只做轻量提取：artifact 只需「是对象 + 有 artifactKind 字段」，不校验取值。
+ *     sha256 校验 / 深度归一化 / 值域归一是 `normalizeArtifact`（Task 5）的职责。
+ *  4. 文本档否定守卫：触发词被否定（前置否定词，或自身含不同否定词）时该动作不成立，
+ *     宁可记无效回合，也不把「不接受」「not accept」误判成 ACCEPT（spec §3.3「不猜测」）。
  *
  * 本模块零依赖：不碰网络、不碰 DB。
  */
@@ -44,7 +46,6 @@ export interface A2aInbound {
 export type A2aParseInput = A2aInbound | { parts: unknown[] };
 
 const ACTION_TYPES: readonly A2aActionType[] = ['OFFER', 'NEGOTIATE', 'ACCEPT', 'REJECT', 'DELIVER'];
-const ARTIFACT_KINDS: readonly ArtifactKind[] = ['patch', 'file', 'output', 'text'];
 
 // —— 小工具 ——
 
@@ -60,12 +61,15 @@ function extractPrice(text: string): number | undefined {
   return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
-/** 最小结构检查：对象且 artifactKind 在允许集合内 → 直接取对象，不做深挖。 */
+/**
+ * 最小结构检查：只要求「是对象 + 有 artifactKind 字段（字符串）」，不校验取值。
+ * 未知 kind 也放行——值域/归一化是 `normalizeArtifact`（Task 5）的职责，T2 只做轻量类型检查。
+ * 返回浅拷贝，避免下游与调用者入参互相别名观察。
+ */
 function asArtifact(v: unknown): DeliveryArtifact | undefined {
   if (!isRecord(v)) return undefined;
-  const kind = v.artifactKind;
-  if (typeof kind !== 'string' || !ARTIFACT_KINDS.includes(kind as ArtifactKind)) return undefined;
-  return v as unknown as DeliveryArtifact;
+  if (typeof v.artifactKind !== 'string') return undefined;
+  return { ...v } as unknown as DeliveryArtifact;
 }
 
 /** 从某个 part 里挖出 artifact 候选（覆盖 spec §3.4 的 Artifact 包一层 parts 的形态）。 */
@@ -162,13 +166,92 @@ function parseStructured(raw: unknown): ParsedAction {
 
 // —— 文本档 ——
 
+/** 否定词（中英）。触发词被否定即失效——守 spec §3.3「不猜测」底线。 */
+export const NEGATION_WORDS: readonly string[] = ['不', '没', '别', '未', '拒绝', 'not', 'no', 'never'];
+
+interface Span {
+  start: number;
+  end: number;
+}
+
+interface TriggerMatch {
+  index: number;
+  text: string;
+}
+
+/** 找出文本里所有否定词出现位置。英文按词边界匹配（避免 `know` 里的 `no`），中文按子串。 */
+function findNegationSpans(text: string): Span[] {
+  const spans: Span[] = [];
+  for (const word of NEGATION_WORDS) {
+    if (/^[a-z]+$/.test(word)) {
+      const re = new RegExp(`\\b${word}\\b`, 'gi');
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        spans.push({ start: m.index, end: m.index + m[0].length });
+        if (m[0].length === 0) re.lastIndex += 1;
+      }
+      continue;
+    }
+    let from = 0;
+    while (from <= text.length) {
+      const i = text.indexOf(word, from);
+      if (i === -1) break;
+      spans.push({ start: i, end: i + word.length });
+      from = i + 1;
+    }
+  }
+  return spans;
+}
+
+/**
+ * 触发词是否被否定：
+ *  - 触发词之前（任意位置，不要求仅紧邻）出现否定词 → 否定；
+ *  - 触发词自身含「非同一词」的否定词（如「不干了」里的「不」）→ 否定。
+ *    否定词与触发词恰为同一个词（如 REJECT 触发词「拒绝」）时不自我否定。
+ */
+function isNegated(text: string, match: TriggerMatch): boolean {
+  const start = match.index;
+  const end = match.index + match.text.length;
+  return findNegationSpans(text).some(({ start: s, end: e }) => {
+    if (e <= start) return true;
+    if (s >= start && e <= end && text.slice(s, e) !== match.text) return true;
+    return false;
+  });
+}
+
+/** 收集某个触发词正则的全部出现。 */
+function findTriggers(text: string, source: string): TriggerMatch[] {
+  const re = new RegExp(source, 'g');
+  const out: TriggerMatch[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    out.push({ index: m.index, text: m[0] });
+    if (m[0].length === 0) re.lastIndex += 1;
+  }
+  return out;
+}
+
+/** 触发词是否「活着」：至少一次出现未被否定。 */
+function hasLiveTrigger(text: string, source: string): boolean {
+  return findTriggers(text, source).some((m) => !isNegated(text, m));
+}
+
+const ACCEPT_TRIGGERS = '\\baccept\\b|接受|成交';
+const REJECT_TRIGGERS = '\\breject\\b|拒绝|不干了';
+/**
+ * `deal` 只在整句就是一个独立应答词时才算 ACCEPT。
+ * 否则 `deal breaker`（拒绝语境）、`ideal`（子串）都会被误判成接受。
+ */
+const DEAL_ONLY = /^deal[!.。！?？,，\s]*$/;
+
 function parseText(text: string, artifacts: DeliveryArtifact[]): ParsedAction {
   const t = text.trim();
   if (t === '') return { ok: false, reason: '文本为空，无法解析' };
   const lower = t.toLowerCase();
 
-  if (/accept|接受|成交|deal/.test(lower)) return { ok: true, type: 'ACCEPT' };
-  if (/reject|拒绝|不干了/.test(lower)) return { ok: true, type: 'REJECT' };
+  // 命中触发词但全部出现都被否定 → 该动作不成立，继续走后续规则（最终可能 ok:false）
+  if (hasLiveTrigger(lower, ACCEPT_TRIGGERS) || DEAL_ONLY.test(lower)) return { ok: true, type: 'ACCEPT' };
+  if (hasLiveTrigger(lower, REJECT_TRIGGERS)) return { ok: true, type: 'REJECT', note: t };
 
   const wantsDeliver = /deliver|交付|给你/.test(lower);
   if (wantsDeliver) {

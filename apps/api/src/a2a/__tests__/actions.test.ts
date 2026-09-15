@@ -50,8 +50,37 @@ describe('parseA2aAction — 结构化档（aclAction data part）', () => {
     if (!r.ok) expect(r.reason).toMatch(/artifact/i);
   });
 
-  it('DELIVER artifact 无 artifactKind → ok:false', () => {
+  it('DELIVER artifact 无 artifactKind → ok:false（缺字段才是非法）', () => {
     const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER', artifact: { uri: 'x' } } }] });
+    expect(r.ok).toBe(false);
+  });
+
+  it('DELIVER artifact 未知 kind → 仍提取为候选对象（T2 只做轻量类型检查，值域归 T5）', () => {
+    const r = parseA2aAction({
+      dataParts: [{ aclAction: { type: 'DELIVER', artifact: { artifactKind: 'weird', uri: 'x' } } }],
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.type).toBe('DELIVER');
+      expect(r.artifact).toMatchObject({ artifactKind: 'weird', uri: 'x' });
+    }
+  });
+
+  it('asArtifact 返回浅拷贝，不与调用者入参别名', () => {
+    const artifact = { artifactKind: 'patch', note: 'n' };
+    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER', artifact } }] });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.artifact).toEqual(artifact);
+      expect(r.artifact).not.toBe(artifact);
+    }
+  });
+
+  it('结构化非法动作 + 带文本 part（"接受"）→ ok:false（不回退猜文本）', () => {
+    const r = parseA2aAction({
+      dataParts: [{ aclAction: { type: 'BOGUS' } }],
+      textParts: ['接受'],
+    });
     expect(r.ok).toBe(false);
   });
 
@@ -84,10 +113,9 @@ describe('parseA2aAction — 文本档（parts[0].text 兜底）', () => {
     expect(parseA2aAction({ textParts: ['offer 80'] })).toEqual({ ok: true, type: 'OFFER', price: 80 });
   });
 
-  it('含“还价 60” → NEGOTIATE(price)', () => {
+  it('含“还价 60” → NEGOTIATE(price, note=原文)', () => {
     const r = parseA2aAction({ textParts: ['还价 60，行不行'] });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.type).toBe('NEGOTIATE');
+    expect(r).toEqual({ ok: true, type: 'NEGOTIATE', price: 60, note: '还价 60，行不行' });
   });
 
   it('含 accept → ACCEPT', () => {
@@ -100,11 +128,10 @@ describe('parseA2aAction — 文本档（parts[0].text 兜底）', () => {
     }
   });
 
-  it('含 reject/拒绝/不干了 → REJECT', () => {
-    for (const t of ['reject', '拒绝', '不干了']) {
+  it('含 reject/拒绝 → REJECT（note 透传原文）', () => {
+    for (const t of ['reject', '拒绝']) {
       const r = parseA2aAction({ textParts: [t] });
-      expect(r.ok).toBe(true);
-      if (r.ok) expect(r.type).toBe('REJECT');
+      expect(r).toEqual({ ok: true, type: 'REJECT', note: t });
     }
   });
 
@@ -132,6 +159,40 @@ describe('parseA2aAction — 文本档（parts[0].text 兜底）', () => {
 
   it('完全没有输入 → ok:false', () => {
     expect(parseA2aAction({}).ok).toBe(false);
+  });
+});
+
+describe('parseA2aAction — 文本档否定语境守卫（spec §3.3「不猜测」）', () => {
+  it('否定词前置/前置出现 → ACCEPT 失效 → ok:false', () => {
+    for (const t of ['不接受', '我今天不想接受这个价格', 'not accept']) {
+      expect(parseA2aAction({ textParts: [t] }).ok, t).toBe(false);
+    }
+  });
+
+  it('REJECT 触发词含否定词（“不干了”）→ 否定词优先 → ok:false', () => {
+    expect(parseA2aAction({ textParts: ['不干了'] }).ok).toBe(false);
+  });
+
+  it('deal 语义歧义（deal breaker / ideal）→ 不误判 ACCEPT', () => {
+    expect(parseA2aAction({ textParts: ['deal breaker'] }).ok).toBe(false);
+    expect(parseA2aAction({ textParts: ['ideal'] }).ok).toBe(false);
+  });
+
+  it('单独“不” → ok:false', () => {
+    expect(parseA2aAction({ textParts: ['不'] }).ok).toBe(false);
+  });
+
+  it('正向不误伤：接受/成交/我接受这个价格 → ACCEPT，拒绝 → REJECT', () => {
+    expect(parseA2aAction({ textParts: ['接受'] })).toEqual({ ok: true, type: 'ACCEPT' });
+    expect(parseA2aAction({ textParts: ['成交'] })).toEqual({ ok: true, type: 'ACCEPT' });
+    expect(parseA2aAction({ textParts: ['我接受这个价格'] })).toEqual({ ok: true, type: 'ACCEPT' });
+    const rej = parseA2aAction({ textParts: ['拒绝'] });
+    expect(rej.ok).toBe(true);
+    if (rej.ok) expect(rej.type).toBe('REJECT');
+  });
+
+  it('含否定词但真接受（“不废话，成交”）→ 有意判无效回合', () => {
+    expect(parseA2aAction({ textParts: ['不废话，成交'] }).ok).toBe(false);
   });
 });
 
