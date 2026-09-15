@@ -70,12 +70,25 @@ export async function connectionsRoutes(app: FastifyInstance): Promise<void> {
         agentId = found.id;
       } else {
         agentId = `ag-${randomUUID()}`;
-        await app.db.insert(agents).values({
-          id: agentId,
-          name: name as string,
-          pubkey: null,
-          status: 'active',
-        });
+        try {
+          await app.db.insert(agents).values({
+            id: agentId,
+            name: name as string,
+            pubkey: null,
+            status: 'active',
+          });
+        } catch (e) {
+          // 并发同名登记 TOCTOU：两个请求都 SELECT 未命中 → 输家 INSERT 撞 UNIQUE(name) 23505。
+          // 收敛（不冒泡 500）：回头按 name 重选胜者行，复用其 id（幂等）。
+          const code = (e as { code?: string }).code ?? (e as { cause?: { code?: string } }).cause?.code;
+          if (code !== '23505') throw e;
+          const [winner] = await app.db
+            .select({ id: agents.id })
+            .from(agents)
+            .where(eq(agents.name, name as string));
+          if (!winner) throw e;
+          agentId = winner.id;
+        }
       }
     } else {
       const [found] = await app.db

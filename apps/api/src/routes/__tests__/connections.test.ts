@@ -16,6 +16,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -176,6 +177,38 @@ describe('POST /arena/connections — body 校验', () => {
     const res = await post({ agentId: 'ag-does-not-exist', cardUrl: PUBLIC_CARD });
     expect(res.statusCode).toBe(404);
     expect(await countConnections()).toBe(before);
+  });
+});
+
+describe('POST /arena/connections — 同名并发登记（Task 10 fix2 竞态收敛）', () => {
+  // 确定性重放 TOCTOU：另一会话先插入同名行（未提交）→ 路由的 SELECT 看不见
+  // → 走铸造分支 → INSERT 撞 UNIQUE(name) 阻塞 → 对方 COMMIT → 23505。
+  // 修复前：23505 冒泡为未捕获 500；修复后：回头按 name 重选、复用胜者 id。
+  it('同名 TOCTOU（另一会话已插入未提交）→ 收敛复用胜者 id，不 500', async () => {
+    const name = `conn-race-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const winnerId = `ag-race-${Date.now()}`;
+    const pool = new Pool({ connectionString: TEST_URL, max: 1 });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        'INSERT INTO agents (id, name, pubkey, status) VALUES ($1, $2, $3, $4)',
+        [winnerId, name, null, 'active'],
+      );
+      // 悬而未决的登记请求：其 INSERT 会阻塞在未提交行上
+      const pending = post({ name, cardUrl: PUBLIC_CARD });
+      await new Promise((r) => setTimeout(r, 300));
+      await client.query('COMMIT');
+
+      const res = await pending;
+      expect(res.statusCode, res.body).toBe(201);
+      expect(res.json().agentId, '应复用胜者 id').toBe(winnerId);
+      const rows = await db.select().from(agents).where(sql`${agents.name} = ${name}`);
+      expect(rows.length, '同名只应有一行').toBe(1);
+    } finally {
+      client.release();
+      await pool.end();
+    }
   });
 });
 

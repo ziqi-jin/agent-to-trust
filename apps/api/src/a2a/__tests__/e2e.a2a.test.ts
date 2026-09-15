@@ -200,6 +200,8 @@ afterAll(async () => {
   delete process.env.PLATFORM_KEY_DIR;
   await app.close();
   for (const d of dirs) rmSync(d, { recursive: true, force: true });
+  // Ruling 6：共享 acl_test 库用完清干净（同行内 beforeEach 同机制），不给后续套件留脏行。
+  await truncate();
 });
 
 beforeEach(async () => {

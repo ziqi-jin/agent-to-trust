@@ -18,7 +18,7 @@
  */
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { and, asc, count, desc, eq, gt, inArray, lt } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { DeepSeekClient } from '@acl/adapters';
@@ -738,6 +738,28 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     try {
       const platformDir = process.env.PLATFORM_KEY_DIR ?? '/app/data/.acl-platform';
       const keys = ensureKeypair(platformDir);
+
+      // 身份绑定（Task 10 fix1，Ruling 16 收紧）：**先读卖家 agent，再分支**，绝不无条件覆写——
+      // 登记时显式给的 {agentId} 可能自持密钥，平台顶写会代其签名，违反「密钥即身份」。
+      //   1) 行不存在 → 404（防御；FK 下不应发生）
+      //   2) pubkey 为空（name 铸造的平台托管身份）→ 绑平台公钥（WHERE 保留幂等守卫）
+      //   3) pubkey 已是平台公钥 → 幂等，跳过 UPDATE
+      //   4) 其他值（自持密钥）→ 409，不覆写、不建会话
+      const [seller] = await app.db.select().from(agents).where(eq(agents.id, conn.agentId));
+      if (!seller) {
+        return reply.code(404).send({ error: '连接指向的 agent 不存在' });
+      }
+      if (seller.pubkey === null) {
+        await app.db
+          .update(agents)
+          .set({ pubkey: keys.publicKeyPem })
+          .where(and(eq(agents.id, conn.agentId), isNull(agents.pubkey)));
+      } else if (seller.pubkey !== keys.publicKeyPem) {
+        return reply.code(409).send({
+          error: '该 agent 已自持密钥，A2A 托管接入请另用 name 登记以铸造平台托管身份',
+        });
+      }
+
       const identity = await upsertAgentIdentity(app.db, {
         name: PLATFORM_NAME,
         pubkey: keys.publicKeyPem,
@@ -745,13 +767,6 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
       if (identity.error === 'name-taken') {
         throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
       }
-      // Ruling 16：免 SDK 用户走平台托管身份——把卖家 agent 的 pubkey 绑到平台公钥，
-      // 使双向桥以平台私钥签名的注入通过内核「密钥即身份」校验（arena.ts:198-206 要求
-      // agent.pubkey === 提交的 pubkey）。幂等；**仅 a2a 分支**，polling/legacy 路径不受影响。
-      await app.db
-        .update(agents)
-        .set({ pubkey: keys.publicKeyPem })
-        .where(eq(agents.id, conn.agentId));
 
       // live 可用则 LLM 人格对家；缺 key/超日预算 → 降级 scripted（Ruling 3），不影响建局。
       const client = buildLiveClient();

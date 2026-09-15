@@ -23,7 +23,7 @@ import { ensureKeypair } from 'sealit-sdk';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
-import { arenaSessions } from '../../db/schema';
+import { agents, arenaSessions } from '../../db/schema';
 import { __clearCardCache, type AclAgentCard } from '../../a2a/card';
 import { resetQueueForTests, stopAllQueueEngines, __setA2aRunOverrides } from '../arenaQueue';
 
@@ -258,6 +258,68 @@ describe('Task 8 — A2A 开局入口', () => {
     expect(res.statusCode).toBeGreaterThanOrEqual(400);
     expect(res.statusCode).toBeLessThan(500);
     expect(await countSessions()).toBe(0);
+  });
+
+  it('7. 自持密钥的 agent → 409，pubkey 不被覆写，且不建会话（Task 10 fix1）', async () => {
+    // 用户自持密钥登记（显式 agentId，非 name 铸造）——平台不得顶替其身份签名。
+    const userDir = mkdtempSync(join(tmpdir(), 't8-a2a-selfcustody-'));
+    dirs.push(userDir);
+    const userPubkey = ensureKeypair(userDir).publicKeyPem;
+    expect(userPubkey).not.toBe(platformPubkey);
+
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/arena/register',
+      payload: { name: `a2a-self-${randomUUID().slice(0, 6)}`, pubkey: userPubkey },
+    });
+    expect(reg.statusCode, reg.body).toBe(201);
+    const agentId = reg.json().agentId as string;
+
+    const conn = await app.inject({
+      method: 'POST',
+      url: '/arena/connections',
+      payload: { agentId, cardUrl: CARD_URL },
+    });
+    expect(conn.statusCode, conn.body).toBe(201);
+    const connectionId = conn.json().connectionId as string;
+    const token = conn.json().token as string;
+
+    const { fn } = fetchCard(arenaReadyCard());
+    __setA2aRunOverrides({ fetchImpl: fn, maxRounds: 0 });
+
+    const res = await run(connectionId, { token });
+    expect(res.statusCode, res.body).toBe(409);
+
+    // 自持密钥原样保留（绝不被平台公钥覆写）
+    const [after] = await db.select().from(agents).where(eq(agents.id, agentId));
+    expect(after.pubkey).toBe(userPubkey);
+    // 不建会话
+    expect(await countSessions()).toBe(0);
+  });
+
+  it('8. 平台托管身份（pubkey 为空）→ 开局绑定平台公钥并建会话（Task 10 fix1 正例）', async () => {
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/arena/connections',
+      payload: { name: `a2a-minted-${randomUUID().slice(0, 6)}`, cardUrl: CARD_URL },
+    });
+    expect(reg.statusCode, reg.body).toBe(201);
+    const { agentId, connectionId, token } = reg.json() as {
+      agentId: string;
+      connectionId: string;
+      token: string;
+    };
+    const [before] = await db.select().from(agents).where(eq(agents.id, agentId));
+    expect(before.pubkey, 'name 铸造时 pubkey 为空').toBeNull();
+
+    const { fn } = fetchCard(arenaReadyCard());
+    __setA2aRunOverrides({ fetchImpl: fn, maxRounds: 0 });
+
+    const res = await run(connectionId, { token });
+    expect([200, 201, 202]).toContain(res.statusCode);
+
+    const [after] = await db.select().from(agents).where(eq(agents.id, agentId));
+    expect(after.pubkey).toBe(platformPubkey);
   });
 
   it('6. 桥跑完一局（假对端 REJECT）→ a2a_rounds / a2a_invalid_rounds 落库', async () => {
