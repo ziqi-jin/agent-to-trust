@@ -178,10 +178,10 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
               </div>
               <div className="mt-5 grid grid-cols-2 gap-4 border-t border-hairline pt-4 sm:grid-cols-4">
                 {[
-                  ['Adjusted', score?.adjustedScore ?? null],
-                  ['Coverage', score ? `${Math.round(score.coverage * 100)}%` : '—'],
-                  ['Freshness', score?.freshnessDays != null ? `${score.freshnessDays}d` : '—'],
-                  ['Evidence', score?.evidenceCount ?? 0],
+                  [t.detail.statAdjusted, score?.adjustedScore ?? null],
+                  [t.detail.statCoverage, score ? `${Math.round(score.coverage * 100)}%` : '—'],
+                  [t.detail.statFreshness, score?.freshnessDays != null ? `${score.freshnessDays}d` : '—'],
+                  [t.detail.statEvidence, score?.evidenceCount ?? 0],
                 ].map(([label, val]) => (
                   <div key={label as string}>
                     <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-dim">
