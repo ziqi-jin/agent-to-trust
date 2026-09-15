@@ -142,6 +142,25 @@ CREATE TABLE IF NOT EXISTS feedback (
   user_agent text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Arena A2A 免 SDK 接入（2026-09-15 Task 1）：会话按适配器分流 + 连接登记表。
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS adapter text NOT NULL DEFAULT 'polling';
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS a2a_card_url text;
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS a2a_rounds integer;
+ALTER TABLE arena_sessions ADD COLUMN IF NOT EXISTS a2a_invalid_rounds integer;
+
+CREATE TABLE IF NOT EXISTS agent_connections (
+  id text PRIMARY KEY,
+  agent_id text NOT NULL REFERENCES agents(id),
+  card_url text NOT NULL,
+  token_hash text NOT NULL,
+  arena_ready boolean NOT NULL DEFAULT false,
+  last_checked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  revoked_at timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_connections_agent_id ON agent_connections(agent_id);
 `;
 
 export async function migrate(url: string): Promise<void> {
