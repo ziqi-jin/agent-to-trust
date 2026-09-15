@@ -56,7 +56,7 @@ async function seed(opts: {
     adjustedScore: 400,
     confidence: opts.confidence,
     coverage: 0.3,
-    modelVersion: 'baseline-v0.1',
+    modelVersion: 'baseline-v0.2',
     evidenceRefs: ['e1'],
     ...(opts.freshnessDays !== undefined ? { freshnessDays: opts.freshnessDays } : {}),
     dimensions: dims(opts.dimensions),

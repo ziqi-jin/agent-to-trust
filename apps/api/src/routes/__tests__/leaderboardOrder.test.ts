@@ -41,9 +41,9 @@ beforeAll(async () => {
   ]);
 
   await db.insert(creditScores).values([
-    { id: 'cs-1', agentId: 'ag-inflated', score: 1000, adjustedScore: 135, confidence: 0.135, modelVersion: 'baseline-v0.1', evidenceRefs: ['e1'] },
-    { id: 'cs-2', agentId: 'ag-real', score: 797, adjustedScore: 366, confidence: 0.4595, modelVersion: 'baseline-v0.1', evidenceRefs: ['e1', 'e2', 'e3'] },
-    { id: 'cs-3', agentId: 'ag-mid', score: 500, adjustedScore: 250, confidence: 0.5, modelVersion: 'baseline-v0.1', evidenceRefs: ['e1', 'e2'] },
+    { id: 'cs-1', agentId: 'ag-inflated', score: 1000, adjustedScore: 135, confidence: 0.135, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1'] },
+    { id: 'cs-2', agentId: 'ag-real', score: 797, adjustedScore: 366, confidence: 0.4595, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1', 'e2', 'e3'] },
+    { id: 'cs-3', agentId: 'ag-mid', score: 500, adjustedScore: 250, confidence: 0.5, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1', 'e2'] },
   ]);
 });
 
@@ -76,7 +76,7 @@ describe('GET /leaderboard 排序', () => {
 
   it('adjustedScore 相同时按原始分降序', async () => {
     await db.insert(creditScores).values([
-      { id: 'cs-4', agentId: 'ag-inflated', score: 990, adjustedScore: 135, confidence: 0.136, modelVersion: 'baseline-v0.1', evidenceRefs: ['e1'] },
+      { id: 'cs-4', agentId: 'ag-inflated', score: 990, adjustedScore: 135, confidence: 0.136, modelVersion: 'baseline-v0.2', evidenceRefs: ['e1'] },
     ]);
     const res = await app.inject({ method: 'GET', url: '/leaderboard' });
     const rows = res.json() as Array<{ agentId: string; score: number | null }>;

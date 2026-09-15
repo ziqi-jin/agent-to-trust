@@ -1,10 +1,10 @@
 /**
- * @acl/scoring — Baseline Credit Engine v0.1。
+ * @acl/scoring — Baseline Credit Engine v0.2。
  *
  * 可解释、确定性的评分引擎（纯函数，无副作用，可被 API 与 Dashboard 共用）。
  * 核心原则：每个分数必须能追溯到 evidence；同样输入重复计算一致；score 带 version。
  *
- * 注意：这是实验基线（baseline-v0.1），不是行业标准。
+ * 注意：这是实验基线（baseline-v0.2），不是行业标准。
  */
 
 import {
@@ -53,7 +53,7 @@ export interface ExplanationItem {
 
 export interface ScoreResult {
   score: number | null; // 0..1000，无证据为 null（unverified）
-  adjustedScore: number | null; // score × confidence × freshness
+  adjustedScore: number | null; // score × 新鲜度因子（v0.2）
   confidence: number; // 0..1
   freshnessDays: number | null;
   freshnessFactor: number;

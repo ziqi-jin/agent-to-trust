@@ -30,7 +30,7 @@ async function seed(id: string, name: string, score: number): Promise<void> {
     score,
     adjustedScore: score,
     confidence: 0.5,
-    modelVersion: 'baseline-v0.1',
+    modelVersion: 'baseline-v0.2',
     evidenceRefs: ['e1'],
   });
 }

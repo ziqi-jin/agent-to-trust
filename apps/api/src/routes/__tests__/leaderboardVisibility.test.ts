@@ -66,7 +66,7 @@ async function seedScoredAgent(opts: {
     score: opts.score ?? 700,
     adjustedScore: (opts.score ?? 700) - 100,
     confidence: 0.5,
-    modelVersion: 'baseline-v0.1',
+    modelVersion: 'baseline-v0.2',
     evidenceRefs: ['e1', 'e2'],
   });
 }

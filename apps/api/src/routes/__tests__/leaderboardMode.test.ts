@@ -54,7 +54,7 @@ async function seed(opts: {
     adjustedScore: 400,
     confidence: 0.5,
     coverage: 0.3,
-    modelVersion: 'baseline-v0.1',
+    modelVersion: 'baseline-v0.2',
     evidenceRefs: ['e1'],
     dimensions: dims({ delivery: 100 }),
   });

@@ -122,7 +122,7 @@ describe('[可解释性] Simulation Engine', () => {
   it('分数带 modelVersion 且可追溯', () => {
     const r = runSimulation(CONFIG);
     for (const s of scoreAgents(r).values()) {
-      expect(s.modelVersion).toBe('baseline-v0.1');
+      expect(s.modelVersion).toBe('baseline-v0.2');
     }
   });
 });
