@@ -9,8 +9,9 @@
  *  2. 文本兜底：解析不出 → ok:false（无效回合），绝不猜测。
  *  3. 归一只做轻量提取：artifact 只需「是对象 + 有 artifactKind 字段」，不校验取值。
  *     sha256 校验 / 深度归一化 / 值域归一是 `normalizeArtifact`（Task 5）的职责。
- *  4. 文本档否定守卫：触发词被否定（前置否定词，或自身含不同否定词）时该动作不成立，
- *     宁可记无效回合，也不把「不接受」「not accept」误判成 ACCEPT（spec §3.3「不猜测」）。
+ *  4. 文本档否定守卫（评审 T2 二轮裁决）：**只守 ACCEPT**。触发词若被同句内前置的否定词否定，
+ *     则该次出现失效，宁可记无效回合，也不把「不接受」「not accept」误判成 ACCEPT（spec §3.3「不猜测」）。
+ *     REJECT 不设守卫（「不干了」是自然拒绝语境）；否定按分句作用域，不做整段扫描。
  *
  * 本模块零依赖：不碰网络、不碰 DB。
  */
@@ -166,8 +167,41 @@ function parseStructured(raw: unknown): ParsedAction {
 
 // —— 文本档 ——
 
-/** 否定词（中英）。触发词被否定即失效——守 spec §3.3「不猜测」底线。 */
-export const NEGATION_WORDS: readonly string[] = ['不', '没', '别', '未', '拒绝', 'not', 'no', 'never'];
+/** 分句标点：否定词只作用于同一分句内的触发词。 */
+const NEGATION_CLAUSE_SEPARATORS = /[，,。.！!？?；;：:\n]/;
+/** 中文否定词（不含 别：会误伤 特别/区别/分别）。 */
+const CHINESE_NEGATIONS: readonly string[] = ['不', '没', '未'];
+/** 英文否定词：词边界匹配（避免 `know` 里的 `no`）。 */
+const ENGLISH_NEGATIONS: readonly string[] = [
+  'not',
+  'no',
+  'never',
+  'cannot',
+  "can't",
+  "don't",
+  "doesn't",
+  "didn't",
+  "won't",
+  'refuse',
+  'nope',
+];
+/** 英文否定短语（同样词边界）。 */
+const ENGLISH_NEGATION_PHRASES: readonly string[] = ['no deal', 'no way', 'deal breaker'];
+/** 假朋友复合词：其中否定字不表否定，命中于该位置的匹配一律跳过。 */
+const NEGATION_FALSE_FRIENDS: readonly string[] = [
+  '不错',
+  '不但',
+  '不过',
+  '不少',
+  '不用',
+  '不光',
+  '不仅',
+  '不妨',
+  '不如',
+  '不久',
+  '没来',
+  '未来',
+];
 
 interface Span {
   start: number;
@@ -179,43 +213,53 @@ interface TriggerMatch {
   text: string;
 }
 
-/** 找出文本里所有否定词出现位置。英文按词边界匹配（避免 `know` 里的 `no`），中文按子串。 */
+/** 位置 pos 所属分句序号（按分句标点切分），用于判定否定词与触发词是否同句。 */
+function clauseIndexOf(text: string, pos: number): number {
+  let clause = 0;
+  for (let i = 0; i < pos; i += 1) {
+    if (NEGATION_CLAUSE_SEPARATORS.test(text[i])) clause += 1;
+  }
+  return clause;
+}
+
+/** 找出文本里所有否定词出现位置：中文子串（跳过假朋友）+ 英文词边界/短语。 */
 function findNegationSpans(text: string): Span[] {
   const spans: Span[] = [];
-  for (const word of NEGATION_WORDS) {
-    if (/^[a-z]+$/.test(word)) {
-      const re = new RegExp(`\\b${word}\\b`, 'gi');
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(text)) !== null) {
-        spans.push({ start: m.index, end: m.index + m[0].length });
-        if (m[0].length === 0) re.lastIndex += 1;
-      }
-      continue;
-    }
+  for (const word of CHINESE_NEGATIONS) {
     let from = 0;
     while (from <= text.length) {
       const i = text.indexOf(word, from);
       if (i === -1) break;
-      spans.push({ start: i, end: i + word.length });
+      // 假朋友（不错/不但/…）里的否定字不表否定
+      if (!NEGATION_FALSE_FRIENDS.some((w) => text.startsWith(w, i))) {
+        spans.push({ start: i, end: i + word.length });
+      }
       from = i + 1;
+    }
+  }
+  for (const word of [...ENGLISH_NEGATIONS, ...ENGLISH_NEGATION_PHRASES]) {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`\\b${escaped}\\b`, 'gi');
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      spans.push({ start: m.index, end: m.index + m[0].length });
+      if (m[0].length === 0) re.lastIndex += 1;
     }
   }
   return spans;
 }
 
 /**
- * 触发词是否被否定：
- *  - 触发词之前（任意位置，不要求仅紧邻）出现否定词 → 否定；
- *  - 触发词自身含「非同一词」的否定词（如「不干了」里的「不」）→ 否定。
- *    否定词与触发词恰为同一个词（如 REJECT 触发词「拒绝」）时不自我否定。
+ * ACCEPT 触发词是否被否定：
+ *  - 仅限**同一分句**内、起点不晚于触发词的否定词（含同起点的短语，如 `deal breaker`）；
+ *  - 否定词在别的分句（「没问题，成交」）或在触发词之后 → 不影响。
+ * REJECT 无守卫：本函数只服务于 ACCEPT。
  */
-function isNegated(text: string, match: TriggerMatch): boolean {
-  const start = match.index;
-  const end = match.index + match.text.length;
-  return findNegationSpans(text).some(({ start: s, end: e }) => {
-    if (e <= start) return true;
-    if (s >= start && e <= end && text.slice(s, e) !== match.text) return true;
-    return false;
+function isAcceptNegated(text: string, match: TriggerMatch): boolean {
+  const triggerClause = clauseIndexOf(text, match.index);
+  return findNegationSpans(text).some(({ start }) => {
+    if (start > match.index) return false;
+    return clauseIndexOf(text, start) === triggerClause;
   });
 }
 
@@ -231,27 +275,22 @@ function findTriggers(text: string, source: string): TriggerMatch[] {
   return out;
 }
 
-/** 触发词是否「活着」：至少一次出现未被否定。 */
-function hasLiveTrigger(text: string, source: string): boolean {
-  return findTriggers(text, source).some((m) => !isNegated(text, m));
+/** ACCEPT 触发词是否「活着」：至少一次出现未被同句否定词否定。 */
+function hasLiveAccept(text: string): boolean {
+  return findTriggers(text, ACCEPT_TRIGGERS).some((m) => !isAcceptNegated(text, m));
 }
 
-const ACCEPT_TRIGGERS = '\\baccept\\b|接受|成交';
+const ACCEPT_TRIGGERS = '\\baccept\\b|\\bdeal\\b|接受|成交';
 const REJECT_TRIGGERS = '\\breject\\b|拒绝|不干了';
-/**
- * `deal` 只在整句就是一个独立应答词时才算 ACCEPT。
- * 否则 `deal breaker`（拒绝语境）、`ideal`（子串）都会被误判成接受。
- */
-const DEAL_ONLY = /^deal[!.。！?？,，\s]*$/;
 
 function parseText(text: string, artifacts: DeliveryArtifact[]): ParsedAction {
   const t = text.trim();
   if (t === '') return { ok: false, reason: '文本为空，无法解析' };
   const lower = t.toLowerCase();
 
-  // 命中触发词但全部出现都被否定 → 该动作不成立，继续走后续规则（最终可能 ok:false）
-  if (hasLiveTrigger(lower, ACCEPT_TRIGGERS) || DEAL_ONLY.test(lower)) return { ok: true, type: 'ACCEPT' };
-  if (hasLiveTrigger(lower, REJECT_TRIGGERS)) return { ok: true, type: 'REJECT', note: t };
+  // ACCEPT 受否定守卫；REJECT 无守卫（「不干了」是自然拒绝语境）
+  if (hasLiveAccept(lower)) return { ok: true, type: 'ACCEPT' };
+  if (findTriggers(lower, REJECT_TRIGGERS).length > 0) return { ok: true, type: 'REJECT', note: t };
 
   const wantsDeliver = /deliver|交付|给你/.test(lower);
   if (wantsDeliver) {

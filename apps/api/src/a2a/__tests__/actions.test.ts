@@ -162,37 +162,60 @@ describe('parseA2aAction — 文本档（parts[0].text 兜底）', () => {
   });
 });
 
-describe('parseA2aAction — 文本档否定语境守卫（spec §3.3「不猜测」）', () => {
-  it('否定词前置/前置出现 → ACCEPT 失效 → ok:false', () => {
-    for (const t of ['不接受', '我今天不想接受这个价格', 'not accept']) {
+describe('parseA2aAction — 文本档否定守卫（ACCEPT 分句作用域；REJECT 无守卫）', () => {
+  it('正向：接受 / 成交 / 我接受这个价格 → ACCEPT', () => {
+    for (const t of ['接受', '成交', '我接受这个价格']) {
+      expect(parseA2aAction({ textParts: [t] }), t).toEqual({ ok: true, type: 'ACCEPT' });
+    }
+  });
+
+  it('同句否定：不接受 / 我今天不想接受这个价格 → ok:false', () => {
+    for (const t of ['不接受', '我今天不想接受这个价格']) {
       expect(parseA2aAction({ textParts: [t] }).ok, t).toBe(false);
     }
   });
 
-  it('REJECT 触发词含否定词（“不干了”）→ 否定词优先 → ok:false', () => {
-    expect(parseA2aAction({ textParts: ['不干了'] }).ok).toBe(false);
+  it('分句隔离（中文）：否定词在另一分句/假朋友词内 → 不误伤 ACCEPT', () => {
+    for (const t of ['没问题，成交', '这个价格不错，成交', '我特别想成交']) {
+      expect(parseA2aAction({ textParts: [t] }), t).toEqual({ ok: true, type: 'ACCEPT' });
+    }
   });
 
-  it('deal 语义歧义（deal breaker / ideal）→ 不误判 ACCEPT', () => {
-    expect(parseA2aAction({ textParts: ['deal breaker'] }).ok).toBe(false);
+  it('分句隔离（英文）：no problem, accept / not bad, accept → ACCEPT', () => {
+    for (const t of ['no problem, accept', 'not bad, accept']) {
+      expect(parseA2aAction({ textParts: [t] }), t).toEqual({ ok: true, type: 'ACCEPT' });
+    }
+  });
+
+  it('英文同句否定：not / cannot / don\'t / can\'t accept → ok:false', () => {
+    for (const t of ['not accept', 'cannot accept', "don't accept", "can't accept"]) {
+      expect(parseA2aAction({ textParts: [t] }).ok, t).toBe(false);
+    }
+  });
+
+  it('deal 词边界：it\'s a deal / we have a deal / 好，deal → ACCEPT；ideal → ok:false', () => {
+    for (const t of ["it's a deal", 'we have a deal', '好，deal']) {
+      expect(parseA2aAction({ textParts: [t] }), t).toEqual({ ok: true, type: 'ACCEPT' });
+    }
     expect(parseA2aAction({ textParts: ['ideal'] }).ok).toBe(false);
+  });
+
+  it('拒绝短语：deal breaker / no deal → ok:false', () => {
+    for (const t of ['deal breaker', 'no deal']) {
+      expect(parseA2aAction({ textParts: [t] }).ok, t).toBe(false);
+    }
+  });
+
+  it('REJECT 无守卫：拒绝 / reject / 不干了 / 我不干了 → REJECT', () => {
+    for (const t of ['拒绝', 'reject', '不干了', '我不干了']) {
+      const r = parseA2aAction({ textParts: [t] });
+      expect(r.ok, t).toBe(true);
+      if (r.ok) expect(r.type).toBe('REJECT');
+    }
   });
 
   it('单独“不” → ok:false', () => {
     expect(parseA2aAction({ textParts: ['不'] }).ok).toBe(false);
-  });
-
-  it('正向不误伤：接受/成交/我接受这个价格 → ACCEPT，拒绝 → REJECT', () => {
-    expect(parseA2aAction({ textParts: ['接受'] })).toEqual({ ok: true, type: 'ACCEPT' });
-    expect(parseA2aAction({ textParts: ['成交'] })).toEqual({ ok: true, type: 'ACCEPT' });
-    expect(parseA2aAction({ textParts: ['我接受这个价格'] })).toEqual({ ok: true, type: 'ACCEPT' });
-    const rej = parseA2aAction({ textParts: ['拒绝'] });
-    expect(rej.ok).toBe(true);
-    if (rej.ok) expect(rej.type).toBe('REJECT');
-  });
-
-  it('含否定词但真接受（“不废话，成交”）→ 有意判无效回合', () => {
-    expect(parseA2aAction({ textParts: ['不废话，成交'] }).ok).toBe(false);
   });
 });
 
