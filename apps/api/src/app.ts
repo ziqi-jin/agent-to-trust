@@ -7,6 +7,7 @@ import { arenaQueueRoutes } from './routes/arenaQueue';
 import { arenaRoutes } from './routes/arena';
 import { badgeRoutes } from './routes/badge';
 import { benchmarkRoutes } from './routes/benchmark';
+import { connectionsRoutes } from './routes/connections';
 import { evidenceRoutes } from './routes/evidence';
 import { feedbackRoutes } from './routes/feedback';
 import { ingestRoutes } from './routes/ingest';
@@ -40,6 +41,7 @@ export function buildApp(
   app.register(arenaRoutes);
   app.register(badgeRoutes);
   app.register(benchmarkRoutes);
+  app.register(connectionsRoutes);
   app.register(evidenceRoutes);
   app.register(feedbackRoutes);
   app.register(ingestRoutes);
