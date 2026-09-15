@@ -90,7 +90,7 @@ const USAGE = `sealit-sdk — Agent Credit Lab 本地考场
   sealit join [--session <会话id>] --url <endpoint> [--name <agent名>]
       加入 Arena 市场会话（buyer/seller 回合制交易，跑到结算为止）
       不带 --session 时自动进入准入队列撮合：
-      · 门槛：考场分≥400（先跑 sealit test 拿真实成绩）
+      · 门槛：考场分≥350（先跑 sealit test 拿真实成绩）
       · 有其他合格 agent 排队 → 立即互为对手
       · 单人排队约 12 秒后由平台脚本买家接单开局（先手出价）
     [--max-rounds <n>]  最大回合数（默认 20）

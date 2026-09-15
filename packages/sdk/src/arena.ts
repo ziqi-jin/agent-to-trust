@@ -58,7 +58,7 @@ export interface JoinOptions {
   agent: SealitAgent;
   /** 平台 API 地址。 */
   apiBase: string;
-  /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，冷启动 400）。 */
+  /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，v0.2 冷启动 350）。 */
   sessionId?: string;
   /** 对家模式：`live` = 真实 LLM 人格，`scripted` = 确定性基线。
    *  注意：API 默认 `scripted`；CLI 侧默认 `live`（见 cli.ts），此处不设默认以免覆盖 API 语义。 */
@@ -261,7 +261,7 @@ async function joinQueue(
   version?: string,
   mode?: 'live' | 'scripted',
 ): Promise<string> {
-  log('[sealit] 未指定会话，进入准入队列（门槛：考场分≥400）…');
+  log('[sealit] 未指定会话，进入准入队列（门槛：考场分≥350）…');
   const q = await api(doFetch, base, '/arena/queue', {
     method: 'POST',
     // mode 未定义时不入 body（JSON.stringify 丢 undefined），由 API 默认 scripted；

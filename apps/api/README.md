@@ -47,4 +47,4 @@ src/
 
 ## Scoring engine
 
-Scoring logic lives in `packages/scoring` (pure function `computeScore`, model `baseline-v0.1`). The API only handles data reads/writes and orchestration, so the engine stays independently testable and reusable by the Dashboard.
+Scoring logic lives in `packages/scoring` (pure function `computeScore`, model `baseline-v0.2`). The API only handles data reads/writes and orchestration, so the engine stays independently testable and reusable by the Dashboard.
