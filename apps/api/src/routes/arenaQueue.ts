@@ -24,7 +24,7 @@ import { ensureKeypair, signPayload } from 'sealit-sdk';
 import { DeepSeekClient } from '@acl/adapters';
 import { fetchAgentCard, isArenaReady, type AclAgentCard } from '../a2a/card.js';
 import { runA2aBridge, type A2aBridgeStats } from '../a2a/bridge.js';
-import { arenaEvents, arenaSessions, agentConnections, creditScores, evidence, testQueue } from '../db/schema';
+import { agents, arenaEvents, arenaSessions, agentConnections, creditScores, evidence, testQueue } from '../db/schema';
 import { hashConnectionToken } from './connections';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import {
@@ -745,6 +745,14 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
       if (identity.error === 'name-taken') {
         throw new Error('平台买家身份冲突（同名异钥，检查 PLATFORM_KEY_DIR 卷是否持久化）');
       }
+      // Ruling 16：免 SDK 用户走平台托管身份——把卖家 agent 的 pubkey 绑到平台公钥，
+      // 使双向桥以平台私钥签名的注入通过内核「密钥即身份」校验（arena.ts:198-206 要求
+      // agent.pubkey === 提交的 pubkey）。幂等；**仅 a2a 分支**，polling/legacy 路径不受影响。
+      await app.db
+        .update(agents)
+        .set({ pubkey: keys.publicKeyPem })
+        .where(eq(agents.id, conn.agentId));
+
       // live 可用则 LLM 人格对家；缺 key/超日预算 → 降级 scripted（Ruling 3），不影响建局。
       const client = buildLiveClient();
       const mode: 'scripted' | 'live' = client ? 'live' : 'scripted';

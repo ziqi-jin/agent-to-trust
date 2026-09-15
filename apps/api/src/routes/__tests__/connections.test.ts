@@ -151,10 +151,22 @@ describe('POST /arena/connections — body 校验', () => {
     expect(res.statusCode).toBeLessThan(500);
   });
 
-  it('name 不存在 → 4xx', async () => {
+  // Ruling 16：未知 name 不再是 4xx，而是**铸造**平台托管身份（免 SDK 用户首登即建 agent）。
+  // 断言：201 + 返回新鲜 agentId，且库里确有该 agents 行（pubkey 为空）。
+  it('name 不存在 → 201，铸造新 agent（pubkey 为空，库内有行）', async () => {
     const res = await post({ name: 'no-such-agent', cardUrl: PUBLIC_CARD });
-    expect(res.statusCode).toBeGreaterThanOrEqual(400);
-    expect(res.statusCode).toBeLessThan(500);
+    expect(res.statusCode).toBe(201);
+    const { agentId } = res.json() as { agentId: string };
+    expect(typeof agentId).toBe('string');
+    expect(agentId.startsWith('ag-')).toBe(true);
+
+    const [row] = await db
+      .select()
+      .from(agents)
+      .where(sql`${agents.id} = ${agentId}`);
+    expect(row).toBeTruthy();
+    expect(row.name).toBe('no-such-agent');
+    expect(row.pubkey).toBeNull();
   });
 
   // 评审 T7 补测：语法合法但不存在的 agentId 必须 404（守住 FK 500 的预防路径）。

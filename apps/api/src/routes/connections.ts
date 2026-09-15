@@ -57,15 +57,26 @@ export async function connectionsRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: 'cardUrl 必须是可解析的公网 http(s) URL' });
     }
 
-    // 身份解析：给了 agentId 就用（须存在）；否则按 name 找（找不到 4xx）。
+    // 身份解析：给了 agentId 就用（须存在，找不到 404 不变）；否则按 name 找——
+    // 找不到即**铸造**平台托管身份（Ruling 16：免 SDK 用户首登即建 agent，pubkey 暂空，
+    // 开局时由 arenaQueue 绑平台公钥）。同名复用既有 agent（幂等）。
     let agentId = rawAgentId;
     if (!agentId) {
       const [found] = await app.db
         .select({ id: agents.id })
         .from(agents)
         .where(eq(agents.name, name as string));
-      if (!found) return reply.code(404).send({ error: `agent「${name}」不存在` });
-      agentId = found.id;
+      if (found) {
+        agentId = found.id;
+      } else {
+        agentId = `ag-${randomUUID()}`;
+        await app.db.insert(agents).values({
+          id: agentId,
+          name: name as string,
+          pubkey: null,
+          status: 'active',
+        });
+      }
     } else {
       const [found] = await app.db
         .select({ id: agents.id })
@@ -83,7 +94,7 @@ export async function connectionsRoutes(app: FastifyInstance): Promise<void> {
       tokenHash: hashConnectionToken(token),
     });
 
-    return reply.code(201).send({ connectionId: id, token });
+    return reply.code(201).send({ connectionId: id, token, agentId });
   });
 
   /** 列表：按 agentId 过滤（缺省列全部）；fields 白名单，绝不回 token/token_hash。 */
