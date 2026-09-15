@@ -10,6 +10,9 @@
  *   6. 边界正例：合法公网 https URL → 201。
  *
  * 红线：测试库只用 TEST_DATABASE_URL（acl_test），生产库零接触。
+ *
+ * 已知局限（Task 7 范围外，不测）：DNS-rebinding —— cardUrl 先解析为公网、调用时再解析回内网，
+ * 属连接期防护（解析后 pin IP / 校验实际拨号地址），本任务只做登记期字面量卡口。
  */
 
 import { createHash } from 'node:crypto';
@@ -115,6 +118,26 @@ describe('POST /arena/connections — SSRF 拒绝（不得入库）', () => {
   });
 });
 
+// 评审 T7 补测：binding-spec 明列的网段/字面量，旧表未覆盖。
+// 与上表同款卡口（isPublicEndpoint），此处收紧为精确 400 + 零新增行，防止 
+// 私自放宽到「4xx 也算过」掩盖 SSRF 放行。
+describe('POST /arena/connections — SSRF 边界补测（精确 400，不得入库）', () => {
+  const ssrfBypassUrls = [
+    'http://[::1]/', // IPv6 环回
+    'http://[fc00::1]/', // ULA fc00::/7
+    'http://0.0.0.0/', // 未指定地址
+    'http://172.31.255.255/', // 172.16.0.0/12 上界
+    'http://[::ffff:127.0.0.1]/', // IPv4-mapped 环回（代码注释声称堵住的绕过）
+  ];
+
+  it.each(ssrfBypassUrls)('拒绝 %s → 精确 400 且零新增行', async (url) => {
+    const before = await countConnections();
+    const res = await post({ agentId: 'ag-conn-a', cardUrl: url });
+    expect(res.statusCode).toBe(400);
+    expect(await countConnections()).toBe(before);
+  });
+});
+
 describe('POST /arena/connections — body 校验', () => {
   it('缺 cardUrl → 4xx', async () => {
     const res = await post({ agentId: 'ag-conn-a' });
@@ -132,6 +155,15 @@ describe('POST /arena/connections — body 校验', () => {
     const res = await post({ name: 'no-such-agent', cardUrl: PUBLIC_CARD });
     expect(res.statusCode).toBeGreaterThanOrEqual(400);
     expect(res.statusCode).toBeLessThan(500);
+  });
+
+  // 评审 T7 补测：语法合法但不存在的 agentId 必须 404（守住 FK 500 的预防路径）。
+  // connections.ts:57 实测返回 404（非 5xx）——此处按实现真实行为断言。
+  it('agentId 不存在 → 404（不得 5xx，不得入库）', async () => {
+    const before = await countConnections();
+    const res = await post({ agentId: 'ag-does-not-exist', cardUrl: PUBLIC_CARD });
+    expect(res.statusCode).toBe(404);
+    expect(await countConnections()).toBe(before);
   });
 });
 
