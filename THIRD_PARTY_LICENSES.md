@@ -24,8 +24,26 @@ Production dependency license distribution (transitive, `npm ci --omit=dev`):
   linked and consumed as an unmodified dependency; this is the standard, widely accepted use
   and does not affect the MIT licensing of this project's own source.
 
-To re-run the scan:
+To re-run the scan across all installed production dependencies:
 
 ```bash
-node -e '...'   # or: npx license-checker --production --start .
+node -e '
+const fs=require("fs"),path=require("path");const counts={};const risky=[];
+(function walk(d,dep){if(dep>5)return;let es=[];try{es=fs.readdirSync(d)}catch(e){return}
+ for(const e of es){if(e.startsWith("."))continue;const p=path.join(d,e);
+  if(e.startsWith("@")){walk(p,dep+1);continue}
+  const pj=path.join(p,"package.json");
+  if(fs.existsSync(pj)){try{const j=JSON.parse(fs.readFileSync(pj,"utf8"));
+   let l=j.license||j.licenses||"UNKNOWN";if(typeof l!=="string")l=JSON.stringify(l);
+   counts[l]=(counts[l]||0)+1;
+   if(/GPL|AGPL|SSPL|CC-BY-NC|UNKNOWN|UNLICENSED/i.test(l))risky.push(j.name+"@"+j.version+" -> "+l);
+  }catch(e){}}}})("node_modules",0);
+console.log(counts);console.log("review:",risky);
+'
+```
+
+Or, for a summarized view of declared direct dependencies:
+
+```bash
+npx license-checker --production --summary
 ```
