@@ -1,8 +1,8 @@
 # ROADMAP — Agent Credit Lab
 
-> 版本：v0.1（计划）
-> 更新：2026-08-23
-> 治理依据：`docs/PROJECT_PLAN.md`、`docs/ENGINEERING_GOVERNANCE.md`
+> 版本：v0.2
+> 更新：2026-09-17
+> 阶段总表与 Exit Gate 见下（治理细则随开源后以 CONTRIBUTING.md 为准）。
 
 ## 执行原则
 
@@ -23,7 +23,7 @@
 | 6 | Agent Credit Arena | 10 分钟成功体验达标 |
 | 7 | Open Source Launch | README/Docs/Demo/CI 完整 |
 
-## Stage 0 — Foundation（当前）
+## Stage 0 — Foundation（已完成）
 
 **目标**：统一仓库、运行环境、CI、文档、实验与数据规范，让陌生开发者能稳定运行。
 
@@ -31,7 +31,7 @@
 - [x] M0.1 Repository / monorepo
 - [x] M0.2 Docker Compose（postgres + redis + api；dashboard 待 Stage 1）
 - [x] M0.3 CI
-- [x] M0.4 工程规则（`docs/rules/`）
+- [x] M0.4 工程规则（工程规范与验收标准）
 - [x] M0.5 docs / ADR / changelog
 - [x] M0.6 demo seed（`source=simulation`）
 
@@ -41,7 +41,7 @@
 
 ## Issue Backlog（P0 / P1 / P2）
 
-> 详细 Issue 清单见 [`docs/ISSUES.md`](docs/ISSUES.md)。此处只列优先级主线。
+> 详细 Issue 清单以 GitHub Issues 为准。此处只列优先级主线。
 
 ### P0 — 核心闭环
 

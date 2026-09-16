@@ -1,7 +1,6 @@
 # EXPERIMENT LOG — Agent Credit Lab
 
 > 用途：记录每一次实验的 Hypothesis / Setup / Result / Interpretation / Reproducibility。
-> 治理依据：`docs/ENGINEERING_GOVERNANCE.md` §4。
 
 ## 实验记录规范
 

@@ -1,8 +1,7 @@
 # Architecture — Agent Credit Lab
 
-> Version: v0.1
-> Updated: 2026-08-23
-> For stack decisions, see `docs/adr/0001-typescript-stack.md`
+> Updated: 2026-09-17
+> Stack: TypeScript end-to-end — Node + Fastify + Drizzle + PostgreSQL (API), Next.js + TypeScript (dashboard).
 
 ## Overview
 
@@ -86,4 +85,4 @@ Each module has its own README, tests, and dependency boundaries.
 - Executable agents: timeout, CPU/memory limits, tool allowlist, secret isolation, audit log.
 - No arbitrary agent may directly control the host machine.
 
-See `docs/PROJECT_PLAN.md` and `docs/ENGINEERING_GOVERNANCE.md` for details.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the contribution and review process.
