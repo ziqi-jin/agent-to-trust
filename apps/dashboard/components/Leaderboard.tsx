@@ -46,9 +46,8 @@ function Row({
 }) {
   const t = useT();
   const isBehavior = board === 'behavior';
-  // 口径统一（0907 走查）：印章显示排序键——榜单1 加权分（排序键=显示键，根治「1000 压 797」观感）；
-  // 行为榜保持行为分。原始分×置信已在行内可见。
-  const val = isBehavior ? e.behaviorScore : (e.adjustedScore ?? e.score);
+  // 口径统一（v0.2）：印章 = 排序键 = 绝对分，与详情页同值；行为榜仍显示行为分。
+  const val = isBehavior ? e.behaviorScore : e.score;
   // 临时评级（对齐酒馆口径）：证据 <5 条灰显混排，不隐藏
   const provisional = e.evidenceCount < 5;
   const tested = isBehavior ? e.inArena && e.behaviorScore !== null : e.source === 'real-benchmark' || e.source === 'benchmark';
@@ -120,9 +119,9 @@ function Row({
           </span>
         </span>
 
-        {/* 置信加权分（榜单1）；行为榜显示考场信用分——上榜资格线可见化，不再全是 "—"（0907 走查 I 级） */}
+        {/* 分数列（v0.2：榜单1 = 绝对信用分；行为榜 = 考场信用分，资格线可见化） */}
         <span className="hidden text-right font-mono text-sm text-dim tabular-nums md:block">
-          {isBehavior ? (e.score ?? '—') : (e.adjustedScore ?? '—')}
+          {e.score ?? '—'}
         </span>
 
         {/* 模型（agent 显式上报，未提供显示 —） */}

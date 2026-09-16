@@ -120,7 +120,7 @@ describe('POST /arena/queue — 准入门槛', () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it('边界：考场分恰好等于门槛（400）通过', async () => {
+  it('边界：考场分恰好等于门槛（350）通过', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'aclq-agent-'));
     dirs.push(dir);
     const keys = ensureKeypair(dir);

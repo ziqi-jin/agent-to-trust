@@ -49,7 +49,7 @@ beforeAll(async () => {
     score: 620,
     adjustedScore: 400,
     confidence: 0.5,
-    modelVersion: 'baseline-v0.1',
+    modelVersion: 'baseline-v0.2',
     evidenceRefs: ['e1'],
   });
 });

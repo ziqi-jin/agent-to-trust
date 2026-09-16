@@ -1,10 +1,10 @@
 /**
- * @acl/scoring — Baseline Credit Engine v0.1。
+ * @acl/scoring — Baseline Credit Engine v0.2。
  *
  * 可解释、确定性的评分引擎（纯函数，无副作用，可被 API 与 Dashboard 共用）。
  * 核心原则：每个分数必须能追溯到 evidence；同样输入重复计算一致；score 带 version。
  *
- * 注意：这是实验基线（baseline-v0.1），不是行业标准。
+ * 注意：这是实验基线（baseline-v0.2），不是行业标准。
  */
 
 import {
@@ -15,7 +15,7 @@ import {
   type Source,
 } from '@acl/core';
 
-export const SCORE_MODEL_VERSION = 'baseline-v0.1';
+export const SCORE_MODEL_VERSION = 'baseline-v0.2';
 
 const RESULT_VALUE: Record<EvidenceResult, number> = {
   success: 1.0,
@@ -53,7 +53,7 @@ export interface ExplanationItem {
 
 export interface ScoreResult {
   score: number | null; // 0..1000，无证据为 null（unverified）
-  adjustedScore: number | null; // score × confidence × freshness
+  adjustedScore: number | null; // score × 新鲜度因子（v0.2）
   confidence: number; // 0..1
   freshnessDays: number | null;
   freshnessFactor: number;
@@ -121,10 +121,12 @@ export function computeScore(evidence: EvidencePoint[], now: Date = new Date()):
   let score: number | null = null;
   let adjustedScore: number | null = null;
   if (available.length > 0) {
-    const weightedSum = available.reduce((sum, d) => sum + d.weight * (d.score ?? 0), 0);
-    const totalWeight = available.reduce((sum, d) => sum + d.weight, 0);
-    score = Math.round((weightedSum / totalWeight) * 10);
-    adjustedScore = Math.round(score * confidence(evidence, coverage) * freshness(evidence, now).factor);
+    // v0.2 绝对分：分母恒 = 全 8 维权重和（= 1.0），未测维度记 0。
+    // 「测得越少越占便宜」的旧口径作废：要冲高必须多维度覆盖 + 真实证据。
+    const weightedSum = dimensions.reduce((sum, d) => sum + d.weight * (d.score ?? 0), 0);
+    score = Math.round(weightedSum * 10);
+    // v0.2：adjustedScore 只保留时效衰减（coverage 已进 score，不再二次打折）。
+    adjustedScore = Math.round(score * freshness(evidence, now).factor);
   }
 
   const { days, factor } = freshness(evidence, now);

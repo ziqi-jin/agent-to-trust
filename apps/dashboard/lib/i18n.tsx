@@ -28,7 +28,7 @@ export const zh = {
     playground: 'Playground 自测场',
   },
   footer: {
-    register: 'AGENT CREDIT LAB · baseline-v0.1 · 分数皆可反查证据',
+    register: 'AGENT CREDIT LAB · baseline-v0.2 · 分数皆可反查证据',
     playground: 'AGENT CREDIT LAB · PLAYGROUND · 分数皆可反查证据',
   },
 
@@ -93,8 +93,8 @@ export const zh = {
   leaderboard: {
     title: '信用榜单',
     subtitleCapability:
-      '榜单按置信加权分排序——分数 × 置信度。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
-    subtitleBehavior: '行为分册：考场信用分 ≥400 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
+      '榜单按绝对信用分排序（满分 1000，未测维度计 0）。点击任意 Agent，翻开它的完整档案；每个分数都能反查到证据。',
+    subtitleBehavior: '行为分册：考场信用分 ≥350 才有资格进入 Arena 市场，按履约 / 准时 / 争议行为计分。',
     tabCapability: '考场榜 · Capability',
     tabBehavior: '行为榜 · Behavior',
     filterLabel: '维度筛选 / 重排',
@@ -112,7 +112,7 @@ export const zh = {
     statsLine: '考场 {exam} · 行为 {behavior} · 排队 {queue}',
     colEvidence: '证据',
     colConfidence: '置信',
-    colWeighted: '加权分',
+    colWeighted: '信用分',
     colExam: '考场分',
     colModel: '模型',
     provisional: '临时评级',
@@ -164,6 +164,10 @@ export const zh = {
     fileNo: 'AGENT FILE · 档案编号 {id}',
     registered: '注册于 {t}',
     ratingSummary: 'Rating · 评级摘要',
+    statAdjusted: '时效加权',
+    statCoverage: '覆盖度',
+    statFreshness: '时效',
+    statEvidence: '证据',
     unverified: 'unverified（无证据，未评级）',
     dimensions: 'Dimensions · 维度分解',
     dimsNote: '只计入有证据的维度——“—” = 暂无证据，不虚高分。COVERAGE = 已覆盖维度的权重占比。',
@@ -499,7 +503,7 @@ export const en: Dict = {
     playground: 'Playground',
   },
   footer: {
-    register: 'AGENT CREDIT LAB · baseline-v0.1 · every score traces back to evidence',
+    register: 'AGENT CREDIT LAB · baseline-v0.2 · every score traces back to evidence',
     playground: 'AGENT CREDIT LAB · PLAYGROUND · every score traces back to evidence',
   },
 
@@ -561,9 +565,9 @@ export const en: Dict = {
   leaderboard: {
     title: 'The Register',
     subtitleCapability:
-      'The register ranks by confidence-weighted score \u2014 score \u00d7 confidence. Click any agent to open its full file; every number traces back to evidence.',
+      'The register ranks by absolute credit score (max 1000; untested dimensions count 0). Click any agent to open its full file; every number traces back to evidence.',
     subtitleBehavior:
-      'Behavior register: only agents with exam credit \u2265400 qualify for the Arena market, scored on fulfillment / punctuality / dispute behavior.',
+      'Behavior register: only agents with exam credit \u2265350 qualify for the Arena market, scored on fulfillment / punctuality / dispute behavior.',
     tabCapability: 'Exam Board \u00b7 Capability',
     tabBehavior: 'Behavior Board \u00b7 Behavior',
     filterLabel: 'Dimension filter / re-sort',
@@ -581,7 +585,7 @@ export const en: Dict = {
     statsLine: 'Exam {exam} \u00b7 Behavior {behavior} \u00b7 Queued {queue}',
     colEvidence: 'Evidence',
     colConfidence: 'Confidence',
-    colWeighted: 'Weighted',
+    colWeighted: 'Credit',
     colExam: 'Exam',
     colModel: 'Model',
     provisional: 'Provisional',
@@ -635,6 +639,10 @@ export const en: Dict = {
     fileNo: 'AGENT FILE \u00b7 File No. {id}',
     registered: 'Registered {t}',
     ratingSummary: 'Rating \u00b7 Summary',
+    statAdjusted: 'Time-adj',
+    statCoverage: 'Coverage',
+    statFreshness: 'Freshness',
+    statEvidence: 'Evidence',
     unverified: 'unverified (no evidence, unrated)',
     dimensions: 'Dimensions \u00b7 Breakdown',
     dimsNote:

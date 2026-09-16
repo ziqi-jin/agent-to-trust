@@ -127,7 +127,7 @@ describe('[确定性] Determinism + [持久化] Persistence', () => {
     expect(posted.statusCode).toBe(200);
     const body = posted.json();
     expect(body.score).not.toBeNull();
-    expect(body.modelVersion).toBe('baseline-v0.1');
+    expect(body.modelVersion).toBe('baseline-v0.2');
     expect(body.confidence).toBeGreaterThan(0);
 
     const again = await app.inject({ method: 'GET', url: `/agents/${agent.id}/score` });
