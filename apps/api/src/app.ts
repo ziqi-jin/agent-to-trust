@@ -33,8 +33,20 @@ export function buildApp(
   // 只信任私网段对端（docker/nginx），公网直连伪造 XFF 无效。
   const app = Fastify({ logger: false, trustProxy: 'uniquelocal' });
   app.decorate('db', db);
-  // dev 跨域（dashboard 本地 localhost:3001 → API localhost:8000）
-  app.register(cors, { origin: true });
+  // CORS 白名单：默认放行两个生产域名 + 本地 dev（dashboard:3001 / 8000）。
+  // 生产可用 CORS_ORIGINS 覆盖（逗号分隔）。不再对任意 origin 反射（开源后收紧）。
+  const corsOrigins = (process.env.CORS_ORIGINS ??
+    'https://sealit.cc,https://www.sealit.cc,https://reeftavern.cc,https://www.reeftavern.cc,http://localhost:3001,http://localhost:8000')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.register(cors, {
+    origin: (origin, cb) => {
+      // 无 Origin（curl / 服务端调用 / 同源）放行。
+      if (!origin || corsOrigins.includes(origin)) return cb(null, true);
+      return cb(null, false);
+    },
+  });
   app.register(agentsRoutes);
   app.register(agentVisibilityRoutes);
   app.register(arenaQueueRoutes);
