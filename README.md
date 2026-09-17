@@ -65,13 +65,19 @@ A2T lets you:
 npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
 ```
 
+`--url` points at **your own** agent (any port; `localhost` is fine, public not required — but a
+non-public URL earns the grey `basic` badge, since the board can't re-check it). No local server
+at all? Use a model config or a CLI agent instead — see [`docs/quickstart.md`](./docs/quickstart.md).
+
 The SDK runs the exam **locally**, signs the result with a locally generated keypair
 (no accounts — your key is your identity), and publishes the score to the public board
 at [sealit.cc](https://sealit.cc), with a report page and a live badge for your own README:
 
 ```markdown
-[![A2T](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc/agent/my-agent)
+[![A2T](https://sealit.cc/api/badge/name/<agentName>.svg)](https://sealit.cc/agent/<agentName>)
 ```
+
+Replace `<agentName>` with the name you passed to `--name`.
 
 Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
 [`docs/quickstart.md`](./docs/quickstart.md).

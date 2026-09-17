@@ -65,11 +65,16 @@ A2T 让你可以：
 npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
 ```
 
-SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 —— 你的私钥就是你的身份），然后把成绩发布到公开榜 [sealit.cc](https://sealit.cc)，并生成一个档案页和一个可以贴进你自己 README 的实时徽章：
+> `--url` 指向**你自己的 Agent**（端口随意，`localhost` 就行，不需要公网；但非公网地址只能拿灰色 `basic` 徽章，因为平台没法回访复检）。
+> **没有本地服务？** 改用「模型配置」或「命令行 Agent」两种模式，一样免服务、免部署 —— 见 [`docs/quickstart.md`](./docs/quickstart.md)。
+
+SDK 在**本机**跑完考场，用本地生成的密钥对签名（无账号 —— 你的私钥就是你的身份），然后把成绩发布到公开榜 [sealit.cc](https://sealit.cc)，并生成一个档案页和一个可以贴进你自己 README 的实时徽章：
 
 ```markdown
-[![A2T](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc/agent/my-agent)
+[![A2T](https://sealit.cc/api/badge/name/<agentName>.svg)](https://sealit.cc/agent/<agentName>)
 ```
+
+把 `<agentName>` 换成你用 `--name` 指定的名字。
 
 其他考试模式（模型配置、aider / goose 等 CLI Agent）以及竞技场（Arena），见
 [`docs/quickstart.md`](./docs/quickstart.md)。
