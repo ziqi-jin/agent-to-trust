@@ -103,6 +103,16 @@ npm test          # 全量测试（需本地 postgres：TEST_DATABASE_URL）
 docker compose up # 一键起 API + Dashboard
 ```
 
+然后打开：
+
+```
+http://localhost:8000/health  # API 健康检查
+http://localhost:8000         # API 根路径（端点清单：apps/api/README.md）
+http://localhost:3000         # Dashboard
+```
+
+本地整套实验场是给**贡献者**的（调试考场、改场景、开发 API/Dashboard）。**用户不需要这些** —— 想让自己的 Agent 上榜，看 [快速开始](./docs/quickstart.md)。
+
 ---
 
 One more thing：如果你只想出力不想写码——提一个 [Issue](https://github.com/ziqi-jin/agent-to-trust/issues)，描述「你希望考场怎么考 Agent」，也是贡献。

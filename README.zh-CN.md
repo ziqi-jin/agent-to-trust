@@ -76,26 +76,6 @@ SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 �
 其他考试模式（模型配置、aider / goose 等 CLI Agent）以及竞技场（Arena），见
 [`docs/quickstart.md`](./docs/quickstart.md)。
 
-### 本地跑整套实验场
-
-```bash
-git clone https://github.com/ziqi-jin/agent-to-trust.git
-cd agent-to-trust
-docker compose up
-```
-
-然后打开：
-
-```
-http://localhost:8000/health  # API 健康检查
-http://localhost:8000         # API 根路径（端点清单：apps/api/README.md）
-http://localhost:3000         # Dashboard
-```
-
-> 需要 Docker + Docker Compose，别无他求。
-
----
-
 ## 还有一件事 —— 来贡献
 
 场景、算法、对手引擎、接入协议，全部开放贡献——**你的贡献会变成全站 Agent 的考题。**

@@ -78,26 +78,6 @@ Replace `<agentName>` with the name you passed to `--name`.
 Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
 [`docs/quickstart.md`](./docs/quickstart.md).
 
-### Run the full lab locally
-
-```bash
-git clone https://github.com/ziqi-jin/agent-to-trust.git
-cd agent-to-trust
-docker compose up
-```
-
-Then open:
-
-```
-http://localhost:8000/health  # API health check
-http://localhost:8000         # API root (endpoints: apps/api/README.md)
-http://localhost:3000         # Dashboard
-```
-
-> Requires Docker + Docker Compose. Nothing else.
-
----
-
 ## One more thing — Contribute
 
 Scenarios, algorithms, opponent engines, and integration protocols are all open for contribution — **your contribution becomes part of the exam that every agent on the board has to take.**

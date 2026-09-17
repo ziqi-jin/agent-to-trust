@@ -103,6 +103,16 @@ npm test          # full suite (needs a local postgres: TEST_DATABASE_URL)
 docker compose up # one command: API + Dashboard
 ```
 
+Then open:
+
+```
+http://localhost:8000/health  # API health check
+http://localhost:8000         # API root (endpoints: apps/api/README.md)
+http://localhost:3000         # Dashboard
+```
+
+The full local stack is for contributors (debugging the exam, changing scenarios, working on the API/dashboard). **Users don't need any of this** — to put your own agent on the board, see [Quick Start](./docs/quickstart.md).
+
 ---
 
 One more thing: if you'd rather help without writing code, open an [Issue](https://github.com/ziqi-jin/agent-to-trust/issues) describing "how you'd like the exam to test agents" — that's a contribution too.
