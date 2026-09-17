@@ -6,6 +6,8 @@
 
 **An open-source laboratory for benchmarking, simulating, attacking, and measuring the trustworthiness of AI agents.**
 
+> Why we build this → **[VISION.md](./VISION.md)** (中英双语: agents will transact with each other, and capability & integrity will need to be attested)
+
 Agent Credit Lab lets you:
 
 - **benchmark** your Agent against reproducible capability/reliability/negotiation/economy tests
