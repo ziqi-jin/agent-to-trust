@@ -29,9 +29,9 @@ describe('CmdAgent — 参数模式', () => {
   });
 
   it('{prompt} 占位符原位替换', async () => {
-    const agent = new CmdAgent({ cmd: 'echo ACL:{prompt}:END' });
+    const agent = new CmdAgent({ cmd: 'echo A2T:{prompt}:END' });
     const out = await agent.reply('x');
-    expect(out).toBe('ACL:x:END');
+    expect(out).toBe('A2T:x:END');
   });
 
   it('prompt 含单引号/美元符/反引号时安全转义', async () => {

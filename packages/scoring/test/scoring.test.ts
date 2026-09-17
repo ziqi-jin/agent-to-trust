@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIMENSION_WEIGHTS, type Dimension, type Source } from '@acl/core';
+import { DIMENSION_WEIGHTS, type Dimension, type Source } from '@a2t/core';
 import { computeScore, SCORE_MODEL_VERSION, type EvidencePoint } from '../src/index';
 
 const NOW = new Date('2026-08-23T12:00:00Z');

@@ -10,7 +10,7 @@ import {
   runSuite,
   signPayload,
   type SuiteResult,
-} from 'sealit-sdk';
+} from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -74,7 +74,7 @@ describe('POST /ingest/results', () => {
     expect(mine.length).toBe(1);
     expect(mine[0].source).toBe('real-benchmark');
     expect(mine[0].dimension).toBe('capability');
-    expect(mine[0].evidenceUri).toBe('acl://benchmark/coding-sum');
+    expect(mine[0].evidenceUri).toBe('a2t://benchmark/coding-sum');
 
     const agent = await db.query.agents.findFirst({ where: sql`id = ${body.agentId}` as never });
     expect(agent?.pubkey).toBe(keypair.publicKeyPem);
@@ -184,9 +184,9 @@ describe('POST /ingest/results', () => {
     const mine = (await db.query.evidence.findMany()).filter((e) => e.agentId === body.agentId);
     // 服务端权威维度：客户端报的 dimension 一律不信。
     const byUri = new Map(mine.map((e) => [e.evidenceUri, e]));
-    expect(byUri.get('acl://benchmark/C1')?.dimension).toBe('reliability');
-    expect(byUri.get('acl://benchmark/d01')?.dimension).toBe('security');
-    expect(byUri.get('acl://benchmark/r1')?.dimension).toBe('delivery');
+    expect(byUri.get('a2t://benchmark/C1')?.dimension).toBe('reliability');
+    expect(byUri.get('a2t://benchmark/d01')?.dimension).toBe('security');
+    expect(byUri.get('a2t://benchmark/r1')?.dimension).toBe('delivery');
   });
 
   it('accepts v1 caseId under v1 version (regression: v2 gate does not block v1)', async () => {

@@ -1,8 +1,8 @@
 /**
  * 对家人格注册表（服务端秘密——styleDesc/tactics/量化区间不得进对家可见消息）。
- * 理论背书是公开的，在 @acl/core 的 COUNTERPART_THEORY；这里只引用其 id。
+ * 理论背书是公开的，在 @a2t/core 的 COUNTERPART_THEORY；这里只引用其 id。
  */
-import type { Bilingual, CounterpartTheoryKey } from '@acl/core';
+import type { Bilingual, CounterpartTheoryKey } from '@a2t/core';
 
 export interface Persona {
   id: CounterpartTheoryKey;

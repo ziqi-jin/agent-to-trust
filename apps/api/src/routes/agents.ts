@@ -10,7 +10,7 @@ interface AgentBody {
   name?: string;
   owner?: string;
   capabilities?: string[];
-  /** T6 榜单上报开关（可选，省略 = 库默认 true）：注册时可选、随注册落 ACL。 */
+  /** T6 榜单上报开关（可选，省略 = 库默认 true）：注册时可选、随注册落 A2T。 */
   leaderboardVisible?: unknown;
 }
 
@@ -129,7 +129,7 @@ export async function agentsRoutes(app: FastifyInstance) {
   // 契约锚点：
   // - externalId ≡ agents.id（T8 身份映射：酒馆 agent 主键即 ext-tavern-*，无独立列）；
   //   2026-09-06 裁决：tavern source 下 refs 传酒馆原始 uuid 亦可——字面未命中时按
-  //   tavernIdentity.tavernExternalId 推导兜底（推导权威单处在 ACL 仓，零漂移）；
+  //   tavernIdentity.tavernExternalId 推导兜底（推导权威单处在 A2T 仓，零漂移）；
   // - badgeUrl 为根相对路径 /credit/api/badge/{agentId}.svg（badge.ts 头注释的公开嵌入
   //   格式，酒馆 web 同域 <img> 直接可用）；
   // - source 现仅收 'tavern'（前向兼容判别符，扩源时再放宽）；

@@ -19,12 +19,12 @@ import {
 // —— 出站 ——
 
 describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
-  it('OFFER：text 含价格，metadata.acl 的 sessionId/round/deadlineMs 正确', () => {
+  it('OFFER：text 含价格，metadata.a2t 的 sessionId/round/deadlineMs 正确', () => {
     const event: KernelEvent = { type: 'OFFER', payload: { price: 80 }, sessionId: 'sess-1', round: 2 };
     const msg = toA2aMessage(event, []);
 
     expect(msg.text).toContain('80');
-    expect(msg.metadata.acl).toEqual({ sessionId: 'sess-1', round: 2, deadlineMs: 60_000 });
+    expect(msg.metadata.a2t).toEqual({ sessionId: 'sess-1', round: 2, deadlineMs: 60_000 });
   });
 
   it('带 history：text 自包含（含最近历史摘要）', () => {
@@ -40,13 +40,13 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
 
   it('deadlineMs 默认 60_000', () => {
     const msg = toA2aMessage({ type: 'ACCEPT', payload: {} }, []);
-    expect(msg.metadata.acl.deadlineMs).toBe(60_000);
+    expect(msg.metadata.a2t.deadlineMs).toBe(60_000);
   });
 
   it('round 兜底：无 round 时用 history 计数 + 1', () => {
     const history: KernelEvent[] = [{ type: 'OFFER', payload: { price: 72 }, round: 1 }];
     const msg = toA2aMessage({ type: 'NEGOTIATE', payload: { price: 70 } }, history);
-    expect(msg.metadata.acl.round).toBe(2);
+    expect(msg.metadata.a2t.round).toBe(2);
   });
 
   it('五事件各有明确文案（OFFER/NEGOTIATE/ACCEPT/REJECT/DELIVER）', () => {
@@ -67,7 +67,7 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
 
   it('Ruling 7①：event.round=5 → metadata.round=5', () => {
     const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 }, round: 5 }, []);
-    expect(msg.metadata.acl.round).toBe(5);
+    expect(msg.metadata.a2t.round).toBe(5);
   });
 
   it('Ruling 7②：无 round + history 长度 3 → metadata.round=4', () => {
@@ -77,12 +77,12 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
       { type: 'NEGOTIATE', payload: { price: 3 } },
     ];
     const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 } }, history);
-    expect(msg.metadata.acl.round).toBe(4);
+    expect(msg.metadata.a2t.round).toBe(4);
   });
 
   it('Ruling 7③：event.seq=99 但无 round + 空 history → metadata.round=1（锁死「不再看 seq」）', () => {
     const msg = toA2aMessage({ type: 'OFFER', payload: { price: 80 }, seq: 99 }, []);
-    expect(msg.metadata.acl.round).toBe(1);
+    expect(msg.metadata.a2t.round).toBe(1);
   });
 
   // —— Ruling 8：历史人称归属（spec §3.2 自包含） ——
@@ -108,9 +108,9 @@ describe('toA2aMessage — 出站（自包含文本 + metadata）', () => {
 
   // —— Minor：sessionId 缺省锁行为 ——
 
-  it('Minor：event.sessionId 缺失 → metadata.acl.sessionId 为 ""（锁当前行为）', () => {
+  it('Minor：event.sessionId 缺失 → metadata.a2t.sessionId 为 ""（锁当前行为）', () => {
     const msg = toA2aMessage({ type: 'ACCEPT', payload: {} }, []);
-    expect(msg.metadata.acl.sessionId).toBe('');
+    expect(msg.metadata.a2t.sessionId).toBe('');
   });
 });
 
@@ -149,7 +149,7 @@ describe('fromParsedAction — 入站映射', () => {
   });
 
   it('DELIVER（无 parts）→ { type:DELIVER, payload:{artifact} }（artifact 透传）', () => {
-    const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'acl://x.patch' };
+    const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'a2t://x.patch' };
     const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact });
     expect(r).toEqual({ type: 'DELIVER', payload: { artifact } });
     expect((r?.payload as { artifact: unknown }).artifact).toBe(artifact);
@@ -165,25 +165,25 @@ describe('fromParsedAction — 入站映射', () => {
   it('Ruling 9①：DELIVER + 合法 parts → payload.artifact 为归一化对象（非 T2 脏对象）', () => {
     const dirty = { artifactKind: 'patch' as const }; // T2 只做轻量提取，可能是脏的
     const parts = [
-      deliveryPart({ artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'acl://x.patch' }),
+      deliveryPart({ artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'a2t://x.patch' }),
     ];
     const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact: dirty }, parts);
     expect(r).toEqual({
       type: 'DELIVER',
-      payload: { artifact: { artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'acl://x.patch' } },
+      payload: { artifact: { artifactKind: 'patch', sha256: 'a'.repeat(64), uri: 'a2t://x.patch' } },
     });
     expect((r?.payload as { artifact: unknown }).artifact).not.toBe(dirty);
   });
 
   it('Ruling 9②：DELIVER + 脏 artifact parts（未知 artifactKind）→ null', () => {
-    const parts = [deliveryPart({ artifactKind: 'wormhole', uri: 'acl://x' })];
+    const parts = [deliveryPart({ artifactKind: 'wormhole', uri: 'a2t://x' })];
     expect(
       fromParsedAction({ ok: true, type: 'DELIVER', artifact: { artifactKind: 'patch' } }, parts),
     ).toBeNull();
   });
 
   it('Ruling 9③：DELIVER + 无 parts → 旧行为（透传 a.artifact）', () => {
-    const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'acl://x.patch' };
+    const artifact = { artifactKind: 'patch' as const, sha256: 'a'.repeat(64), uri: 'a2t://x.patch' };
     const r = fromParsedAction({ ok: true, type: 'DELIVER', artifact });
     expect(r).toEqual({ type: 'DELIVER', payload: { artifact } });
   });
@@ -201,26 +201,26 @@ describe('normalizeArtifact — 归一化 + 值域/字段校验（Ruling 1）', 
       deliveryPart({
         artifactKind: 'patch',
         sha256: 'a'.repeat(64),
-        uri: 'acl://reports/1.patch',
+        uri: 'a2t://reports/1.patch',
         note: '改好了',
       }),
     ];
     expect(normalizeArtifact(parts)).toEqual({
       artifactKind: 'patch',
       sha256: 'a'.repeat(64),
-      uri: 'acl://reports/1.patch',
+      uri: 'a2t://reports/1.patch',
       note: '改好了',
     });
   });
 
   it('unknown artifactKind → null', () => {
     expect(
-      normalizeArtifact([deliveryPart({ artifactKind: 'wormhole', uri: 'acl://x' })]),
+      normalizeArtifact([deliveryPart({ artifactKind: 'wormhole', uri: 'a2t://x' })]),
     ).toBeNull();
   });
 
   it('缺 artifactKind → null', () => {
-    expect(normalizeArtifact([deliveryPart({ uri: 'acl://x' })])).toBeNull();
+    expect(normalizeArtifact([deliveryPart({ uri: 'a2t://x' })])).toBeNull();
   });
 
   it('无 uri 且无 inline → null', () => {
@@ -232,7 +232,7 @@ describe('normalizeArtifact — 归一化 + 值域/字段校验（Ruling 1）', 
   it('sha256 非 64 位 hex → null', () => {
     expect(
       normalizeArtifact([
-        deliveryPart({ artifactKind: 'patch', sha256: 'not-a-hash', uri: 'acl://x' }),
+        deliveryPart({ artifactKind: 'patch', sha256: 'not-a-hash', uri: 'a2t://x' }),
       ]),
     ).toBeNull();
   });

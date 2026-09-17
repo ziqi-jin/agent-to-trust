@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 
-const ADMIN_URL = process.env.ACL_ADMIN_URL ?? 'postgres://acl:acl@localhost:5432/postgres';
-const TEST_DB_URL = process.env.ACL_TEST_DATABASE_URL ?? 'postgres://acl:acl@localhost:5432/acl_test';
+const ADMIN_URL = process.env.A2T_ADMIN_URL ?? 'postgres://acl:acl@localhost:5432/postgres';
+const TEST_DB_URL = process.env.A2T_TEST_DATABASE_URL ?? 'postgres://acl:acl@localhost:5432/acl_test';
 
 export function testDatabaseUrl(): string {
   return TEST_DB_URL;

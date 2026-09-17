@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — 确定性 PRNG 工具。
+ * @a2t/simulator — 确定性 PRNG 工具。
  *
  * 仿真必须可复现：同 seed 同序列。mulberry32 是轻量、确定性的伪随机数生成器。
  */

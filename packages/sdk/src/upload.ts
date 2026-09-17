@@ -18,7 +18,7 @@ export interface UploadOptions {
   meta: AgentMeta;
   /** 平台 API 地址（如 https://sealit.cc/api）。 */
   apiBase: string;
-  /** 密钥目录（默认 ~/.sealit）。 */
+  /** 密钥目录（默认 ~/.a2t）。 */
   dir?: string;
   /** 注入（测试用）。 */
   fetchImpl?: typeof fetch;

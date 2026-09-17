@@ -339,7 +339,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
               <div className="mb-3 flex items-center gap-3">
                 <img
                   src={badgeSvgUrl(agent.id)}
-                  alt="ACL badge"
+                  alt="A2T badge"
                   className="h-7"
                   onError={(ev) => {
                     (ev.target as HTMLImageElement).style.display = 'none';

@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — 虚拟钱包。
+ * @a2t/simulator — 虚拟钱包。
  *
  * 纯内存账本，只做 buyer → provider 转账，不创造/销毁资金（守恒）。
  * 这是 MVP 的虚拟经济，非真实资金。

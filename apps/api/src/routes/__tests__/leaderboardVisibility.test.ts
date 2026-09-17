@@ -9,7 +9,7 @@
  *   SDK/考场 agent（无酒馆伪 pubkey）没有「成交」概念，豁免门槛（偏差记录在案）；
  * - 注册时可选：POST /agents 带 leaderboardVisible；注册后可改：PATCH /agents/:id；
  * - 酒馆服务端同步：POST /ingest/agent-visibility（bearer 机构级，同 trade-evidence 信任锚）
- *   ——随注册传 ACL（不存在则建号），注册后改（更新既有）；
+ *   ——随注册传 A2T（不存在则建号），注册后改（更新既有）；
  * - /stats/summary 两榜参与数同步吃可见性过滤（与公开面口径一致，0907 走查「数字对不上账」教训）。
  */
 
@@ -75,7 +75,7 @@ beforeAll(async () => {
   await migrate(TEST_URL);
   db = createDb(TEST_URL);
   app = buildApp(db);
-  process.env.ACL_TRADE_INGEST_TOKEN = INGEST_TOKEN;
+  process.env.A2T_TRADE_INGEST_TOKEN = INGEST_TOKEN;
   await db.execute(
     sql`TRUNCATE arena_events, arena_sessions, agents, ingest_nonces, credit_scores, score_snapshots, evidence CASCADE`,
   );
@@ -288,10 +288,10 @@ describe('T6：POST /ingest/agent-visibility（酒馆服务端同步，bearer �
     const body = { source: 'tavern', agents: [{ ref: randomUUID(), name: 'x', leaderboardVisible: false }] };
     expect((await call(body, null)).statusCode).toBe(401);
     expect((await call(body, 'wrong-token')).statusCode).toBe(401);
-    const prev = process.env.ACL_TRADE_INGEST_TOKEN;
-    delete process.env.ACL_TRADE_INGEST_TOKEN;
+    const prev = process.env.A2T_TRADE_INGEST_TOKEN;
+    delete process.env.A2T_TRADE_INGEST_TOKEN;
     expect((await call(body)).statusCode).toBe(401);
-    process.env.ACL_TRADE_INGEST_TOKEN = prev;
+    process.env.A2T_TRADE_INGEST_TOKEN = prev;
   });
 
   it('400：body 非法（source 错 / agents 空 / 超 100 / 字段缺失）', async () => {
@@ -319,7 +319,7 @@ describe('T6：POST /ingest/agent-visibility（酒馆服务端同步，bearer �
     expect((await call({ source: 'tavern', agents: [{ ref: randomUUID() }] })).statusCode).toBe(400);
   });
 
-  it('随注册传 ACL：未知 ref → 建号（确定性 id + 伪 pubkey + basic）并落可见性', async () => {
+  it('随注册传 A2T：未知 ref → 建号（确定性 id + 伪 pubkey + basic）并落可见性', async () => {
     const ref = randomUUID();
     const res = await call({
       source: 'tavern',

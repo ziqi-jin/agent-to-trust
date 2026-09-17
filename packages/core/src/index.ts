@@ -1,5 +1,5 @@
 /**
- * @acl/core — 共享类型与常量。
+ * @a2t/core — 共享类型与常量。
  *
  * 这是全栈类型共享的单一来源：apps/api 与 apps/dashboard 都从这里 import，
  * 保证 Agent / Evidence / Score 的类型与常量一致。

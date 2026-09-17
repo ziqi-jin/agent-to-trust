@@ -11,14 +11,14 @@
  */
 import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import type { Dimension } from '@acl/core';
+import type { Dimension } from '@a2t/core';
 import {
   DIMENSION_MAP,
   EXAM_V2_DIMENSION,
   NEGOTIATION_SCENARIOS,
   loadSuite,
   verifyPayload,
-} from 'sealit-sdk';
+} from 'a2t';
 import { evidence, ingestNonces } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';
@@ -198,7 +198,7 @@ export async function ingestRoutes(app: FastifyInstance) {
         issuer: 'sdk',
         result: r.result,
         value: r.value,
-        evidenceUri: `acl://benchmark/${r.caseId}`,
+        evidenceUri: `a2t://benchmark/${r.caseId}`,
         payloadHash,
       });
     }

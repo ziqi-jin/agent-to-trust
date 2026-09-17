@@ -56,7 +56,7 @@ export async function settleSession(
     source: 'arena',
     sourceType,
     issuer: 'arena-engine',
-    evidenceUri: `acl://arena/${sessionId}`,
+    evidenceUri: `a2t://arena/${sessionId}`,
   };
 
   if (session.sellerAgentId) {

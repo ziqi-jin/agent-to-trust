@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { ensureKeypair } from 'sealit-sdk';
+import { ensureKeypair } from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -135,7 +135,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
     const rows = await db
       .select()
       .from(evidence)
-      .where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+      .where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     expect(rows.length).toBeGreaterThanOrEqual(2);
     for (const r of rows) expect(r.sourceType).toBe('arena-behavior');
     expect(rows.some((r) => r.agentId === sellerAgentId)).toBe(true);
@@ -145,7 +145,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
   it('2. scripted + adapter 缺省（null）→ 证据 source_type=\'arena-behavior\'', async () => {
     const { sessionId } = await seedSession({ counterpartMode: 'scripted', adapter: null });
     await settleSession(app, sessionId, 1);
-    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const r of rows) expect(r.sourceType).toBe('arena-behavior');
   });
@@ -153,7 +153,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
   it("3. live + adapter='a2a' → 证据 source_type='arena-behavior-a2a'", async () => {
     const { sessionId } = await seedSession({ counterpartMode: 'live', adapter: 'a2a' });
     await settleSession(app, sessionId, 1);
-    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const r of rows) expect(r.sourceType).toBe('arena-behavior-a2a');
   });
@@ -161,7 +161,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
   it("4. live + adapter='polling' → 证据 source_type='arena-behavior-live'（回归守卫）", async () => {
     const { sessionId } = await seedSession({ counterpartMode: 'live', adapter: 'polling' });
     await settleSession(app, sessionId, 1);
-    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const r of rows) expect(r.sourceType).toBe('arena-behavior-live');
   });
@@ -169,7 +169,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
   it('5. live + adapter 缺省（DB 默认 polling）→ 证据 source_type=\'arena-behavior-live\'（向后兼容）', async () => {
     const { sessionId } = await seedSession({ counterpartMode: 'live', adapter: null });
     await settleSession(app, sessionId, 1);
-    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     expect(rows.length).toBeGreaterThanOrEqual(1);
     for (const r of rows) expect(r.sourceType).toBe('arena-behavior-live');
   });
@@ -177,7 +177,7 @@ describe('Task 9 — settleSession 证据 source_type 三档（直读 evidence �
   it('6. 卖家（delivery）与买家（reliability）两行同口径携带映射后的 source_type', async () => {
     const { sessionId, sellerAgentId, buyerAgentId } = await seedSession({ counterpartMode: 'live', adapter: 'a2a' });
     await settleSession(app, sessionId, 1);
-    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `acl://arena/${sessionId}`));
+    const rows = await db.select().from(evidence).where(eq(evidence.evidenceUri, `a2t://arena/${sessionId}`));
     const seller = rows.find((r) => r.agentId === sellerAgentId);
     const buyer = rows.find((r) => r.agentId === buyerAgentId);
     expect(seller, '卖家证据缺失').toBeDefined();

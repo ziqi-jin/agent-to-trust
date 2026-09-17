@@ -1,4 +1,4 @@
-# Code of Conduct — Agent Credit Lab
+# Code of Conduct — Agent to Trust (A2T)
 
 ## Our pledge
 

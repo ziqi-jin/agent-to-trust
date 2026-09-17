@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { EvidenceResult } from '@acl/core';
+import type { EvidenceResult } from '@a2t/core';
 import { ExecutionEngine, Rng, runSimulation } from '../src/index';
 import type { Contract, SimAgent, SimTask, Verification } from '../src/types';
 

@@ -37,7 +37,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
-import { ensureKeypair } from 'sealit-sdk';
+import { ensureKeypair } from 'a2t';
 import { buildApp } from '../../app';
 import { __clearCardCache } from '../../a2a/card';
 import { createDb, type Database } from '../../db/client';
@@ -66,7 +66,7 @@ const dirs: string[] = [];
 let platformDir = '';
 let savedDeepseekKey: string | undefined;
 
-/** arenaReady 的 Agent Card（x-acl.arenaReady=true + negotiation skill）；url 指向 mock 的 /a2a。 */
+/** arenaReady 的 Agent Card（x-a2t.arenaReady=true + negotiation skill）；url 指向 mock 的 /a2a。 */
 function arenaReadyCard(): Record<string, unknown> {
   return {
     name: 'A2A E2E User Agent',
@@ -77,7 +77,7 @@ function arenaReadyCard(): Record<string, unknown> {
     defaultInputModes: ['application/json'],
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
-    'x-acl': { arenaReady: true },
+    'x-a2t': { arenaReady: true },
   };
 }
 
@@ -105,8 +105,8 @@ function startMockA2aServer(): Promise<void> {
           a2aSends.push({ auth: req.headers['authorization'] as string | undefined, body });
 
           // 逐轮应答：首轮 ACCEPT；其后 DELIVER（artifacts[].parts + name:'delivery' 走 normalizeArtifact）；
-          // 以 metadata.acl.round 为准（缺省按调用序）。
-          const round = Number(body?.params?.message?.metadata?.acl?.round ?? a2aSends.length);
+          // 以 metadata.a2t.round 为准（缺省按调用序）。
+          const round = Number(body?.params?.message?.metadata?.a2t?.round ?? a2aSends.length);
           const parts =
             round >= 2
               ? [
@@ -117,7 +117,7 @@ function startMockA2aServer(): Promise<void> {
                     data: { artifactKind: 'file', inline: 'artifact-body-e2e' },
                   },
                 ]
-              : [{ kind: 'data', data: { aclAction: { type: 'ACCEPT' } } }];
+              : [{ kind: 'data', data: { a2tAction: { type: 'ACCEPT' } } }];
 
           res.writeHead(200, { 'content-type': 'application/json' });
           res.end(

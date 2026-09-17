@@ -8,7 +8,7 @@
  * /events?scope=public 的门面口径打架（0907 走查「数字对不上账」同款病）。
  *
  * 排除：
- *  - `sim-agent-%`：@acl/simulator 落库的仿真号；
+ *  - `sim-agent-%`：@a2t/simulator 落库的仿真号；
  *  - `e2e%`（ILIKE，大小写不敏感前缀）：E2E 测试号（审计 B4 统一口径）；
  *  - `__platform__`：平台保留名（内部哨兵账号，绝不进公开面）。
  *

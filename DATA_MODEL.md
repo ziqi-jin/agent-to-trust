@@ -1,4 +1,4 @@
-# DATA MODEL — Agent Credit Lab
+# DATA MODEL — Agent to Trust (A2T)
 
 > 版本：v0.2
 > 更新：2026-09-17

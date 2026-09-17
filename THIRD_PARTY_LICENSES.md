@@ -1,6 +1,6 @@
 # Third-party licenses
 
-Agent Credit Lab itself is **MIT** (see [LICENSE](./LICENSE)).
+Agent to Trust (A2T) itself is **MIT** (see [LICENSE](./LICENSE)).
 
 Production dependency license distribution (transitive, `npm ci --omit=dev`):
 

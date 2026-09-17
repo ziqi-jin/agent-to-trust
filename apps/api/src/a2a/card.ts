@@ -7,9 +7,9 @@
  *
  * 分流规则（本任务判定核心，逐字遵守 spec §3.1）：
  *  `isArenaReady(card) === true` 当且仅当
- *    a. `card['x-acl']?.arenaReady === true`，**且**
+ *    a. `card['x-a2t']?.arenaReady === true`，**且**
  *    b. `skills` 数组里至少一个 skill 的 `tags` 数组含 `'negotiation'` 或 `'trade'`。
- *  其他一律 false（x-acl 缺失 / arenaReady 非 true / skills 缺失或空 / tags 不含适配词 / 结构畸形）。
+ *  其他一律 false（x-a2t 缺失 / arenaReady 非 true / skills 缺失或空 / tags 不含适配词 / 结构畸形）。
  *
  * 失败路径不抛异常：一切失败走 `{ ok:false, reason }`（reason 可区分：http-404 / timeout / bad-json / not-object / http-* / network-error）。
  *
@@ -34,7 +34,7 @@ export interface AclAgentCardX {
   [k: string]: unknown;
 }
 
-/** 用户 Agent Card（spec §3.1 必需字段；`x-acl` 为可选扩展块）。 */
+/** 用户 Agent Card（spec §3.1 必需字段；`x-a2t` 为可选扩展块）。 */
 export interface AclAgentCard {
   name: string;
   description: string;
@@ -45,7 +45,7 @@ export interface AclAgentCard {
   defaultOutputModes: string[];
   skills: AclAgentCardSkill[];
   securitySchemes?: Record<string, unknown>;
-  'x-acl'?: AclAgentCardX;
+  'x-a2t'?: AclAgentCardX;
   [k: string]: unknown;
 }
 
@@ -85,7 +85,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 export function isArenaReady(card: AclAgentCard): boolean {
   if (!isRecord(card)) return false;
 
-  const xacl = card['x-acl'];
+  const xacl = card['x-a2t'];
   if (!isRecord(xacl) || xacl.arenaReady !== true) return false;
 
   const skills = card.skills;

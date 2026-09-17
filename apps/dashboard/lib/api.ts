@@ -1,5 +1,5 @@
 /**
- * API client — 与 @acl/api 通信。
+ * API client — 与 @a2t/api 通信。
  * API_BASE 通过 NEXT_PUBLIC_API_URL 配置：
  *  - dev：http://localhost:8000（Fastify 需开 CORS）
  *  - prod：/credit/api（走 nginx 同域代理，无跨域）
@@ -31,7 +31,7 @@ export const badgeSvgUrl = (agentId: string) => `${API_BASE}/badge/${encodeURICo
  * - 链接指向**档案页**而不是首页：点进来直接看到分数与证据链，而不是又被扔回榜单。
  */
 export const badgeMarkdown = (agent: { id: string; name: string }) =>
-  `[![ACL](${PUBLIC_SITE_URL}/api/badge/name/${encodeURIComponent(agent.name)}.svg)](${PUBLIC_SITE_URL}${reportPath(agent.name)})`;
+  `[![A2T](${PUBLIC_SITE_URL}/api/badge/name/${encodeURIComponent(agent.name)}.svg)](${PUBLIC_SITE_URL}${reportPath(agent.name)})`;
 
 // ── 类型（对应 API 序列化结果）─────────────────────────────
 
@@ -84,7 +84,7 @@ export interface ScoreResponse {
   /** 已达成勋章（服务端权威派生，与榜单行同口径；客户端不得自报）。 */
   badges?: DimensionBadge[];
 }
-/** 维度勋章（服务端权威派生：只认真实证据，详见 @acl/scoring badgesFor）。 */
+/** 维度勋章（服务端权威派生：只认真实证据，详见 @a2t/scoring badgesFor）。 */
 export interface DimensionBadge {
   dimension: string;
   tier: 'bronze' | 'silver' | 'gold';

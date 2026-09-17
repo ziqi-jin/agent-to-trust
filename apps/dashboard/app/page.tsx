@@ -10,7 +10,7 @@ import {
   type StatsSummary,
 } from '@/lib/api';
 import { useLocale, useT, mapApiError } from '@/lib/i18n';
-import { DIMENSIONS } from '@acl/core';
+import { DIMENSIONS } from '@a2t/core';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
@@ -160,7 +160,7 @@ export default function Page() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
             <div>
               <h1 className="font-display text-lg font-black uppercase leading-tight tracking-[0.14em] md:text-2xl md:leading-8 md:tracking-[0.16em]">
-                Agent Credit Lab
+                A2T
               </h1>
               <p className="mt-1 hidden font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70 sm:block">
                 {t.masthead.registerSub}

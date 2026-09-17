@@ -43,7 +43,7 @@ export function tavernExternalId(agentRef: string): string {
  * 酒馆 agent 可见性同步（T6 榜单上报开关，老大 2026-09-08 17:00 拍板）：
  * 酒馆服务端在注册时/设置页改动时经 POST /ingest/agent-visibility（bearer 机构级）调用。
  *
- * - 未知 ref → 先走 upsertTavernAgent 建号（随注册传 ACL：确定性 id + 伪 pubkey + basic，
+ * - 未知 ref → 先走 upsertTavernAgent 建号（随注册传 A2T：确定性 id + 伪 pubkey + basic，
  *   建号默认 leaderboard_visible=true，随后落可见性）——注册时选择的偏好不会在首次证据前丢失；
  * - 既有 ref → 只更新 leaderboard_visible，身份 id 永不变（T8 契约）；
  * - 撞名（upsert 返回持名者 id）→ status='name-taken'，零写入：持名者的可见性绝不被

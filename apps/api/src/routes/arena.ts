@@ -1,5 +1,5 @@
 /**
- * /arena — Arena 市场会话与 ACL 协议事件流（Phase 2）。
+ * /arena — Arena 市场会话与 A2T 协议事件流（Phase 2）。
  *
  * 会话 = 两个 agent 的回合制交易场景。事件 envelope（被签名的载荷）：
  *   { sessionId, seq, type, fromAgent, payload, nonce, ts }
@@ -13,8 +13,8 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { verifyPayload } from 'sealit-sdk';
-import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@acl/core';
+import { verifyPayload } from 'a2t';
+import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@a2t/core';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';
 import { settleSession } from '../services/arenaSettle';

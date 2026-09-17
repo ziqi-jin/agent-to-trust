@@ -1,4 +1,4 @@
-import type { SealitAgent } from './types.js';
+import type { A2tAgent } from './types.js';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -14,7 +14,7 @@ interface ChatCompletionResponse {
  *
  * 任意 base_url + api_key —— DeepSeek / 智谱 / Kimi / OpenAI 通吃。
  */
-export class ModelAgent implements SealitAgent {
+export class ModelAgent implements A2tAgent {
   private readonly fetchImpl: typeof fetch;
 
   constructor(

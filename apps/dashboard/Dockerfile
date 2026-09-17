@@ -1,4 +1,4 @@
-# Agent Credit Lab — Dashboard（Next.js standalone 部署）
+# A2T — Dashboard（Next.js standalone 部署）
 FROM node:22-alpine
 
 WORKDIR /app

@@ -9,8 +9,8 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 COPY simulator ./simulator
 
-RUN npm install --workspace @acl/api --include-workspace-root
+RUN npm install --workspace @a2t/api --include-workspace-root
 
 EXPOSE 8000
 
-CMD ["npm", "run", "start", "--workspace", "@acl/api"]
+CMD ["npm", "run", "start", "--workspace", "@a2t/api"]

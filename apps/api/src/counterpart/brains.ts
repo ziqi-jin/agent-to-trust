@@ -2,7 +2,7 @@
  * 买家 Brain 抽象：把「脚本规则买家」与「LLM 人格买家」统一到一套接口，
  * 由 Task 7 的引擎循环驱动。脚本 Brain 必须复刻旧 runPlatformBuyer 的事件语义。
  */
-import type { DeepSeekClient } from '@acl/adapters';
+import type { DeepSeekClient } from '@a2t/adapters';
 import { decideCounterpart } from './engine';
 import type { Persona } from './personas';
 

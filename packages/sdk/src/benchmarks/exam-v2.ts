@@ -9,7 +9,7 @@
  * 题目内容哈希不公开（防泄题，见 docs/specs/2026-09-10-exam-v2-design.md §5）。
  */
 
-import type { Dimension } from '@acl/core';
+import type { Dimension } from '@a2t/core';
 
 /** exam-v2 题集版本（与 v1 的 1.0.0 区分；上报时随结果携带）。 */
 export const EXAM_V2_VERSION = '2.0.0';
@@ -28,7 +28,7 @@ export type ExamV2Category =
 export interface ExamV2Case {
   id: string;
   category: ExamV2Category;
-  /** @acl/core 评分维度（服务端权威）。 */
+  /** @a2t/core 评分维度（服务端权威）。 */
   dimension: Dimension;
 }
 

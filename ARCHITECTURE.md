@@ -1,4 +1,4 @@
-# Architecture — Agent Credit Lab
+# Architecture — Agent to Trust (A2T)
 
 > Updated: 2026-09-17
 > Stack: TypeScript end-to-end — Node + Fastify + Drizzle + PostgreSQL (API), Next.js + TypeScript (dashboard).
@@ -63,7 +63,7 @@ experiments/     # experiment definitions & results
 
 Each module has its own README, tests, and dependency boundaries.
 
-**Type sharing is a key architectural benefit**: `@acl/core` defines types such as `Dimension`, `Source`, `Agent`, and `Evidence`. `apps/api` and `apps/dashboard` both import the same definitions, preventing frontend/backend type drift.
+**Type sharing is a key architectural benefit**: `@a2t/core` defines types such as `Dimension`, `Source`, `Agent`, and `Evidence`. `apps/api` and `apps/dashboard` both import the same definitions, preventing frontend/backend type drift.
 
 ## Core design decisions
 
@@ -76,7 +76,7 @@ Each module has its own README, tests, and dependency boundaries.
 ## API conventions
 
 - REST first; internal events may use an event bus.
-- All inputs are constrained by TypeScript types (`@acl/core`).
+- All inputs are constrained by TypeScript types (`@a2t/core`).
 - Every mutation supports an idempotency key (enforced from Stage 2 onward).
 - OpenAPI docs: via `@fastify/swagger` (planned for the end of Stage 1).
 

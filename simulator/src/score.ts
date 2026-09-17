@@ -1,10 +1,10 @@
 /**
- * @acl/simulator — 仿真 → 信用评分桥接。
+ * @a2t/simulator — 仿真 → 信用评分桥接。
  *
- * 把仿真产生的 SimEvidence 映射到 @acl/scoring 的 EvidencePoint，
+ * 把仿真产生的 SimEvidence 映射到 @a2t/scoring 的 EvidencePoint，
  * 让「仿真交易 → evidence → AgentScore」闭环成立，且每个分数可反查到交易。
  */
-import { computeScore, type EvidencePoint, type ScoreResult } from '@acl/scoring';
+import { computeScore, type EvidencePoint, type ScoreResult } from '@a2t/scoring';
 import type { SimEvidence, SimulationResult } from './types';
 
 export function evidenceToPoints(evidence: SimEvidence[]): EvidencePoint[] {

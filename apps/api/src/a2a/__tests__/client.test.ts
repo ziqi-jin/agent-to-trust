@@ -34,7 +34,7 @@ function makeMsg(overrides: Partial<A2aOutboundMessage> = {}): A2aOutboundMessag
     contextId: 'ctx-1',
     taskId: 'task-1',
     text: '上一轮：对方报价 120；本轮请给出还价。',
-    metadata: { acl: { sessionId: 'sess-1', round: 2, deadlineMs: 60_000 } },
+    metadata: { a2t: { sessionId: 'sess-1', round: 2, deadlineMs: 60_000 } },
     ...overrides,
   };
 }
@@ -125,7 +125,7 @@ describe('sendA2aMessage — 请求组装', () => {
     expect(body.params.message.role).toBe('user');
     expect(body.params.message.parts[0].text).toBe(msg.text);
     expect(body.params.message.metadata).toEqual(msg.metadata);
-    expect(body.params.message.metadata.acl).toEqual({
+    expect(body.params.message.metadata.a2t).toEqual({
       sessionId: 'sess-1',
       round: 2,
       deadlineMs: 60_000,

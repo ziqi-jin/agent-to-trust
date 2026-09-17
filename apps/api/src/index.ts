@@ -11,7 +11,7 @@ const db = createDb(url);
 const app = buildApp(db);
 
 await app.listen({ host: '0.0.0.0', port });
-console.log(`Agent Credit Lab API listening on :${port}`);
+console.log(`A2T API listening on :${port}`);
 
 // Arena 悬空会话兜底清扫：默认 5 分钟一轮（ARENA_SWEEP_DISABLED=1 关闭；TTL 见 ARENA_SESSION_TTL_MINUTES）
 if (process.env.ARENA_SWEEP_DISABLED !== '1') {

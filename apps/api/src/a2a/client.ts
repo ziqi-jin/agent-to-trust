@@ -9,7 +9,7 @@
  *  - HTTP 头 `Authorization: Bearer <token>`（平台侧始终强制带 token；接口 token 可空则不加头）
  *  - body：JSON-RPC 2.0，`id = msg.taskId`，`method = 'message/send'`，
  *    `params.message.parts[0].text` 自包含（带最近历史摘要）→ 用户 agent 无状态也能接；
- *    `params.message.metadata.acl = { sessionId, round, deadlineMs }`。
+ *    `params.message.metadata.a2t = { sessionId, round, deadlineMs }`。
  *
  * 响应解析：A2A 的 `result` 是一个 `Task` 或 `Message`。稳妥提取 parts：
  *  `result.parts` → `result.message.parts` → `result.artifacts[*].parts`（DELIVER 走 artifact）。
@@ -31,13 +31,13 @@ export interface A2aPart {
   [k: string]: unknown;
 }
 
-/** 平台发往用户 agent 的单轮消息（自包含文本 + ACL 元数据）。 */
+/** 平台发往用户 agent 的单轮消息（自包含文本 + A2T 元数据）。 */
 export interface A2aOutboundMessage {
   contextId: string;
   taskId: string;
   text: string;
   metadata: {
-    acl: {
+    a2t: {
       sessionId: string;
       round: number;
       deadlineMs: number;

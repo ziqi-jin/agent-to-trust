@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — Simulation Engine v0.1。
+ * @a2t/simulator — Simulation Engine v0.1。
  *
  * Agent 池 + 任务生成器 + 虚拟钱包 + 调度器。
  * 确定性（seed 可复现）、纯函数（无外部副作用）、仿真数据显式标记 source=simulation。

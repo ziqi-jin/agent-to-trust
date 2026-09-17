@@ -8,7 +8,7 @@
  * - apiKey 只透传，不参与存储
  */
 import { randomUUID } from 'node:crypto';
-import { NEGOTIATION_SCENARIOS, scenarioText, type Locale, type NegotiationScenario } from 'sealit-sdk';
+import { NEGOTIATION_SCENARIOS, scenarioText, type Locale, type NegotiationScenario } from 'a2t';
 
 export type PlayStyle = 'tough' | 'balanced' | 'gentle';
 

@@ -163,7 +163,7 @@ export const arenaSessions = pgTable('arena_sessions', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** ACL 协议事件：append-only，验签后入库，seq 会话内单调、nonce 全局一次性。 */
+/** A2T 协议事件：append-only，验签后入库，seq 会话内单调、nonce 全局一次性。 */
 export const arenaEvents = pgTable(
   'arena_events',
   {

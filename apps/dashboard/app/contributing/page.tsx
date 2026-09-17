@@ -48,7 +48,7 @@ export default function ContributingPage() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
-                Agent Credit Lab · One more thing
+                A2T · One more thing
               </p>
               <h1 className="mt-1 font-display text-xl font-black uppercase tracking-[0.16em] md:text-2xl">
                 {c.title}

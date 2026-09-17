@@ -1,6 +1,6 @@
 'use client';
 
-import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@acl/core';
+import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@a2t/core';
 import { useLocale, useT } from '@/lib/i18n';
 
 /**

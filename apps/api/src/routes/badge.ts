@@ -1,7 +1,7 @@
 /**
  * GET /badge/:agentId.svg — README 徽章（增长飞轮核心）。
  *
- * 一行嵌入：[![ACL](https://reeftavern.cc/credit/api/badge/<agentId>.svg)](报告页 URL)
+ * 一行嵌入：[![A2T](https://reeftavern.cc/credit/api/badge/<agentId>.svg)](报告页 URL)
  * 动态生成：分数 + verified 徽标；60s 缓存。
  */
 import { desc, eq } from 'drizzle-orm';
@@ -17,7 +17,7 @@ function badgeSvg(label: string, value: string, accent: string): string {
   const labelW = 36;
   const valueW = Math.ceil(12 + value.length * 7.4);
   const w = labelW + valueW;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="28" role="img" aria-label="ACL: ${esc(value)}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="28" role="img" aria-label="A2T: ${esc(value)}">
   <linearGradient id="g" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".25"/></linearGradient>
   <clipPath id="r"><rect width="${w}" height="28" rx="5"/></clipPath>
   <g clip-path="url(#r)">
@@ -40,7 +40,7 @@ export async function badgeRoutes(app: FastifyInstance) {
   async function renderBadge(reply: FastifyReply, agent: typeof agents.$inferSelect | undefined) {
     if (!agent) {
       reply.type('image/svg+xml').header('cache-control', 'no-store');
-      return badgeSvg('ACL', 'agent not found', '#64748b');
+      return badgeSvg('A2T', 'agent not found', '#64748b');
     }
     const score = await app.db.query.creditScores.findFirst({
       where: eq(creditScores.agentId, agent.id),
@@ -50,7 +50,7 @@ export async function badgeRoutes(app: FastifyInstance) {
     const value =
       score?.score != null ? `score ${score.score}${verified ? ' · verified' : ''}` : 'untested';
     reply.type('image/svg+xml').header('cache-control', 'public, max-age=60');
-    return badgeSvg('ACL', value, verified ? '#f59e0b' : '#94a3b8');
+    return badgeSvg('A2T', value, verified ? '#f59e0b' : '#94a3b8');
   }
 
   // 按 agentId（内部 id，从报告页/详情页复制）

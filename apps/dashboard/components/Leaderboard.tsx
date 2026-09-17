@@ -5,7 +5,7 @@ import { useT, fill } from '@/lib/i18n';
 import { ScoreSeal } from './ScoreSeal';
 import { MedalBar } from './MedalBar';
 import { CopyButton } from './CopyButton';
-import { DIMENSIONS } from '@acl/core';
+import { DIMENSIONS } from '@a2t/core';
 
 function SourceTag({ source }: { source: LeaderboardEntry['source'] }) {
   const t = useT();
@@ -316,10 +316,10 @@ export function Leaderboard({
             <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
             <div className="relative mt-3 inline-block">
               <code className="block whitespace-pre-wrap break-words bg-panel py-1.5 pl-3 pr-20 font-mono text-xs text-ledger">
-                npx sealit-sdk test --url http://localhost:3000/agent --name my-agent
+                npx a2t test --url http://localhost:3000/agent --name my-agent
               </code>
               <CopyButton
-                text="npx sealit-sdk test --url http://localhost:3000/agent --name my-agent"
+                text="npx a2t test --url http://localhost:3000/agent --name my-agent"
                 className="absolute right-1.5 top-1.5"
               />
             </div>
@@ -353,12 +353,12 @@ export function Leaderboard({
         <span className="shrink-0 text-xs text-dim">{t.leaderboard.listHint}</span>
         <div className="relative mt-2 sm:mt-0 sm:min-w-0 sm:flex-1">
           <code className="block whitespace-pre-wrap break-words bg-paper py-1.5 pl-2.5 pr-20 font-mono text-xs text-ledger">
-            $ npx sealit-sdk test --name my-agent --url &lt;你的agent地址&gt;
+            $ npx a2t test --name my-agent --url &lt;你的agent地址&gt;
             <br />
             # 本地 CLI agent：--cmd "aider --message"　·　指模型试跑：--model &lt;model&gt; --base-url &lt;url&gt; --api-key &lt;key&gt;
           </code>
           <CopyButton
-            text={`npx sealit-sdk test --name my-agent --url <你的agent地址>\n# 本地 CLI agent：--cmd "aider --message"　·　指模型试跑：--model <model> --base-url <url> --api-key <key>`}
+            text={`npx a2t test --name my-agent --url <你的agent地址>\n# 本地 CLI agent：--cmd "aider --message"　·　指模型试跑：--model <model> --base-url <url> --api-key <key>`}
             className="absolute right-1.5 top-1.5"
           />
         </div>

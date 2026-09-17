@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { asc, eq } from 'drizzle-orm';
-import { ensureKeypair, signPayload, verifyPayload } from 'sealit-sdk';
+import { ensureKeypair, signPayload, verifyPayload } from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -80,7 +80,7 @@ function makeCard(): AclAgentCard {
     defaultInputModes: ['application/json'],
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
-    'x-acl': { arenaReady: true },
+    'x-a2t': { arenaReady: true },
   } as AclAgentCard;
 }
 
@@ -236,7 +236,7 @@ describe('Task 6 — A2A 双向桥', () => {
     await pushSigned(sessionId, buyerId, counterpartKeys, 'OFFER', { price: 80 });
 
     const { fn, calls } = fetchReturning([
-      { kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } },
+      { kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } },
     ]);
     const stats = await runBridge(sessionId, sellerId, platformKeys, fn, { maxRounds: 1 });
 
@@ -338,7 +338,7 @@ describe('Task 6 — A2A 双向桥', () => {
       sessionId,
       sellerId,
       platformKeys,
-      fetchReturning([{ kind: 'data', data: { aclAction: { type: 'REJECT', reason: '太贵' } } }]).fn,
+      fetchReturning([{ kind: 'data', data: { a2tAction: { type: 'REJECT', reason: '太贵' } } }]).fn,
       { maxRounds: 5 },
     );
 
@@ -484,14 +484,14 @@ describe('Task 6 — A2A 双向桥', () => {
     await pushSigned(sessionId, buyerId, counterpartKeys, 'OFFER', { price: 80 });
     await pushSigned(sessionId, buyerId, counterpartKeys, 'NEGOTIATE', { price: 70 });
 
-    const reply = [{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } }];
+    const reply = [{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } }];
     const { fn, reqs } = fetchScript([{ parts: reply }, { parts: reply }]);
     const stats = await runBridge(sessionId, sellerId, platformKeys, fn, { maxRounds: 2 });
 
     expect(reqs.length).toBe(2);
     interface A2aMsg {
       parts: Array<{ text: string }>;
-      metadata: { acl: { round: number } };
+      metadata: { a2t: { round: number } };
     }
     const r1 = reqs[0].params.message as A2aMsg;
     const r2 = reqs[1].params.message as A2aMsg;
@@ -499,8 +499,8 @@ describe('Task 6 — A2A 双向桥', () => {
     const t2 = r2.parts[0].text;
 
     // 轮次 = 桥自维护的 A2A 往返计数（1、2）；对家事件内核 seq 为 2、3 → 证明非 seq 派生
-    expect(r1.metadata.acl.round).toBe(1);
-    expect(r2.metadata.acl.round).toBe(2);
+    expect(r1.metadata.a2t.round).toBe(1);
+    expect(r2.metadata.a2t.round).toBe(2);
     expect(t2).toContain('[第2轮]');
 
     // 人称归属：自己已注入事件 → 你；对家 → 对家（历史摘要非降级形态）
@@ -527,7 +527,7 @@ describe('Task 6 — A2A 双向桥', () => {
       f2.sessionId,
       f2.sellerId,
       f2.platformKeys,
-      fetchReturning([{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } }]).fn,
+      fetchReturning([{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } }]).fn,
       { maxRounds: 1, maxWaitMs: 60_000 },
     );
     expect(s2.exitReason).toBe('max-rounds');
@@ -541,7 +541,7 @@ describe('Task 6 — A2A 双向桥', () => {
       f3.sessionId,
       f3.sellerId,
       f3.platformKeys,
-      fetchReturning([{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } }]).fn,
+      fetchReturning([{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } }]).fn,
       { maxRounds: 100, pollMs: 10, maxWaitMs: 60 },
     );
     expect(Date.now() - started).toBeLessThan(3_000);
@@ -558,7 +558,7 @@ describe('Task 6 — A2A 双向桥', () => {
       f1.sessionId,
       f1.sellerId,
       f1.platformKeys,
-      fetchReturning([{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } }]).fn,
+      fetchReturning([{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } }]).fn,
       { maxRounds: 1 },
     );
     expect(wrap1.calls()).toBe(2); // 恰好重试一次
@@ -574,7 +574,7 @@ describe('Task 6 — A2A 双向桥', () => {
       f2.sessionId,
       f2.sellerId,
       f2.platformKeys,
-      fetchReturning([{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 75 } } }]).fn,
+      fetchReturning([{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 75 } } }]).fn,
       { maxRounds: 1 },
     );
     expect(wrap2.calls()).toBe(2);

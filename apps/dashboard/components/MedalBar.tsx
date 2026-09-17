@@ -11,8 +11,8 @@ import {
   Scale,
   Fingerprint,
 } from 'lucide-react';
-import { DIMENSIONS, type Dimension } from '@acl/core';
-import { hasExamCoverage } from '@acl/scoring';
+import { DIMENSIONS, type Dimension } from '@a2t/core';
+import { hasExamCoverage } from '@a2t/scoring';
 import { useT } from '@/lib/i18n';
 import type { DimensionBadge } from '@/lib/api';
 

@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — 调度器（核心）。
+ * @a2t/simulator — 调度器（核心）。
  *
  * 推进 N 轮仿真，每轮：生成任务 → buyer 发布 → 有能力者 DISCOVER →
  * OFFER 报价 → buyer ACCEPT → EXECUTE（按行为参数决定成败）→ SETTLE 结算 →
@@ -7,7 +7,7 @@
  *
  * 事件链：DISCOVER → OFFER → ACCEPT → EXECUTE → SETTLE → REVIEW。
  */
-import type { EvidenceResult } from '@acl/core';
+import type { EvidenceResult } from '@a2t/core';
 import { Rng, round2 } from './rng';
 import { generateAgents } from './agents';
 import { generateTask } from './tasks';

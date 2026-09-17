@@ -1,22 +1,22 @@
 /**
  * 仿真接入 + 榜单 + 首页统计。
  *
- * 把 @acl/simulator 的「100 Agent 自主交易」链路落库（agents / evidence / credit_scores），
+ * 把 @a2t/simulator 的「100 Agent 自主交易」链路落库（agents / evidence / credit_scores），
  * 让前端榜单有真实（但 source=simulation，绝不伪装真实交易）的数据可展示。
  */
 import { randomUUID } from 'node:crypto';
 import { and, count, desc, eq, inArray, like } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { runSimulation } from '@acl/simulator';
-import type { SimulationConfig } from '@acl/simulator';
-import { isDimension, type Dimension } from '@acl/core';
+import { runSimulation } from '@a2t/simulator';
+import type { SimulationConfig } from '@a2t/simulator';
+import { isDimension, type Dimension } from '@a2t/core';
 import {
   badgesFromDimensions,
   freshnessFactorFromDays,
   realEvidenceCounts,
   REAL_EVIDENCE_SOURCES,
   type Badge,
-} from '@acl/scoring';
+} from '@a2t/scoring';
 import { agents, creditScores, evidence, simulationRuns } from '../db/schema';
 import { ARENA_GATE_SCORE, PLATFORM_NAME } from './arenaQueue';
 import { computeAndPersist } from './scores';
@@ -164,7 +164,7 @@ export async function simulationRoutes(app: FastifyInstance) {
       where: inArray(evidence.source, [...REAL_EVIDENCE_SOURCES]),
     });
     const benchmarkAgents = new Set(benchmarkEvidence.map((e) => e.agentId));
-    // 勋章红线支撑：按 (agentId, dimension) 统计真实证据条数（只算 real-* 源，口径单处在 @acl/scoring）。
+    // 勋章红线支撑：按 (agentId, dimension) 统计真实证据条数（只算 real-* 源，口径单处在 @a2t/scoring）。
     const benchmarkEvByAgent = new Map<string, { dimension: string }[]>();
     for (const e of benchmarkEvidence) {
       const arr = benchmarkEvByAgent.get(e.agentId);
@@ -223,7 +223,7 @@ export async function simulationRoutes(app: FastifyInstance) {
             behaviorScore = Math.round(base * (sc?.confidence ?? 0) * fresh);
           }
         }
-        // 勋章派生（纯函数，口径单处在 @acl/scoring）：只认真实证据条数；时效由 freshnessDays 推算。
+        // 勋章派生（纯函数，口径单处在 @a2t/scoring）：只认真实证据条数；时效由 freshnessDays 推算。
         const badges: Badge[] = badgesFromDimensions(
           dims ?? [],
           realEvByAgentDim.get(a.id) ?? new Map(),

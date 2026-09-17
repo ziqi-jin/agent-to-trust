@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { ensureKeypair } from 'sealit-sdk';
+import { ensureKeypair } from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -50,7 +50,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
-/** arenaReady 的 Agent Card（x-acl.arenaReady=true + negotiation skill）。 */
+/** arenaReady 的 Agent Card（x-a2t.arenaReady=true + negotiation skill）。 */
 function arenaReadyCard(): AclAgentCard {
   return {
     name: 'A2A User Agent',
@@ -61,14 +61,14 @@ function arenaReadyCard(): AclAgentCard {
     defaultInputModes: ['application/json'],
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
-    'x-acl': { arenaReady: true },
+    'x-a2t': { arenaReady: true },
   } as AclAgentCard;
 }
 
-/** 未过门槛的卡：`x-acl.arenaReady !== true`。 */
+/** 未过门槛的卡：`x-a2t.arenaReady !== true`。 */
 function notReadyCard(): AclAgentCard {
   const c = arenaReadyCard();
-  return { ...c, 'x-acl': { arenaReady: false } };
+  return { ...c, 'x-a2t': { arenaReady: false } };
 }
 
 /** 卡片 fetch：按 URL 分流（card → 固定卡；其余 → A2A message/send 脚本）。 */
@@ -325,7 +325,7 @@ describe('Task 8 — A2A 开局入口', () => {
   it('6. 桥跑完一局（假对端 REJECT）→ a2a_rounds / a2a_invalid_rounds 落库', async () => {
     const { connectionId, token } = await setupConnection();
     // 对家出 OFFER → 桥打 A2A → 假对端回 REJECT → 桥注入 seller REJECT → 会话终结、桥退出
-    const { fn } = fetchRouted([{ kind: 'data', data: { aclAction: { type: 'REJECT' } } }]);
+    const { fn } = fetchRouted([{ kind: 'data', data: { a2tAction: { type: 'REJECT' } } }]);
     __setA2aRunOverrides({ fetchImpl: fn, pollMs: 5, maxRounds: 5, maxWaitMs: 3000 });
 
     const res = await run(connectionId, { token });

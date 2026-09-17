@@ -1,21 +1,21 @@
 /**
- * @acl/adapters — Benchmark v0.1（真实 Agent 评测）。
+ * @a2t/adapters — Benchmark v0.1（真实 Agent 评测）。
  *
  * 3 类基准：coding（编码）、reasoning（推理）、honesty（诚实度）。
  * 每个 case 有 prompt + 确定性 grader，把模型输出打分（value 0..1），
- * 产出的证据 source=benchmark，喂进 @acl/scoring 评分引擎。
+ * 产出的证据 source=benchmark，喂进 @a2t/scoring 评分引擎。
  *
  * 红线：这是「可复现的评测」而非「科学验证的基准」。grader 是启发式的，
  * 对外必须标注局限性（详见 docs）。
  */
-import type { Dimension, EvidenceResult } from '@acl/core';
+import type { Dimension, EvidenceResult } from '@a2t/core';
 
 export type BenchmarkDimension = 'coding' | 'reasoning' | 'honesty';
 
 export interface BenchmarkGrading {
   /** 归一化 value 0..1（能力/诚实度水平）。 */
   value: number;
-  /** 映射到 @acl/core 的 EvidenceResult。 */
+  /** 映射到 @a2t/core 的 EvidenceResult。 */
   result: EvidenceResult;
 }
 
@@ -38,7 +38,7 @@ export interface BenchmarkResult {
   rawOutput: string;
 }
 
-/** Benchmark 维度 → @acl/core 评分维度映射。 */
+/** Benchmark 维度 → @a2t/core 评分维度映射。 */
 export const BENCHMARK_DIMENSION_MAP: Record<BenchmarkDimension, Dimension> = {
   coding: 'capability',
   reasoning: 'capability',
@@ -171,7 +171,7 @@ export async function runBenchmark(
 }
 
 /**
- * 把 benchmark 结果转成 @acl/scoring 的 EvidencePoint（source=benchmark）。
+ * 把 benchmark 结果转成 @a2t/scoring 的 EvidencePoint（source=benchmark）。
  * 每个 case 一条证据，可追溯到 caseId（通过 evidenceUri 或 payload 记录）。
  */
 export function benchmarkToEvidence(
@@ -183,7 +183,7 @@ export function benchmarkToEvidence(
     source: 'benchmark',
     result: r.result,
     value: r.value,
-    evidenceUri: `acl://benchmark/${r.caseId}`,
+    evidenceUri: `a2t://benchmark/${r.caseId}`,
   }));
 }
 

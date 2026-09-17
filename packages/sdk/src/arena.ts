@@ -1,5 +1,5 @@
 /**
- * Arena 会话桥 — `sealit join`（Phase 2）。
+ * Arena 会话桥 — `a2t join`（Phase 2）。
  *
  * 回合制市场交易：buyer 询价 → 卖方还价/接受 → 交付 → 验收 → 结算。
  * 服务端规则（apps/api/src/routes/arena.ts）：
@@ -12,7 +12,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { ensureKeypair, signPayload } from './keys.js';
-import type { SealitAgent } from './agent/types.js';
+import type { A2tAgent } from './agent/types.js';
 import type { Locale } from './counterpart/types.js';
 
 export const ARENA_EVENT_TYPES = [
@@ -55,7 +55,7 @@ export interface ArenaAction {
 }
 
 export interface JoinOptions {
-  agent: SealitAgent;
+  agent: A2tAgent;
   /** 平台 API 地址。 */
   apiBase: string;
   /** 要加入的会话 id（as-xxxx）。不传 → 进入准入队列自动撮合（T12，需考场分达门槛，v0.2 冷启动 350）。 */
@@ -66,7 +66,7 @@ export interface JoinOptions {
   /** 披露文案语言（默认 zh；仅影响结算披露，不影响协议）。 */
   locale?: Locale;
   name?: string;
-  /** 密钥目录（默认 ~/.sealit；同钥即同身份）。 */
+  /** 密钥目录（默认 ~/.a2t；同钥即同身份）。 */
   dir?: string;
   /** 模型名（cmd 模式显式上报，榜单展示）。 */
   model?: string;
@@ -98,7 +98,7 @@ export interface JoinResult {
 export function contextToPrompt(ctx: ArenaContext): string {
   const lines: string[] = [];
   lines.push(
-    `你是 Agent Credit Lab Arena 里的一名${ctx.role === 'buyer' ? '买家' : '卖家'} agent。` +
+    `你是 A2T Arena 里的一名${ctx.role === 'buyer' ? '买家' : '卖家'} agent。` +
       `这是一个回合制市场交易场景：买家询价，卖家报价/交付，买家验收。`,
   );
   lines.push(`场景：${ctx.scenario}`);
@@ -261,7 +261,7 @@ async function joinQueue(
   version?: string,
   mode?: 'live' | 'scripted',
 ): Promise<string> {
-  log('[sealit] 未指定会话，进入准入队列（门槛：考场分≥350）…');
+  log('[a2t] 未指定会话，进入准入队列（门槛：考场分≥350）…');
   const q = await api(doFetch, base, '/arena/queue', {
     method: 'POST',
     // mode 未定义时不入 body（JSON.stringify 丢 undefined），由 API 默认 scripted；
@@ -270,7 +270,7 @@ async function joinQueue(
   });
   if (q.status === 'matched') return q.sessionId as string;
   const ticket = q.ticket as string;
-  log(`[sealit] 已排队 ${ticket}，等待撮合（单人约 12 秒后由平台对家接单）…`);
+  log(`[a2t] 已排队 ${ticket}，等待撮合（单人约 12 秒后由平台对家接单）…`);
   for (let i = 0; i < 100; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     let s: Record<string, unknown>;
@@ -296,13 +296,13 @@ export function printCounterpartDisclosure(
 ): void {
   const name = persona ?? theory.key;
   if (locale === 'en') {
-    log(`[sealit] Counterpart: ${name} (${theory.label.en})`);
-    log(`[sealit] Theory: ${theory.anchor.en}`);
-    log(`[sealit] Quote: ${theory.quote.en}`);
+    log(`[a2t] Counterpart: ${name} (${theory.label.en})`);
+    log(`[a2t] Theory: ${theory.anchor.en}`);
+    log(`[a2t] Quote: ${theory.quote.en}`);
   } else {
-    log(`[sealit] 本局对手：${name}（${theory.label.zh}）`);
-    log(`[sealit] 理论根：${theory.anchor.zh}`);
-    log(`[sealit] 引文：${theory.quote.zh}`);
+    log(`[a2t] 本局对手：${name}（${theory.label.zh}）`);
+    log(`[a2t] 理论根：${theory.anchor.zh}`);
+    log(`[a2t] 引文：${theory.quote.zh}`);
   }
 }
 
@@ -333,7 +333,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     }),
   });
   const agentId = reg.agentId as string;
-  log(`[sealit] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
+  log(`[a2t] 已注册 Arena 身份 ${agentId}${reg.reused ? '（同钥复用）' : ''}`);
 
   // 2. 会话与角色（无 --session → 准入队列自动撮合）
   const sessionId =
@@ -348,7 +348,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       opts.agentVersion,
       opts.mode,
     ));
-  if (!opts.sessionId) log(`[sealit] ✓ 已撮合对手，会话 ${sessionId}`);
+  if (!opts.sessionId) log(`[a2t] ✓ 已撮合对手，会话 ${sessionId}`);
   const session = (await api(
     doFetch,
     base,
@@ -371,7 +371,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
       `会话 ${sessionId} 不包含本 agent（buyer=${session.buyerAgentId} seller=${session.sellerAgentId}）`,
     );
   }
-  log(`[sealit] 会话 ${sessionId} 场景「${session.scenario}」角色=${role}`);
+  log(`[a2t] 会话 ${sessionId} 场景「${session.scenario}」角色=${role}`);
 
   // 3. seq 与事件流
   let lastSeq = 0;
@@ -400,7 +400,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     } catch (e) {
       // 409：对家抢先结算 / seq 并发 / nonce 撞车——对家事件已让会话收尾，无害退出
       if (e instanceof Error && e.message.includes('409')) {
-        log(`[sealit] #${nextSeq} ${action.type} 被拒（409，会话可能已被对家结算）`);
+        log(`[a2t] #${nextSeq} ${action.type} 被拒（409，会话可能已被对家结算）`);
         stoppedReason = stoppedReason ?? 'settled';
         return;
       }
@@ -415,7 +415,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     });
     nextSeq += 1;
     eventsSent += 1;
-    log(`[sealit] → #${envelope.seq} ${action.type}`);
+    log(`[a2t] → #${envelope.seq} ${action.type}`);
   };
 
   /** 问 agent 要下一步动作。 */
@@ -433,7 +433,7 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
     const reply = await opts.agent.reply(prompt);
     const action = parseAgentReply(reply);
     if (action) return action;
-    log('[sealit] 回复无法解析为动作，回退 NEGOTIATE');
+    log('[a2t] 回复无法解析为动作，回退 NEGOTIATE');
     return { type: 'NEGOTIATE', payload: { note: '（回复格式有误，请重新说明条件）' } };
   };
 
@@ -450,11 +450,11 @@ export async function runJoinLoop(opts: JoinOptions): Promise<JoinResult> {
   nextSeq = lastSeq + 1;
 
   if (role === 'buyer' && allEvents.length === 0) {
-    log('[sealit] buyer 先手出价…');
+    log('[a2t] buyer 先手出价…');
     await pushEvent(await decide(1, []));
   } else if (allEvents.some((e) => e.fromAgent !== agentId)) {
     // 排队撮合场景：对家（如平台买家）在 join 前已先手 → 立即决策，不能等下一轮长轮询
-    log('[sealit] 对家已先手，立即决策…');
+    log('[a2t] 对家已先手，立即决策…');
     const action = await decide(1, allEvents);
     await pushEvent(action);
     if (action.type === 'VERIFY_RESULT') {

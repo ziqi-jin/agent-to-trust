@@ -1,5 +1,5 @@
 {
-  "name": "@acl/simulator",
+  "name": "@a2t/simulator",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
@@ -10,8 +10,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@acl/core": "*",
-    "@acl/scoring": "*"
+    "@a2t/core": "*",
+    "@a2t/scoring": "*"
   },
   "devDependencies": {
     "vitest": "^2.1.8"

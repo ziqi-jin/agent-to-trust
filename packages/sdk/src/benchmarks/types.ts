@@ -1,5 +1,5 @@
 /**
- * 题集类型（沿用 @acl/adapters 已验证的 BenchmarkCase 形状，
+ * 题集类型（沿用 @a2t/adapters 已验证的 BenchmarkCase 形状，
  * 在 SDK 内独立定义，避免依赖 adapters 包）。
  */
 
@@ -22,7 +22,7 @@ export interface BenchmarkCase {
   grade: (output: string) => Grading;
 }
 
-/** 题维度 → @acl/core 评分维度。 */
+/** 题维度 → @a2t/core 评分维度。 */
 export const DIMENSION_MAP = {
   coding: 'capability',
   reasoning: 'capability',

@@ -1,6 +1,6 @@
 # apps/api — Fastify Backend (Node + TypeScript)
 
-The core API of Agent Credit Lab: Agent Registry / Evidence / AgentScore.
+The core API of A2T: Agent Registry / Evidence / AgentScore.
 
 ## Local development
 

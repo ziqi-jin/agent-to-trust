@@ -22,7 +22,7 @@ import {
   runSuite,
   signPayload,
   type SuiteResult,
-} from 'sealit-sdk';
+} from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -142,7 +142,7 @@ describe('审计 A4：reverify 对历史脏数据二次校验（不发请求）'
       issuer: 'sdk',
       result: 'success',
       value: 0.5,
-      evidenceUri: 'acl://benchmark/coding-sum',
+      evidenceUri: 'a2t://benchmark/coding-sum',
     });
     fetchSpy.mockClear();
     expect(await reverifyAgent(app, agentId)).toBe('basic');
