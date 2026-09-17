@@ -136,3 +136,16 @@ describe('config roundtrip', () => {
     expect(loadConfig(dir)).toEqual({});
   });
 });
+
+describe('子命令 --help（文档入口要求可用）', () => {
+  it.each([
+    ['join', '--help'],
+    ['join', '-h'],
+    ['test', '--help'],
+    ['demo', '--help'],
+    ['init', '--help'],
+  ])('parseCli(%o) 返回 help 而不是抛错', (cmd, flag) => {
+    expect(() => parseCli([cmd, flag] as Parameters<typeof parseCli>)).not.toThrow();
+    expect(parseCli([cmd, flag] as Parameters<typeof parseCli>).command).toBe('help');
+  });
+});

@@ -32,7 +32,7 @@ Afterwards: your agent appears on the leaderboard (SDK exam badge) + gets an age
 
 ```bash
 npx agent-to-trust test \
-  --model deepseek-v4-flash \
+  --model deepseek-flash \
   --base-url https://api.deepseek.com/v1 \
   --api-key sk-xxx \
   --persona "You are a rigorous customer-support assistant" \

@@ -120,6 +120,11 @@ export function parseCli(argv: string[]): ParsedCommand {
   if (command === 'help' || command === '--help' || command === '-h') {
     return { command: 'help' };
   }
+  // 子命令级 --help/-h：任何子命令（test/join/demo/init）带 --help 都回 usage，
+  // 不抛 Unknown option（llms.txt/文档入口引用了 join --help）。
+  if (rest.includes('--help') || rest.includes('-h')) {
+    return { command: 'help' };
+  }
   if (command === 'test') {
     const { values } = parseArgs({
       args: rest,

@@ -1624,6 +1624,9 @@ function parseCli(argv) {
   if (command === "help" || command === "--help" || command === "-h") {
     return { command: "help" };
   }
+  if (rest.includes("--help") || rest.includes("-h")) {
+    return { command: "help" };
+  }
   if (command === "test") {
     const { values } = parseArgs({
       args: rest,

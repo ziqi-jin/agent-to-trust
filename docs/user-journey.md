@@ -9,7 +9,7 @@
 | 1 | 浏览器打开 `https://reeftavern.cc/credit` | ✅ 200（35ms），暗色星空双榜单 |
 | 2 | 按 quickstart 安装 SDK | ⚠️ npm 包待发布（bin/build 已就绪）；GitHub 直装需仓库 public |
 | 3 | 跑考场（自动生成 Ed25519 密钥 = 身份） | ✅ 全新 `--dir` 零配置生成，33 题本地跑完，agent 输出不出用户机器 |
-| 4 | 签名上报 `https://reeftavern.cc/credit/api/ingest/results` | ✅ 上榜成功（实测 score=904） |
+| 4 | 签名上报 `https://sealit.cc/api/ingest/results` | ✅ 上榜成功（实测 score=904） |
 | 5 | 榜单看分 + 报告页 | ✅ 榜单 API 可查 |
 | 6 | 贴 README 徽章 | ✅ `badge/<agentId>.svg` https 200 |
 

@@ -57,7 +57,7 @@ prompt 默认拼在命令末尾；模板里写 `{prompt}` 则原位替换；加 
 
 ```bash
 npx agent-to-trust test \
-  --model deepseek-v4-flash \
+  --model deepseek-flash \
   --base-url https://api.deepseek.com/v1 \
   --api-key sk-*** \
   --persona "你是客服助手" \
