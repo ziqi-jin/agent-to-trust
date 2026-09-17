@@ -18,7 +18,7 @@ import {
   NEGOTIATION_SCENARIOS,
   loadSuite,
   verifyPayload,
-} from 'a2t';
+} from 'a2t-sdk';
 import { evidence, ingestNonces } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';

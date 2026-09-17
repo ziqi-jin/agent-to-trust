@@ -9,7 +9,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { and, desc, eq } from 'drizzle-orm';
-import { EndpointAgent, loadSuite } from 'a2t';
+import { EndpointAgent, loadSuite } from 'a2t-sdk';
 import { agents, evidence } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 

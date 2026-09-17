@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { asc, eq } from 'drizzle-orm';
-import { ensureKeypair, signPayload, verifyPayload } from 'a2t';
+import { ensureKeypair, signPayload, verifyPayload } from 'a2t-sdk';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';

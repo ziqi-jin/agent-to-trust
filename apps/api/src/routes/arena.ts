@@ -13,7 +13,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { verifyPayload } from 'a2t';
+import { verifyPayload } from 'a2t-sdk';
 import { COUNTERPART_THEORY, type CounterpartTheoryKey } from '@a2t/core';
 import { agents, arenaEvents, arenaSessions } from '../db/schema';
 import { upsertAgentIdentity } from '../services/agentIdentity';

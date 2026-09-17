@@ -22,7 +22,7 @@ import {
   runSuite,
   signPayload,
   type SuiteResult,
-} from 'a2t';
+} from 'a2t-sdk';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';

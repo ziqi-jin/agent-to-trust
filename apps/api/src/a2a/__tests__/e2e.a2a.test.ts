@@ -37,7 +37,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
-import { ensureKeypair } from 'a2t';
+import { ensureKeypair } from 'a2t-sdk';
 import { buildApp } from '../../app';
 import { __clearCardCache } from '../../a2a/card';
 import { createDb, type Database } from '../../db/client';
