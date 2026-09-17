@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   api,
   GITHUB_URL,
@@ -239,6 +240,12 @@ export default function Page() {
             {t.footer.register}
           </p>
           <div className="flex items-center gap-4">
+            <Link href="/privacy" className="font-mono text-xs text-ledger underline-offset-4 hover:underline">
+              {t.footer.privacy}
+            </Link>
+            <Link href="/terms" className="font-mono text-xs text-ledger underline-offset-4 hover:underline">
+              {t.footer.terms}
+            </Link>
             <a
               href="/llms.txt"
               target="_blank"

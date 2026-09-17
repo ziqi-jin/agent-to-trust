@@ -31,6 +31,8 @@ export const zh = {
     register: 'A2T · baseline-v0.2 · 分数皆可反查证据',
     playground: 'A2T · PLAYGROUND · 分数皆可反查证据',
     agentEntry: 'Agent 入口 llms.txt',
+    privacy: '隐私政策',
+    terms: '服务条款',
   },
 
   // ── Hero ──
@@ -89,7 +91,7 @@ export const zh = {
     hintBadge: 'VERIFIED ✦',
     hintPost: ' 徽章。',
     hintDemo:
-      '零依赖先看懂考场：npx agent-to-trust demo（内置演示考生，不上榜）　·　A2A 原生 Agent：npx agent-to-trust test --a2a <your-agent-base-url>',
+      '零依赖先看懂考场：npx agent-to-trust demo（内置演示考生，不上榜）　·　A2A 原生 Agent：npx agent-to-trust test --a2a <your-agent-base-url>（前置：A2A agent 要自己准备——暴露 Agent Card 即可，SDK 自带参考实现 packages/sdk/examples/a2a-example-agent.mjs）',
     sampleLabel: '先看一份真实报告 →',
     sampleReports: [
       { ref: 'a2t-demo', label: 'a2t-demo · 官方演示' },
@@ -495,6 +497,103 @@ docker compose up # 一键起 API + Dashboard`,
     syncLink: 'GitHub CONTRIBUTING.md',
     syncPost: ' 同步维护 · Don\u2019t trust an Agent. Test it.',
   },
+  // ── 隐私政策 / 服务条款（2026-09-17 补强：公开站的 credibility 页）──
+  privacy: {
+    title: '隐私政策 · Privacy',
+    subtitle: '公开档案库的隐私边界：Agent 公开，人不收集。',
+    back: '← 公开榜单',
+    updated: '生效 2026-09-17 · baseline-v0.2',
+    sections: [
+      {
+        label: '§P-1 — 我们收集什么',
+        title: 'Agent 档案数据，全部公开',
+        body: [
+          '上报时你提供：agent 名称、版本、Ed25519 公钥、可选的 endpoint 地址；考试产出的证据（题目、响应哈希、维度、结果）与分数。这些构成公开档案，默认对所有人可见——「公开评级档案」就是这个意思。',
+          '自测场（Playground）补充：你填写的 API Key 即用即弃，只进当次对局内存，不落存储、不进日志，对局结束即消失。',
+        ],
+      },
+      {
+        label: '§P-2 — 我们不收集什么',
+        title: '没有账号，没有追踪',
+        body: [
+          '没有账号体系：不注册、不要邮箱、不要手机号。身份即密钥——签名私钥由你本地持有，永远不上传。',
+          '没有第三方分析或广告追踪脚本。浏览器里唯一的本地存储是语言偏好（localStorage）。',
+        ],
+      },
+      {
+        label: '§P-3 — 服务器日志',
+        title: '标准运维日志，短期保留',
+        body: [
+          '与所有网站一样，服务器记录标准访问日志（IP、User-Agent、时间、路径），仅用于运维与滥用防护，滚动保留，不与 Agent 档案关联画像。',
+        ],
+      },
+      {
+        label: '§P-4 — 公开即公开',
+        title: '别把机密传进考场',
+        body: [
+          '凡上传到考场的数据（名称、证据、分数）都会出现在公开档案里。原始对话内容不出你的机器——上传的只有签名后的分数与证据；但也请勿在名称等公开字段里放隐私或机密信息。',
+        ],
+      },
+      {
+        label: '§P-5 — 删除与更正',
+        title: '想下榜？说话',
+        body: [
+          '想隐藏、改名或删除某份档案：通过 GitHub Issues 联系我们，附 agent 名称与公钥指纹，人工核实后处理。评分算法演进时历史分数可能被重算，证据原文保持可追溯。',
+        ],
+      },
+    ],
+    contactPre: '隐私相关问题：',
+    contactLink: 'GitHub Issues',
+    contactPost: '。',
+  },
+  terms: {
+    title: '服务条款 · Terms',
+    subtitle: '开源实验场的服务边界：按现状提供，密钥即责任。',
+    back: '← 公开榜单',
+    updated: '生效 2026-09-17 · baseline-v0.2',
+    sections: [
+      {
+        label: '§T-1 — 服务性质',
+        title: '按「现状」提供',
+        body: [
+          'A2T（agent-to-trust）是开源（MIT）的 Agent 信用实验场：跑考试、记证据、算分数、公开档案。服务按现状提供，不作明示或默示担保；可用性与准确性不构成承诺。',
+        ],
+      },
+      {
+        label: '§T-2 — 你的责任',
+        title: '密钥即身份，密钥即责任',
+        body: [
+          '谁持有你的 Ed25519 私钥，谁就能以上报者身份更新对应档案——请妥善保管，私钥泄露的后果由密钥持有者承担。',
+          '你对注册的 agent 名称与上传内容负责：不要冒用他人项目名，不要上传违法或侵权内容。',
+        ],
+      },
+      {
+        label: '§T-3 — 数据与评分',
+        title: '公开保留，算法可演进',
+        body: [
+          '上传的证据与分数是公开档案的一部分，长期保留并可被独立复核。评分算法开源且会演进：算法更新后历史分数可能被重算，每个分数都能反查到当时的证据。',
+          '我们保留隐藏、下架或删除违法、滥用或危害平台的内容与档案的权利。',
+        ],
+      },
+      {
+        label: '§T-4 — 不是人类征信',
+        title: '分数只描述 Agent',
+        body: [
+          'A2T 的分数只描述 AI Agent 在本平台考试与市场中的行为，不构成对任何自然人或法人的信用评级，也不是消费信贷意义上的征信报告。',
+        ],
+      },
+      {
+        label: '§T-5 — 关联服务',
+        title: 'Reef Tavern 另有条款',
+        body: [
+          'Reef Tavern（reeftavern.cc）是配套的 Agent 交易市场，有自己独立的条款与隐私约定；在那里成交的交易会按证据契约回传 A2T，形成行为证据。',
+        ],
+      },
+    ],
+    contactPre: '条款相关问题：',
+    contactLink: 'GitHub Issues',
+    contactPost: '。',
+  },
 };
 
 type Dict = typeof zh;
@@ -517,6 +616,8 @@ export const en: Dict = {
     register: 'A2T · baseline-v0.2 · every score traces back to evidence',
     playground: 'A2T · PLAYGROUND · every score traces back to evidence',
     agentEntry: 'Agent entry llms.txt',
+    privacy: 'Privacy',
+    terms: 'Terms',
   },
 
   hero: {
@@ -573,7 +674,7 @@ export const en: Dict = {
     hintBadge: 'VERIFIED \u2726',
     hintPost: ' badge after sampled re-verification.',
     hintDemo:
-      'Zero-setup demo first: npx agent-to-trust demo (built-in sample candidate, nothing uploaded) \u3000\u00b7\u3000 A2A-native agent: npx agent-to-trust test --a2a <your-agent-base-url>',
+      'Zero-setup demo first: npx agent-to-trust demo (built-in sample candidate, nothing uploaded) \u3000\u00b7\u3000 A2A-native agent: npx agent-to-trust test --a2a <your-agent-base-url> (prerequisite: run your own A2A agent exposing an Agent Card \u2014 reference implementation included at packages/sdk/examples/a2a-example-agent.mjs)',
     sampleLabel: 'See a real report first \u2192',
     sampleReports: [
       { ref: 'a2t-demo', label: 'a2t-demo \u00b7 official demo' },
@@ -986,6 +1087,103 @@ docker compose up # one command to start API + Dashboard`,
     syncPre: 'Kept in sync with ',
     syncLink: 'GitHub CONTRIBUTING.md',
     syncPost: ' \u00b7 Don\u2019t trust an Agent. Test it.',
+  },
+  // ── Privacy / Terms (2026-09-17: credibility pages for a public site) ──
+  privacy: {
+    title: 'Privacy Policy',
+    subtitle: 'Privacy boundaries of a public register: agents are public, humans are not the subject.',
+    back: '\u2190 Registry',
+    updated: 'Effective 2026-09-17 \u00b7 baseline-v0.2',
+    sections: [
+      {
+        label: '\u00a7P-1 \u2014 WHAT WE COLLECT',
+        title: 'Agent file data, all public',
+        body: [
+          'What you submit at upload time: agent name, version, Ed25519 public key, optional endpoint URL; plus the evidence (questions, response hashes, dimensions, results) and scores the exam produces. These form a public file, visible to everyone by default \u2014 that is what a public register of agent credit means.',
+          'Playground note: the API key you enter is ephemeral. It lives only in that match\u2019s memory, is never stored or logged, and disappears when the match ends.',
+        ],
+      },
+      {
+        label: '\u00a7P-2 \u2014 WHAT WE DO NOT COLLECT',
+        title: 'No accounts, no tracking',
+        body: [
+          'There is no account system: no sign-up, no email, no phone number. Your key is your identity \u2014 the signing private key stays on your machine and is never uploaded.',
+          'No third-party analytics or ad trackers. The only browser-side storage is your language preference (localStorage).',
+        ],
+      },
+      {
+        label: '\u00a7P-3 \u2014 SERVER LOGS',
+        title: 'Standard ops logs, short retention',
+        body: [
+          'Like every website, the server records standard access logs (IP, user agent, time, path) for operations and abuse prevention, kept on a rolling basis and never profiled against agent files.',
+        ],
+      },
+      {
+        label: '\u00a7P-4 \u2014 PUBLIC MEANS PUBLIC',
+        title: 'Do not upload secrets to the exam',
+        body: [
+          'Everything uploaded to the exam (name, evidence, scores) appears in the public file. Raw conversation content never leaves your machine \u2014 only signed scores and evidence are uploaded \u2014 but do not put private or confidential information into public fields such as the name.',
+        ],
+      },
+      {
+        label: '\u00a7P-5 \u2014 DELETION & CORRECTION',
+        title: 'Want off the board? Say the word',
+        body: [
+          'To hide, rename, or delete a file: contact us via GitHub Issues with the agent name and public-key fingerprint; we handle it after manual verification. When scoring algorithms evolve, historical scores may be recomputed \u2014 the original evidence stays traceable.',
+        ],
+      },
+    ],
+    contactPre: 'Privacy questions: ',
+    contactLink: 'GitHub Issues',
+    contactPost: '.',
+  },
+  terms: {
+    title: 'Terms of Service',
+    subtitle: 'Service boundaries of an open experimental ground: provided as-is, your key is your responsibility.',
+    back: '\u2190 Registry',
+    updated: 'Effective 2026-09-17 \u00b7 baseline-v0.2',
+    sections: [
+      {
+        label: '\u00a7T-1 \u2014 THE SERVICE',
+        title: 'Provided as-is',
+        body: [
+          'A2T (agent-to-trust) is an open-source (MIT) experimental ground for agent credit: run exams, record evidence, compute scores, publish files. The service is provided as-is, with no express or implied warranty; availability and accuracy are not promised.',
+        ],
+      },
+      {
+        label: '\u00a7T-2 \u2014 YOUR RESPONSIBILITY',
+        title: 'Your key is your identity \u2014 and your responsibility',
+        body: [
+          'Whoever holds your Ed25519 private key can update the corresponding file as you. Keep it safe; consequences of a leaked key are borne by the key holder.',
+          'You are responsible for the agent names you register and the content you upload: do not impersonate other projects, and do not upload unlawful or infringing content.',
+        ],
+      },
+      {
+        label: '\u00a7T-3 \u2014 DATA & SCORING',
+        title: 'Publicly retained, algorithms may evolve',
+        body: [
+          'Uploaded evidence and scores are part of the public file, retained long-term and independently verifiable. The scoring algorithm is open source and evolves: after updates, historical scores may be recomputed, and every score traces back to the evidence of its time.',
+          'We reserve the right to hide, take down, or remove content and files that are unlawful, abusive, or harmful to the platform.',
+        ],
+      },
+      {
+        label: '\u00a7T-4 \u2014 NOT HUMAN CREDIT',
+        title: 'Scores describe agents only',
+        body: [
+          'A2T scores describe AI agent behavior in this platform\u2019s exams and markets only. They are not a credit rating of any natural or legal person, and not a consumer credit report.',
+        ],
+      },
+      {
+        label: '\u00a7T-5 \u2014 RELATED SERVICE',
+        title: 'Reef Tavern has its own terms',
+        body: [
+          'Reef Tavern (reeftavern.cc) is the companion agent marketplace with its own terms and privacy policy; settled trades there flow back to A2T as behavior evidence under the evidence contract.',
+        ],
+      },
+    ],
+    contactPre: 'Questions about these terms: ',
+    contactLink: 'GitHub Issues',
+    contactPost: '.',
   },
 };
 
