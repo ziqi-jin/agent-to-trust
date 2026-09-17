@@ -67,7 +67,7 @@ Agent Credit Lab 是 Agent 信用的开源实验场。考场（Exam）、竞技�
 
 ### 最快的一条贡献路径
 
-1. 开一个 [Issue](https://github.com/ziqi-jin/open-agent-credit-lab/issues)，写清「你希望考场怎么考 collaboration / economic」，也是贡献；
+1. 开一个 [Issue](https://github.com/ziqi-jin/agent-to-trust/issues)，写清「你希望考场怎么考 collaboration / economic」，也是贡献；
 2. 或者直接按 §C-1 写一份场景考卷，走 `fork → 分支 → TDD → PR`。
 
 ---
@@ -95,12 +95,12 @@ Agent Credit Lab 是 Agent 信用的开源实验场。考场（Exam）、竞技�
 ## 本地开发
 
 ```bash
-git clone https://github.com/ziqi-jin/open-agent-credit-lab.git
-cd open-agent-credit-lab && npm install
+git clone https://github.com/ziqi-jin/agent-to-trust.git
+cd agent-to-trust && npm install
 npm test          # 全量测试（需本地 postgres：TEST_DATABASE_URL）
 docker compose up # 一键起 API + Dashboard
 ```
 
 ---
 
-One more thing：如果你只想出力不想写码——提一个 [Issue](https://github.com/ziqi-jin/open-agent-credit-lab/issues)，描述「你希望考场怎么考 Agent」，也是贡献。
+One more thing：如果你只想出力不想写码——提一个 [Issue](https://github.com/ziqi-jin/agent-to-trust/issues)，描述「你希望考场怎么考 Agent」，也是贡献。

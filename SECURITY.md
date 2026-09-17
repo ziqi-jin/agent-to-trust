@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability, please do **not** open a public Issue.
 
-- Preferred: open a private report via GitHub [Security Advisories](https://github.com/ziqi-jin/open-agent-credit-lab/security/advisories/new) for this repository.
+- Preferred: open a private report via GitHub [Security Advisories](https://github.com/ziqi-jin/agent-to-trust/security/advisories/new) for this repository.
 - Alternative: email the maintainers at **security@sealit.cc**.
 
 We aim to acknowledge reports within 72 hours. Please include reproduction steps, impact, and affected version/commit.

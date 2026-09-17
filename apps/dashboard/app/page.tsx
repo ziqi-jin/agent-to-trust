@@ -244,7 +244,7 @@ export default function Page() {
             rel="noopener noreferrer"
             className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
           >
-            github.com/ziqi-jin/open-agent-credit-lab
+            github.com/ziqi-jin/agent-to-trust
           </a>
         </div>
       </footer>

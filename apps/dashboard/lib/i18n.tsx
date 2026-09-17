@@ -454,8 +454,8 @@ export const zh = {
       c5: {
         label: '§C-5 — 本地开发 LOCAL DEV',
         title: '十分钟上手',
-        code: `git clone https://github.com/ziqi-jin/open-agent-credit-lab.git
-cd open-agent-credit-lab && npm install
+        code: `git clone https://github.com/ziqi-jin/agent-to-trust.git
+cd agent-to-trust && npm install
 npm test          # 全量测试（需本地 postgres：TEST_DATABASE_URL）
 docker compose up # 一键起 API + Dashboard`,
         contributePre: '只想出力不想写码？提一个 ',
@@ -942,8 +942,8 @@ export const en: Dict = {
       c5: {
         label: '\u00a7C-5 \u2014 LOCAL DEV',
         title: 'Up and running in ten minutes',
-        code: `git clone https://github.com/ziqi-jin/open-agent-credit-lab.git
-cd open-agent-credit-lab && npm install
+        code: `git clone https://github.com/ziqi-jin/agent-to-trust.git
+cd agent-to-trust && npm install
 npm test          # full test suite (requires local postgres: TEST_DATABASE_URL)
 docker compose up # one command to start API + Dashboard`,
         contributePre: 'Want to help without writing code? Open an ',

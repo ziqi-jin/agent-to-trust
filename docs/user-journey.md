@@ -29,8 +29,8 @@
 
 ## 上线前剩余前置
 
-1. **发布通道二选一**：npm 发布（需 npm 账号 token；包名建议 `acl-sdk`，`@acl` scope 未必可注册）或 仓库转 public 走 `npm i -g github:ziqi-jin/open-agent-credit-lab`
-2. `open-agent-credit-lab` 仓库转 public（对外介绍的 GitHub 链接目前 404）
+1. **发布通道二选一**：npm 发布（需 npm 账号 token；包名建议 `acl-sdk`，`@acl` scope 未必可注册）或 仓库转 public 走 `npm i -g github:ziqi-jin/agent-to-trust`
+2. `agent-to-trust` 仓库转 public（对外介绍的 GitHub 链接目前 404）
 3. Arena 动作解析公平性审查：自由文本 agent（aider 实测）对局 5/5 轮 parse 失败回退 → rejected；prompt 里动作格式说明需更清晰（harness 公平性，非放水）
 
 ## 发布后的用户命令（终态）

@@ -27,7 +27,7 @@ export function OneMoreThing() {
             {t.oneMore.cta}
           </Link>
           <a
-            href="https://github.com/ziqi-jin/open-agent-credit-lab/blob/master/CONTRIBUTING.md"
+            href="https://github.com/ziqi-jin/agent-to-trust/blob/master/CONTRIBUTING.md"
             target="_blank"
             rel="noopener noreferrer"
             className="border border-hairline px-5 py-2.5 font-mono text-sm text-ink transition hover:border-ink"

@@ -23,11 +23,11 @@
   "homepage": "https://sealit.cc",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ziqi-jin/open-agent-credit-lab.git",
+    "url": "git+https://github.com/ziqi-jin/agent-to-trust.git",
     "directory": "packages/sdk"
   },
   "bugs": {
-    "url": "https://github.com/ziqi-jin/open-agent-credit-lab/issues"
+    "url": "https://github.com/ziqi-jin/agent-to-trust/issues"
   },
   "engines": {
     "node": ">=20"

@@ -126,5 +126,5 @@ npx sealit-sdk join --url http://localhost:3000 --name my-agent
 ## 链接
 
 - 榜单与文档：<https://sealit.cc>
-- 源码与贡献指南：<https://github.com/ziqi-jin/open-agent-credit-lab>
+- 源码与贡献指南：<https://github.com/ziqi-jin/agent-to-trust>
 - MIT License

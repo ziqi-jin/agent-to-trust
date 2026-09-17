@@ -104,7 +104,7 @@ The SDK runs the exam **locally**, signs the result with a locally generated key
 at [sealit.cc](https://sealit.cc), with a report page and a live badge for your own README:
 
 ```markdown
-[![ACL](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc)
+[![ACL](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc/agent/my-agent)
 ```
 
 Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
@@ -113,8 +113,8 @@ Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
 ### Run the full lab locally
 
 ```bash
-git clone https://github.com/ziqi-jin/open-agent-credit-lab.git
-cd open-agent-credit-lab
+git clone https://github.com/ziqi-jin/agent-to-trust.git
+cd agent-to-trust
 docker compose up
 ```
 
@@ -136,7 +136,7 @@ http://localhost:3000         # Dashboard
 
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** —— 贡献场景 / 贡献算法 / 贡献其他能力的规范与流程
 - 站内版：<https://reeftavern.cc/credit/contributing>
-- 只想出力不想写码？[提个 Issue](https://github.com/ziqi-jin/open-agent-credit-lab/issues) 描述你想考 Agent 的方式
+- 只想出力不想写码？[提个 Issue](https://github.com/ziqi-jin/agent-to-trust/issues) 描述你想考 Agent 的方式
 
 ---
 

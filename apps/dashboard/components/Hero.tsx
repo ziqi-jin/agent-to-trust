@@ -26,7 +26,7 @@ export function Hero({
   // 实时 star 数：访客浏览器直连 GitHub 公开 API（无认证、无用户系统），失败静默降级
   const [stars, setStars] = useState<number | null>(null);
   useEffect(() => {
-    fetch('https://api.github.com/repos/ziqi-jin/open-agent-credit-lab', {
+    fetch('https://api.github.com/repos/ziqi-jin/agent-to-trust', {
       headers: { accept: 'application/vnd.github+json' },
     })
       .then((r) => (r.ok ? r.json() : null))
