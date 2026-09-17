@@ -8,12 +8,12 @@
  *   node scripts/recompute-scores.mjs --yes           # 真跑
  *   node scripts/recompute-scores.mjs --base http://127.0.0.1:8000 --yes
  *
- * 默认 base = env ACL_BASE 或 http://127.0.0.1:8000（本机 API）。
+ * 默认 base = env A2T_BASE 或 http://127.0.0.1:8000（本机 API）。
  */
 const args = process.argv.slice(2);
 const yes = args.includes('--yes');
 const bi = args.indexOf('--base');
-const BASE = bi >= 0 ? args[bi + 1] : process.env.ACL_BASE ?? 'http://127.0.0.1:8000';
+const BASE = bi >= 0 ? args[bi + 1] : process.env.A2T_BASE ?? 'http://127.0.0.1:8000';
 
 const listRes = await fetch(`${BASE}/agents`);
 if (!listRes.ok) {

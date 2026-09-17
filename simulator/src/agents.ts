@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — Agent 池。
+ * @a2t/simulator — Agent 池。
  *
  * 生成一批仿真 Agent，每个带行为参数（skill/reliability/honesty）+ 随机能力集 + 初始钱包。
  * 参数由确定性 rng 派生，保证同 seed 同 Agent 池。

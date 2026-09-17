@@ -5,7 +5,7 @@ import { __clearCardCache, fetchAgentCard, isArenaReady, type AclAgentCard } fro
 /**
  * Task 3: 用户 A2A Agent Card 读取 + Arena 分流 + TTL 缓存。
  * 纯接入层：不碰 DB；网络通过 fetchImpl 注入（不真发请求）。
- * 分流规则（spec §3.1）：x-acl.arenaReady === true 且至少一个 skill 的 tags 含 negotiation|trade。
+ * 分流规则（spec §3.1）：x-a2t.arenaReady === true 且至少一个 skill 的 tags 含 negotiation|trade。
  */
 
 const CARD_URL = 'https://user.example/.well-known/agent-card.json';
@@ -22,7 +22,7 @@ function makeCard(overrides: Record<string, unknown> = {}): Record<string, unkno
     defaultOutputModes: ['application/json'],
     securitySchemes: { bearer: { scheme: 'bearer' } },
     skills: [{ id: 'negotiate', tags: ['negotiation', 'pricing'] }],
-    'x-acl': { arenaReady: true, protocolVersion: '2026.09' },
+    'x-a2t': { arenaReady: true, protocolVersion: '2026.09' },
     ...overrides,
   };
 }
@@ -85,18 +85,18 @@ describe('isArenaReady — 分流规则', () => {
   });
 
   it('arenaReady=false → false', () => {
-    const card = makeCard({ 'x-acl': { arenaReady: false, protocolVersion: '2026.09' } });
+    const card = makeCard({ 'x-a2t': { arenaReady: false, protocolVersion: '2026.09' } });
     expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
   });
 
-  it('x-acl 缺失 → false', () => {
+  it('x-a2t 缺失 → false', () => {
     const card = makeCard();
-    delete card['x-acl'];
+    delete card['x-a2t'];
     expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
   });
 
-  it('x-acl.arenaReady 非布尔 true（如 "true" 字符串）→ false', () => {
-    const card = makeCard({ 'x-acl': { arenaReady: 'true' } });
+  it('x-a2t.arenaReady 非布尔 true（如 "true" 字符串）→ false', () => {
+    const card = makeCard({ 'x-a2t': { arenaReady: 'true' } });
     expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
   });
 

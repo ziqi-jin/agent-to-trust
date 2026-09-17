@@ -1,10 +1,10 @@
 /**
- * @acl/simulator — 仿真类型。
+ * @a2t/simulator — 仿真类型。
  *
- * 注意：这些都是「仿真世界」的类型，不是 @acl/core 里的「真实世界」类型。
+ * 注意：这些都是「仿真世界」的类型，不是 @a2t/core 里的「真实世界」类型。
  * 仿真产生的证据会显式标记 source=simulation，绝不伪装成真实交易。
  */
-import type { Dimension, EvidenceResult, Source } from '@acl/core';
+import type { Dimension, EvidenceResult, Source } from '@a2t/core';
 
 /** 仿真可用的任务领域。 */
 export const DOMAINS = [

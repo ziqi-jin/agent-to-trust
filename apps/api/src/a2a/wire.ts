@@ -2,7 +2,7 @@
  * 事件翻译 wire（纯函数）：内核 7 事件 ↔ A2A 消息的翻译防腐层（spec §3.2 / §3.4）。
  *
  * 出站 `toA2aMessage`：把内核事件变成给用户 agent 的**自包含文本**（带最近历史摘要，
- *   无状态 agent 也能接）+ 结构化 `metadata.acl = { sessionId, round, deadlineMs }`。
+ *   无状态 agent 也能接）+ 结构化 `metadata.a2t = { sessionId, round, deadlineMs }`。
  * 入站 `fromParsedAction`：把 `parseA2aAction` 的结果归一化成内核事件载荷（T2 已判定的动作）。
  * 入站 `normalizeArtifact`：从 A2A parts 里找 `name:'delivery'` 的 artifact，**归一化 + 校验值域/字段**。
  *
@@ -131,7 +131,7 @@ export function toA2aMessage(
   event: KernelEvent,
   history: KernelEvent[] = [],
   opts?: { selfAgentId?: string },
-): { text: string; metadata: { acl: { sessionId: string; round: number; deadlineMs: number } } } {
+): { text: string; metadata: { a2t: { sessionId: string; round: number; deadlineMs: number } } } {
   const round = roundOf(event, history);
   const summary = summarizeHistory(history, opts?.selfAgentId);
   const body = `[第${round}轮] 对家 ${describeEvent(event)}`;
@@ -141,7 +141,7 @@ export function toA2aMessage(
   return {
     text: `${body}${historyPart}${ask}`,
     metadata: {
-      acl: {
+      a2t: {
         sessionId: event.sessionId ?? '',
         round,
         deadlineMs: DEFAULT_DEADLINE_MS,

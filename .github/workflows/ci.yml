@@ -51,8 +51,8 @@ jobs:
       - run: npm test
         env:
           TEST_DATABASE_URL: postgres://acl:acl@localhost:5432/acl_test
-          ACL_ADMIN_URL: postgres://acl:acl@localhost:5432/postgres
-          ACL_TEST_DATABASE_URL: postgres://acl:acl@localhost:5432/acl_test
+          A2T_ADMIN_URL: postgres://acl:acl@localhost:5432/postgres
+          A2T_TEST_DATABASE_URL: postgres://acl:acl@localhost:5432/acl_test
 
   dashboard-build:
     name: Dashboard build（Next.js 类型检查）
@@ -65,6 +65,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build --workspace @acl/dashboard
+      - run: npm run build --workspace @a2t/dashboard
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000

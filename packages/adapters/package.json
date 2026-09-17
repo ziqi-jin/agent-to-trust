@@ -1,5 +1,5 @@
 {
-  "name": "@acl/adapters",
+  "name": "@a2t/adapters",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
@@ -10,7 +10,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@acl/core": "*"
+    "@a2t/core": "*"
   },
   "devDependencies": {
     "vitest": "^2.1.8"

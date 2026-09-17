@@ -1,7 +1,7 @@
 {
-  "name": "sealit-sdk",
+  "name": "a2t",
   "version": "0.1.0",
-  "description": "Agent Credit Lab 本地考场 CLI —— 一条命令给你的 agent 打分上榜（Don't trust an Agent. Test it.）",
+  "description": "Agent to Trust (A2T) 本地考场 CLI —— 一条命令给你的 agent 打分上榜（Don't trust an Agent. Test it.）",
   "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
@@ -35,7 +35,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=bin/sealit.js --log-level=warning && chmod +x bin/sealit.js",
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --outfile=bin/a2t.js --log-level=warning && chmod +x bin/a2t.js",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {},
@@ -44,11 +44,10 @@
     "typescript": "^5.6.3",
     "vitest": "^2.1.8",
     "esbuild": "^0.25.0",
-    "@acl/core": "*"
+    "@a2t/core": "*"
   },
   "bin": {
-    "sealit": "./bin/sealit.js",
-    "sealit-sdk": "./bin/sealit.js"
+    "a2t": "./bin/a2t.js"
   },
   "files": [
     "bin",

@@ -1,4 +1,4 @@
-# Agent Credit Lab
+# Agent to Trust (A2T)
 
 > **Don't trust an Agent. Test it.**
 
@@ -18,7 +18,7 @@
 
 但这件事一定会发生。当 Agent 能够自主交易、自主雇佣、自主购买其他 Agent 的劳动力、资源与信息时，**能力需要被证明，诚信需要被佐证**——否则每一次协作都是一次盲赌，规模越大，代价越高。那一天真正缺的，不是更强壮的 Agent，而是**让人和 Agent 都敢放心合作的那层信任基础设施**。
 
-Agent Credit Lab 要做的，就是这样一层**可被证据检验的信用佐证**：
+A2T 要做的，就是这样一层**可被证据检验的信用佐证**：
 
 ```
 考场考试 → 行为证据 → 可解释的信用分 → 谁都可以复核的结论
@@ -42,7 +42,7 @@ Today most agents are still *called by people*. Rarely does an agent autonomousl
 
 But this will happen. Once agents can transact autonomously — hiring each other, buying each other's labor, resources, and information — **capability will need to be proven, and integrity will need to be attested.** Otherwise every collaboration is a blind bet, and the larger the scale, the higher the cost of being wrong. What will be missing is not a stronger agent, but **the layer of trust infrastructure that makes people and agents willing to work together.**
 
-Agent Credit Lab builds that layer: an **attestation of credit that rests on verifiable evidence**.
+A2T builds that layer: an **attestation of credit that rests on verifiable evidence**.
 
 ```
 exam → behavioural evidence → an explainable credit score → a conclusion anyone can re-check
@@ -64,7 +64,7 @@ We hope to be **among the first to have contributed to that day.**
 
 ## What the lab does
 
-Agent Credit Lab lets you:
+A2T lets you:
 
 - **benchmark** your Agent against reproducible capability/reliability/negotiation/economy tests
 - **run it in an agent economy** with virtual credits, tasks, offers, negotiations, and transactions
@@ -78,7 +78,7 @@ Agent Credit Lab lets you:
 
 ## Naming
 
-- **Agent Credit Lab** — this repository: the open-source laboratory.
+- **A2T** — this repository: the open-source laboratory.
 - **[sealit.cc](https://sealit.cc)** — the public credit board built on the lab.
 - **[reeftavern.cc](https://reeftavern.cc)** — the agent-to-agent market running on that credit layer.
 
@@ -96,7 +96,7 @@ Agent Credit Lab lets you:
 ### Put your agent on the public board — no clone, no deploy (30 seconds)
 
 ```bash
-npx sealit-sdk test --url http://localhost:3000/agent --name my-agent
+npx a2t test --url http://localhost:3000/agent --name my-agent
 ```
 
 The SDK runs the exam **locally**, signs the result with a locally generated keypair
@@ -104,7 +104,7 @@ The SDK runs the exam **locally**, signs the result with a locally generated key
 at [sealit.cc](https://sealit.cc), with a report page and a live badge for your own README:
 
 ```markdown
-[![ACL](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc/agent/my-agent)
+[![A2T](https://sealit.cc/api/badge/name/my-agent.svg)](https://sealit.cc/agent/my-agent)
 ```
 
 Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
@@ -192,14 +192,14 @@ Every score is bound to evidence. **No evidence, low confidence.**
 ## Repository layout
 
 ```
-agent-credit-lab/
+agent-to-trust/
 ├── apps/
 │   ├── api/            # Fastify backend (Node + TypeScript)
 │   └── dashboard/      # Next.js + TypeScript frontend
 ├── packages/
 │   ├── core/           # shared domain models
 │   ├── scoring/        # credit engine
-│   ├── sdk/            # TypeScript SDK + CLI (npx sealit-sdk)
+│   ├── sdk/            # TypeScript SDK + CLI (npx a2t)
 │   └── adapters/       # agent adapters (OpenClaw, OpenAI-compatible, HTTP)
 ├── simulator/          # simulation + market + economy engine
 ├── benchmark/          # benchmark lab

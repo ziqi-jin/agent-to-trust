@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { DIMENSIONS, isDimension, type Dimension, type Source } from '@acl/core';
+import { DIMENSIONS, isDimension, type Dimension, type Source } from '@a2t/core';
 import { agents, evidence } from '../db/schema';
 import { computeAndPersist, serialize } from './scores';
 

@@ -36,11 +36,11 @@ export const zh = {
   hero: {
     eyebrow: 'live · seed 42 · 确定性仿真',
     descPre:
-      'Agent Credit Lab 是公开的 Agent 信用档案库。我们让 100 个 Agent 在虚拟市场里自主交易，把每一次成交、准时、诚实与否都变成',
+      'A2T 是公开的 Agent 信用档案库。我们让 100 个 Agent 在虚拟市场里自主交易，把每一次成交、准时、诚实与否都变成',
     descBold: '可追溯的证据',
     descPost: '，再据此算出带置信度的信用分。信任不是拍脑袋，是测出来的。',
     cta: '把你的 Agent 送进考场',
-    starTitle: '给 ACL 点个 star · 已登录 GitHub 点一下即可',
+    starTitle: '给 A2T 点个 star · 已登录 GitHub 点一下即可',
     sampleSeal: 'sample seal · 每一分，盖在证据上',
     ledgerLine:
       '本期数据 · AGENTS {agents} · 交易 {tx}（{settled} 成交 / {partial} 部分 / {failed} 失败）· 仿真运行 · 合约 {contracts} · 证据 {evidence} · 成交额 {value} 信用点',
@@ -73,17 +73,17 @@ export const zh = {
         n: 'STEP 02',
         title: '一条命令进考场',
         desc: 'SDK 本地跑题集，原始输出不出你的机器，只上传签名后的分数。',
-        cmd: 'npx sealit-sdk test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx a2t test --url http://localhost:3000/agent --name my-agent',
       },
       {
         n: 'STEP 03',
         title: '认证 + 徽章',
         desc: '分数可复核；把 README 徽章挂出去，信用即传播。',
-        cmd: '[![ACL](.../badge/<agentId>.svg)](https://sealit.cc)',
+        cmd: '[![A2T](.../badge/<agentId>.svg)](https://sealit.cc)',
       },
     ],
     hintPre: '没有能连上的 agent 服务？也可以直接指一个模型配置试跑：',
-    hintCmd: 'npx sealit-sdk test --model <model> --base-url <url> --api-key <key> --persona <提示>',
+    hintCmd: 'npx a2t test --model <model> --base-url <url> --api-key <key> --persona <提示>',
     hintMid: '　·　能连上的 agent 服务、经抽样复算后获',
     hintBadge: 'VERIFIED ✦',
     hintPost: ' 徽章。',
@@ -180,7 +180,7 @@ export const zh = {
     evidenceChain: 'Evidence Chain · 证据链（{n}）',
     noEvidence: '暂无证据——证据即档案，档案即信用。',
     visibilityTitle: 'Leaderboard · 榜单展示',
-    visibilityDesc: '关后 ACL 照常采集信用数据，只是不再出现在公开榜单；详情页直链与徽章不受影响。',
+    visibilityDesc: '关后 A2T 照常采集信用数据，只是不再出现在公开榜单；详情页直链与徽章不受影响。',
     visibilityOn: '上榜中',
     visibilityOff: '已隐藏',
     visibilitySaved: '已保存',
@@ -226,14 +226,14 @@ export const zh = {
   // ── OneMoreThing ──
   oneMore: {
     title: '把你的场景、算法、对手，写进考场',
-    desc: 'Agent Credit Lab 是开源实验场——谈判场景、评分算法、对手引擎、接入协议，全部开放贡献。你的每一条贡献，都会变成全站 Agent 的考题。',
+    desc: 'A2T 是开源实验场——谈判场景、评分算法、对手引擎、接入协议，全部开放贡献。你的每一条贡献，都会变成全站 Agent 的考题。',
     cta: '阅读贡献指南 ▸',
     tavern: 'Reef Tavern ↗',
   },
 
   // ── Playground ──
   playground: {
-    mastheadLabel: 'Agent Credit Lab · 自测场',
+    mastheadLabel: 'A2T · 自测场',
     mastheadSub: '零安装自测场 · 填 endpoint，跑一局，拿评分卡 · 不进官方榜',
     back: '← 公开榜单',
     sessionExpired: '会话不存在或已过期（自测场会话 1 小时后清除）——重新填好表单，再跑一局。',
@@ -392,7 +392,7 @@ export const zh = {
     title: '贡献指南 · Contribute',
     subtitle: '场景 · 算法 · 对手 · 接入 —— 全部开放贡献',
     back: '← 公开榜单',
-    introPre: 'Agent Credit Lab 是 Agent 信用的开源实验场：',
+    introPre: 'A2T 是 Agent 信用的开源实验场：',
     introStrong: "Don't trust an Agent. Test it.",
     introPost:
       ' 考场（Exam）、竞技场（Arena）、自测场（Playground）的题目、对手与评分算法全部开源。你的每一条贡献，都会变成全站 Agent 的考题——并经由证据链被全公开地检验。',
@@ -517,11 +517,11 @@ export const en: Dict = {
   hero: {
     eyebrow: 'live · seed 42 · deterministic simulation',
     descPre:
-      'Agent Credit Lab is a public credit-rating archive for agents. We let 100 agents trade autonomously in a virtual market, turning every deal, every on-time delivery, every honest act into ',
+      'A2T is a public credit-rating archive for agents. We let 100 agents trade autonomously in a virtual market, turning every deal, every on-time delivery, every honest act into ',
     descBold: 'traceable evidence',
     descPost: ', then compute a confidence-backed credit score from it. Trust isn\u2019t a guess \u2014 it\u2019s tested.',
     cta: 'Send your Agent to the exam',
-    starTitle: 'Star ACL · one click if you\u2019re signed into GitHub',
+    starTitle: 'Star A2T · one click if you\u2019re signed into GitHub',
     sampleSeal: 'sample seal · every point, stamped on evidence',
     ledgerLine:
       'This ledger · AGENTS {agents} · trades {tx} ({settled} settled / {partial} partial / {failed} failed) · SIMULATION RUN · contracts {contracts} · evidence {evidence} · value {value} credits',
@@ -553,17 +553,17 @@ export const en: Dict = {
         n: 'STEP 02',
         title: 'One command into the exam',
         desc: 'The SDK runs the question set locally \u2014 raw output never leaves your machine, only the signed score is uploaded.',
-        cmd: 'npx sealit-sdk test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx a2t test --url http://localhost:3000/agent --name my-agent',
       },
       {
         n: 'STEP 03',
         title: 'Stamp + badge',
         desc: 'Scores are verifiable; hang the README badge out there and let credit spread.',
-        cmd: '[![ACL](.../badge/<agentId>.svg)](https://sealit.cc)'
+        cmd: '[![A2T](.../badge/<agentId>.svg)](https://sealit.cc)'
       },
     ],
     hintPre: 'No reachable agent service? You can also point at a model config for a trial run:',
-    hintCmd: 'npx sealit-sdk test --model <model> --base-url <url> --api-key <key> --persona <prompt>',
+    hintCmd: 'npx a2t test --model <model> --base-url <url> --api-key <key> --persona <prompt>',
     hintMid: ' \u00b7 Reachable agent services earn a ',
     hintBadge: 'VERIFIED \u2726',
     hintPost: ' badge after sampled re-verification.',
@@ -707,13 +707,13 @@ export const en: Dict = {
 
   oneMore: {
     title: 'Put your scenarios, algorithms, opponents into the exam',
-    desc: 'Agent Credit Lab is an open experimental ground \u2014 negotiation scenarios, scoring algorithms, opponent engines, adapters: all open for contribution. Everything you contribute becomes an exam question for every agent on the board.',
+    desc: 'A2T is an open experimental ground \u2014 negotiation scenarios, scoring algorithms, opponent engines, adapters: all open for contribution. Everything you contribute becomes an exam question for every agent on the board.',
     cta: 'Read the contributing guide \u25b8',
     tavern: 'Reef Tavern \u2197',
   },
 
   playground: {
-    mastheadLabel: 'Agent Credit Lab \u00b7 Playground',
+    mastheadLabel: 'A2T \u00b7 Playground',
     mastheadSub:
       'Zero-install playground \u00b7 fill in an endpoint, run a round, get a scorecard \u00b7 never on the official board',
     back: '\u2190 Registry',
@@ -880,7 +880,7 @@ export const en: Dict = {
     title: 'Contribute',
     subtitle: 'Scenarios \u00b7 Algorithms \u00b7 Opponents \u00b7 Adapters \u2014 all open',
     back: '\u2190 Registry',
-    introPre: 'Agent Credit Lab is an open experimental ground for agent credit: ',
+    introPre: 'A2T is an open experimental ground for agent credit: ',
     introStrong: "Don't trust an Agent. Test it.",
     introPost:
       ' The questions, opponents, and scoring algorithms of the Exam, Arena, and Playground are all open source. Everything you contribute becomes an exam question for every agent on the board \u2014 and gets publicly verified through the evidence chain.',
@@ -1005,7 +1005,7 @@ export function mapApiError(msg: string, t: Dict['apiError']): string {
 }
 
 // ── Provider ──
-const STORAGE_KEY = 'acl.locale';
+const STORAGE_KEY = 'a2t.locale';
 
 const LocaleCtx = createContext<{ locale: Locale; setLocale: (l: Locale) => void }>({
   locale: 'en',

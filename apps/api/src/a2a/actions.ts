@@ -5,7 +5,7 @@
  * （OFFER / NEGOTIATE / ACCEPT / REJECT / DELIVER），供双向桥调用。
  *
  * 设计裁决（spec §3.3）：
- *  1. 结构化优先：只要存在合法 `aclAction`，就用它，忽略文本档。
+ *  1. 结构化优先：只要存在合法 `a2tAction`，就用它，忽略文本档。
  *  2. 文本兜底：解析不出 → ok:false（无效回合），绝不猜测。
  *  3. 归一只做轻量提取：artifact 只需「是对象 + 有 artifactKind 字段」，不校验取值。
  *     sha256 校验 / 深度归一化 / 值域归一是 `normalizeArtifact`（Task 5）的职责。
@@ -35,7 +35,7 @@ export type ParsedAction =
 
 /** 两档并存的入站 parts（已拆分形态）。 */
 export interface A2aInbound {
-  /** `kind: 'data'` 的 part.data，可能含 `{ aclAction: {...} }` 或 artifact 候选。 */
+  /** `kind: 'data'` 的 part.data，可能含 `{ a2tAction: {...} }` 或 artifact 候选。 */
   dataParts?: unknown[];
   /** `kind: 'text'` 的 part.text。 */
   textParts?: string[];
@@ -110,7 +110,7 @@ export function toA2aInbound(parts: unknown[]): A2aInbound {
       inbound.artifactParts!.push(part);
       continue;
     }
-    // data part 既是 aclAction 载体的候选，也可能是 artifact data
+    // data part 既是 a2tAction 载体的候选，也可能是 artifact data
     if (isRecord(part.data)) inbound.dataParts!.push(part.data);
   }
   return inbound;
@@ -125,19 +125,19 @@ function normalizeInput(input: A2aParseInput): A2aInbound {
 
 // —— 结构化档 ——
 
-/** 找出第一个带 `aclAction` 的 data part（只有这一个 key 才算结构化档）。 */
+/** 找出第一个带 `a2tAction` 的 data part（只有这一个 key 才算结构化档）。 */
 function findAclAction(input: A2aInbound): unknown {
   for (const p of input.dataParts ?? []) {
-    if (isRecord(p) && 'aclAction' in p) return p.aclAction;
+    if (isRecord(p) && 'a2tAction' in p) return p.a2tAction;
   }
   return undefined;
 }
 
 function parseStructured(raw: unknown): ParsedAction {
-  if (!isRecord(raw)) return { ok: false, reason: 'aclAction 不是对象' };
+  if (!isRecord(raw)) return { ok: false, reason: 'a2tAction 不是对象' };
   const type = raw.type;
   if (typeof type !== 'string' || !ACTION_TYPES.includes(type as A2aActionType)) {
-    return { ok: false, reason: `aclAction.type 非法：${String(type)}` };
+    return { ok: false, reason: `a2tAction.type 非法：${String(type)}` };
   }
   const t = type as A2aActionType;
 
@@ -315,15 +315,15 @@ function parseText(text: string, artifacts: DeliveryArtifact[]): ParsedAction {
 
 /**
  * 解析用户 agent 的 A2A 回复 → 一个内核动作。
- * 结构化优先（存在合法 aclAction 即用、忽略文本）；否则文本兜底；再不行 ok:false。
+ * 结构化优先（存在合法 a2tAction 即用、忽略文本）；否则文本兜底；再不行 ok:false。
  */
 export function parseA2aAction(input: A2aParseInput): ParsedAction {
   const inbound = normalizeInput(input);
 
-  const aclAction = findAclAction(inbound);
-  if (aclAction !== undefined) {
+  const a2tAction = findAclAction(inbound);
+  if (a2tAction !== undefined) {
     // 有结构化意图就按结构化办：即便写坏了也是「无效回合」，绝不用文本兜底去猜
-    return parseStructured(aclAction);
+    return parseStructured(a2tAction);
   }
 
   const artifacts = collectArtifacts(inbound);

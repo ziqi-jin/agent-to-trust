@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * sealit-sdk — CLI 入口。
+ * a2t — CLI 入口。
  *
  * 用法：
- *   sealit test --url <endpoint> [--name <agent名>]
- *   sealit test --model <model> --base-url <url> --api-key <key> [--persona <提示>] [--name <agent名>]
- *   sealit join   (Phase 2: 进入 Arena 模拟考场)
- *   sealit init   (L1 埋点初始化，后续版本)
+ *   a2t test --url <endpoint> [--name <agent名>]
+ *   a2t test --model <model> --base-url <url> --api-key <key> [--persona <提示>] [--name <agent名>]
+ *   a2t join   (Phase 2: 进入 Arena 模拟考场)
+ *   a2t init   (L1 埋点初始化，后续版本)
  */
 import { parseArgs } from 'node:util';
 import { realpathSync } from 'node:fs';
@@ -34,7 +34,7 @@ export interface TestOptions {
   cmd?: string;
   /** CLI agent stdin 模式：prompt 写入子进程标准输入。 */
   cmdStdin?: boolean;
-  /** 密钥目录（多身份/测试用，默认 ~/.sealit）。 */
+  /** 密钥目录（多身份/测试用，默认 ~/.a2t）。 */
   dir?: string;
 }
 
@@ -57,7 +57,7 @@ export interface JoinCliOptions {
   /** CLI agent stdin 模式。 */
   cmdStdin?: boolean;
   maxRounds?: number;
-  /** 密钥目录（多身份/测试用，默认 ~/.sealit）。 */
+  /** 密钥目录（多身份/测试用，默认 ~/.a2t）。 */
   dir?: string;
 }
 
@@ -67,36 +67,36 @@ export interface ParsedCommand {
   join?: JoinCliOptions;
 }
 
-const USAGE = `sealit-sdk — Agent Credit Lab 本地考场
+const USAGE = `a2t — A2T 本地考场
 
 用法:
-  sealit test --url <endpoint> [--name <agent名>]
+  a2t test --url <endpoint> [--name <agent名>]
       对一个 HTTP endpoint 跑评测（OpenAI chat 格式，agent 零改动）
 
-  sealit test --cmd "<命令模板>" [--cmd-stdin] [--name <agent名>]
+  a2t test --cmd "<命令模板>" [--cmd-stdin] [--name <agent名>]
       对本地 CLI agent 跑评测：prompt 经 shell 转义拼在命令后，
       模板含 {prompt} 则原位替换；--cmd-stdin 改为写入标准输入
-      例：sealit test --cmd "aider --message" / sealit test --cmd "goose run" --cmd-stdin
+      例：a2t test --cmd "aider --message" / a2t test --cmd "goose run" --cmd-stdin
 
-  sealit test --model <model> --base-url <url> --api-key <key> [--persona <提示>]
+  a2t test --model <model> --base-url <url> --api-key <key> [--persona <提示>]
       直接对模型配置跑评测（OpenAI 兼容协议通吃 DeepSeek/智谱/Kimi/OpenAI）
 
 选项:
   --name <agent名>    榜单展示名（默认取 config.agentName 或目录名）
-  --api-base <url>    平台 API 地址（默认 env SEALIT_API_URL）
+  --api-base <url>    平台 API 地址（默认 env A2T_API_URL）
   --mode <live|scripted>  对家模式（join 专用，默认 live：真实 LLM 人格；scripted：确定性基线）
 
 其他命令:
-  sealit join [--session <会话id>] --url <endpoint> [--name <agent名>]
+  a2t join [--session <会话id>] --url <endpoint> [--name <agent名>]
       加入 Arena 市场会话（buyer/seller 回合制交易，跑到结算为止）
       不带 --session 时自动进入准入队列撮合：
-      · 门槛：考场分≥350（先跑 sealit test 拿真实成绩）
+      · 门槛：考场分≥350（先跑 a2t test 拿真实成绩）
       · 有其他合格 agent 排队 → 立即互为对手
       · 单人排队约 12 秒后由平台脚本买家接单开局（先手出价）
     [--max-rounds <n>]  最大回合数（默认 20）
     [--mode live|scripted]  对家模式（默认 live）
-  sealit init    埋点初始化（后续版本）
-  sealit help    显示本帮助
+  a2t init    埋点初始化（后续版本）
+  a2t help    显示本帮助
 `;
 
 export function parseCli(argv: string[]): ParsedCommand {
@@ -131,7 +131,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
         persona: values.persona,
-        apiBase: values['api-base'] ?? process.env.SEALIT_API_URL,
+        apiBase: values['api-base'] ?? process.env.A2T_API_URL,
         cmd: values.cmd,
         cmdStdin: values['cmd-stdin'],
         dir: values.dir,
@@ -175,7 +175,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
         persona: values.persona,
-        apiBase: values['api-base'] ?? process.env.SEALIT_API_URL,
+        apiBase: values['api-base'] ?? process.env.A2T_API_URL,
         maxRounds: values['max-rounds'] ? Number(values['max-rounds']) : undefined,
         cmd: values.cmd,
         cmdStdin: values['cmd-stdin'],
@@ -218,7 +218,7 @@ async function main(): Promise<void> {
     case 'test': {
       const err = validateTestOptions(parsed.test!);
       if (err) {
-        console.error(`[sealit] ${err}`);
+        console.error(`[a2t] ${err}`);
         process.exit(1);
       }
       const t = parsed.test!;
@@ -236,8 +236,8 @@ async function main(): Promise<void> {
             });
 
       const target = t.url ? `endpoint ${t.url}` : t.cmd ? `cmd ${t.cmd}` : `model ${t.model}`;
-      console.log(`[sealit] 考场 v${BENCHMARK_VERSION} · ${target}`);
-      console.log('[sealit] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
+      console.log(`[a2t] 考场 v${BENCHMARK_VERSION} · ${target}`);
+      console.log('[a2t] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
 
       const suite = await runSuite(agent);
 
@@ -246,13 +246,13 @@ async function main(): Promise<void> {
         const mark = r.result === 'success' ? '✓' : r.result === 'partial' ? '~' : '✗';
         console.log(`  ${mark} ${r.caseId.padEnd(24)} ${bar} ${r.value}`);
       }
-      console.log('\n[sealit] 维度汇总：');
+      console.log('\n[a2t] 维度汇总：');
       for (const s of suite.summary) {
         console.log(`  ${s.dimension.padEnd(14)} ${s.value}`);
       }
 
       const apiBase = t.apiBase ?? config.apiBase ?? 'https://sealit.cc/api';
-      console.log(`\n[sealit] 上报 ${apiBase}/ingest/results …`);
+      console.log(`\n[a2t] 上报 ${apiBase}/ingest/results …`);
       try {
         const res = await uploadResults(suite, {
           meta: {
@@ -269,13 +269,13 @@ async function main(): Promise<void> {
           apiBase,
           dir: t.dir,
         });
-        console.log(`[sealit] ✓ 上榜成功 agentId=${res.agentId} score=${res.score}`);
+        console.log(`[a2t] ✓ 上榜成功 agentId=${res.agentId} score=${res.score}`);
         console.log(
-          `[sealit] README badge: [![ACL](${apiBase}/badge/${res.agentId}.svg)](https://sealit.cc)`,
+          `[a2t] README badge: [![A2T](${apiBase}/badge/${res.agentId}.svg)](https://sealit.cc)`,
         );
       } catch (e) {
-        console.error(`[sealit] 上报失败：${(e as Error).message}`);
-        console.error('[sealit] 本地结果已打印；可用 --api-base 指定平台地址重试');
+        console.error(`[a2t] 上报失败：${(e as Error).message}`);
+        console.error('[a2t] 本地结果已打印；可用 --api-base 指定平台地址重试');
         process.exit(1);
       }
       return;
@@ -284,7 +284,7 @@ async function main(): Promise<void> {
       const j = parsed.join!;
       const err = validateJoinOptions(j);
       if (err) {
-        console.error(`[sealit] ${err}`);
+        console.error(`[a2t] ${err}`);
         process.exit(1);
       }
       const config = loadConfig();
@@ -303,7 +303,7 @@ async function main(): Promise<void> {
 
       const target = j.url ? `endpoint ${j.url}` : j.cmd ? `cmd ${j.cmd}` : `model ${j.model}`;
       console.log(
-        `[sealit] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${target}`,
+        `[a2t] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${target}`,
       );
       try {
         const result = await runJoinLoop({
@@ -317,19 +317,19 @@ async function main(): Promise<void> {
           log: console.log,
         });
         console.log(
-          `[sealit] ✓ 结束：${result.stoppedReason} · 状态=${result.finalStatus} · 角色=${result.role} · 发出 ${result.eventsSent} 个事件（${result.rounds} 回合）`,
+          `[a2t] ✓ 结束：${result.stoppedReason} · 状态=${result.finalStatus} · 角色=${result.role} · 发出 ${result.eventsSent} 个事件（${result.rounds} 回合）`,
         );
         if (result.finalStatus === 'settled') {
-          console.log('[sealit] 会话已结算，行为证据已计入双方信用档案');
+          console.log('[a2t] 会话已结算，行为证据已计入双方信用档案');
         }
       } catch (e) {
-        console.error(`[sealit] Arena 失败：${(e as Error).message}`);
+        console.error(`[a2t] Arena 失败：${(e as Error).message}`);
         process.exit(1);
       }
       return;
     }
     case 'init':
-      console.error('[sealit] `init` 埋点初始化将在后续版本提供（当前可用：sealit test / sealit join）');
+      console.error('[a2t] `init` 埋点初始化将在后续版本提供（当前可用：a2t test / a2t join）');
       process.exit(2);
   }
 }
@@ -337,14 +337,14 @@ async function main(): Promise<void> {
 const isMain = (() => {
   try {
     // argv[1] 可能是 symlink（npm 全局 bin 是 symlink），必须解析真实路径再匹配
-    return /\/(cli\.(ts|js)|sealit(-sdk)?(\.js)?|acl(\.js)?)$/.test(realpathSync(process.argv[1] ?? ''));
+    return /\/(cli\.(ts|js)|a2t(-sdk)?(\.js)?)$/.test(realpathSync(process.argv[1] ?? ''));
   } catch {
     return false;
   }
 })();
 if (isMain) {
   main().catch((e: unknown) => {
-    console.error('[sealit] 执行失败:', (e as Error).message);
+    console.error('[a2t] 执行失败:', (e as Error).message);
     process.exit(1);
   });
 }

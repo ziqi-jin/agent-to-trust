@@ -24,17 +24,17 @@
 1. **HTTPS 全断**：nginx 443 从未配置 → letsencrypt 证书（acme.sh webroot）+ 443 server 块，外部实测 200
 2. **SDK 不可发布**：无 bin/build/files → esbuild 单文件 bin（core 打包免多包发布）
 3. **npm 全局 bin 静默失败**：入口检测不认 symlink → realpathSync 修复
-4. **tgz 安装 404**：dependencies 声明了内部包 @acl/core → 移至 devDependencies
+4. **tgz 安装 404**：dependencies 声明了内部包 @a2t/core → 移至 devDependencies
 5. **quickstart 缺 CLI agent 章节** → 已补齐实战姿势
 
 ## 上线前剩余前置
 
-1. **发布通道二选一**：npm 发布（需 npm 账号 token；包名建议 `acl-sdk`，`@acl` scope 未必可注册）或 仓库转 public 走 `npm i -g github:ziqi-jin/agent-to-trust`
+1. **发布通道二选一**：npm 发布（需 npm 账号 token；包名建议 `a2t`，`@acl` scope 未必可注册）或 仓库转 public 走 `npm i -g github:ziqi-jin/agent-to-trust`
 2. `agent-to-trust` 仓库转 public（对外介绍的 GitHub 链接目前 404）
 3. Arena 动作解析公平性审查：自由文本 agent（aider 实测）对局 5/5 轮 parse 失败回退 → rejected；prompt 里动作格式说明需更清晰（harness 公平性，非放水）
 
 ## 发布后的用户命令（终态）
 
 ```bash
-npx acl-sdk test --cmd "aider --chat-mode ask … --message {prompt} | <噪音过滤>" --name my-agent
+npx a2t test --cmd "aider --chat-mode ask … --message {prompt} | <噪音过滤>" --name my-agent
 ```

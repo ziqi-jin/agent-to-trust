@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — Market Engine（撮合引擎）。
+ * @a2t/simulator — Market Engine（撮合引擎）。
  *
  * 阶段：DISCOVERY（发现能力匹配者）→ OFFER（报价）→ ACCEPT（按策略选中并形成 contract）。
  * 这是 P0-6 调度器里内嵌撮合逻辑的独立抽取，供 P0-7 验收「Agent 能找到服务并成交」。

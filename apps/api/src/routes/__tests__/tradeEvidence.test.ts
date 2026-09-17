@@ -65,8 +65,8 @@ beforeAll(async () => {
   await migrate(TEST_URL);
   db = createDb(TEST_URL);
   app = buildApp(db);
-  savedToken = process.env.ACL_TRADE_INGEST_TOKEN;
-  process.env.ACL_TRADE_INGEST_TOKEN = TOKEN;
+  savedToken = process.env.A2T_TRADE_INGEST_TOKEN;
+  process.env.A2T_TRADE_INGEST_TOKEN = TOKEN;
   await db.execute(
     sql`TRUNCATE evidence, credit_scores, score_snapshots, agents, ingest_nonces CASCADE`,
   );
@@ -79,7 +79,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  process.env.ACL_TRADE_INGEST_TOKEN = savedToken;
+  process.env.A2T_TRADE_INGEST_TOKEN = savedToken;
   await app.close();
   const client = (db as unknown as { $client?: { end: () => Promise<void> } }).$client;
   await client?.end();
@@ -96,13 +96,13 @@ describe('POST /ingest/trade-evidence', () => {
     // 错 token
     expect((await post(envelope([ev()]), { authorization: 'Bearer wrong' })).statusCode).toBe(401);
     // env 缺失
-    delete process.env.ACL_TRADE_INGEST_TOKEN;
+    delete process.env.A2T_TRADE_INGEST_TOKEN;
     expect((await post(envelope([ev()]))).statusCode).toBe(401);
     // env 空串
-    process.env.ACL_TRADE_INGEST_TOKEN = '';
+    process.env.A2T_TRADE_INGEST_TOKEN = '';
     expect((await post(envelope([ev()]))).statusCode).toBe(401);
     // 恢复
-    process.env.ACL_TRADE_INGEST_TOKEN = TOKEN;
+    process.env.A2T_TRADE_INGEST_TOKEN = TOKEN;
     expect((await post(envelope([ev()]))).statusCode).toBe(200);
   });
 

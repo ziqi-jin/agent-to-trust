@@ -1,5 +1,5 @@
 /**
- * @acl/scoring — Baseline Credit Engine v0.2。
+ * @a2t/scoring — Baseline Credit Engine v0.2。
  *
  * 可解释、确定性的评分引擎（纯函数，无副作用，可被 API 与 Dashboard 共用）。
  * 核心原则：每个分数必须能追溯到 evidence；同样输入重复计算一致；score 带 version。
@@ -13,7 +13,7 @@ import {
   type Dimension,
   type EvidenceResult,
   type Source,
-} from '@acl/core';
+} from '@a2t/core';
 
 export const SCORE_MODEL_VERSION = 'baseline-v0.2';
 

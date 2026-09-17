@@ -2,7 +2,7 @@
  * POST /ingest/trade-evidence — 酒馆交易证据摄入端点（S4-B M2 批 1，plan §Task 10）。
  *
  * 骨架照 routes/ingest.ts（复用其内存桶限流模式，ingest.ts 本体零改动）：
- * 限流（120 批/10min/IP）→ bearer 与 ACL_TRADE_INGEST_TOKEN timing-safe 比较
+ * 限流（120 批/10min/IP）→ bearer 与 A2T_TRADE_INGEST_TOKEN timing-safe 比较
  * （env 缺失/空 = 全部 401，per-request 读取支持免重启轮换）→
  * versionAtLeast(1) → 信封骨架校验（reporter/version/events 结构，失败 400）→
  * ingestTradeEvidence（毒丸：单事件 zod fail 落 rejected[]，好事件照收）→
@@ -73,7 +73,7 @@ export async function tradeEvidenceRoutes(app: FastifyInstance) {
     if (typeof auth !== 'string' || !auth.startsWith('Bearer ')) {
       return reply.code(401).send({ error: '缺少 bearer 凭证' });
     }
-    const expected = process.env.ACL_TRADE_INGEST_TOKEN;
+    const expected = process.env.A2T_TRADE_INGEST_TOKEN;
     if (!expected) {
       return reply.code(401).send({ error: '服务端未配置摄入凭证' });
     }

@@ -1,7 +1,7 @@
 /**
  * 网络工具：判定 URL 是否为「公网可回访」的 http(s) 地址。
  *
- * 用途（2026-09-13 真用户实测修复）：本地考场模式（`sealit test --url http://localhost:…`）
+ * 用途（2026-09-13 真用户实测修复）：本地考场模式（`a2t test --url http://localhost:…`）
  * 的 endpoint 是私网地址——平台服务端回访不了它（reverify 本就对它跳过）。
  * 若把它当 agentEndpoint 上报，会被服务端 SSRF 卡口 400 拒绝，导致「localhost 也能上榜」的
  * 核心承诺失效。因此 SDK 只上报公网地址，私网/环回一律省略（分数与公钥照常上报）。

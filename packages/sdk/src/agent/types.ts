@@ -4,7 +4,7 @@
  * 文本进出原则：任何被测对象都收敛为「收 prompt、回文本」——
  * 用户 agent 不需要实现任何新协议。
  */
-export interface SealitAgent {
+export interface A2tAgent {
   /** 发送一个 prompt，返回 agent 的文本回复。 */
   reply(prompt: string): Promise<string>;
 }

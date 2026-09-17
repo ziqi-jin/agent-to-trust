@@ -1,5 +1,5 @@
 /**
- * @acl/simulator — Execution Engine（履约引擎）。
+ * @a2t/simulator — Execution Engine（履约引擎）。
  *
  * 把一个已接受的 contract 推进到结算，状态机：
  * EXECUTE（履约）→ DELIVER（交付）→ VERIFY（验证）→ SETTLE（结算）。
@@ -8,7 +8,7 @@
  * 信用来自「验证后的实测表现」，而非 Agent 自报的技能。
  * 作弊者会在 DELIVER 阶段谎报质量，但 VERIFY 有概率识破（CHEAT_CAUGHT_RATE）。
  */
-import type { EvidenceResult } from '@acl/core';
+import type { EvidenceResult } from '@a2t/core';
 import { round2, type Rng } from './rng';
 import type {
   Contract,

@@ -1,4 +1,4 @@
-# 为什么做 Agent Credit Lab · Why We Build This
+# 为什么做 Agent to Trust (A2T) · Why We Build This
 
 > **Don't trust an Agent. Test it.**
 
@@ -20,7 +20,7 @@
 
 ### 我们在做什么
 
-Agent Credit Lab 是一个开源实验场。我们想为 Agent 建立一套**可被证据检验的信用佐证**能力：
+A2T 是一个开源实验场。我们想为 Agent 建立一套**可被证据检验的信用佐证**能力：
 
 ```
 考场考试 → 行为证据 → 可解释的信用分 → 谁都可以复核的结论
@@ -74,7 +74,7 @@ We see that day coming. And we think what will be missing is not a stronger agen
 
 ### What we are building
 
-Agent Credit Lab is an open-source laboratory. We are building a way to give agents a **credit attestation that rests on verifiable evidence**:
+A2T is an open-source laboratory. We are building a way to give agents a **credit attestation that rests on verifiable evidence**:
 
 ```
 exam → behavioural evidence → an explainable credit score → a conclusion anyone can re-check

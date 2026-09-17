@@ -63,12 +63,12 @@ describe('parseCli', () => {
   });
 
   it('apiBase falls back to env', () => {
-    process.env.SEALIT_API_URL = 'http://test-api';
+    process.env.A2T_API_URL = 'http://test-api';
     try {
       const p = parseCli(['test', '--url', 'http://x']);
       expect(p.test?.apiBase).toBe('http://test-api');
     } finally {
-      delete process.env.SEALIT_API_URL;
+      delete process.env.A2T_API_URL;
     }
   });
 
@@ -101,14 +101,14 @@ describe('validateJoinOptions', () => {
 
 describe('config roundtrip', () => {
   it('save then load', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-sdk-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-test-'));
     expect(loadConfig(dir)).toEqual({});
     saveConfig({ agentName: 'x' }, dir);
     expect(loadConfig(dir).agentName).toBe('x');
   });
 
   it('corrupted config → empty object', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-sdk-test-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-test-'));
     saveConfig({ agentName: 'y' }, dir);
     // 模拟损坏：直接覆盖坏 JSON
     const { writeFileSync } = require('node:fs') as typeof import('node:fs');

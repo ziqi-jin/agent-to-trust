@@ -1,13 +1,13 @@
 /**
  * POST /ingest/agent-visibility — 酒馆 agent 榜单可见性同步端点（T6，老大 2026-09-08 17:00 拍板）。
  *
- * 酒馆服务端在两个时机调用（随注册传 ACL + 注册后可改，设计冻结条款 5/7）：
+ * 酒馆服务端在两个时机调用（随注册传 A2T + 注册后可改，设计冻结条款 5/7）：
  * - agent 注册时（POST /v1/agents 落库后）：ref 未知 → 建号（确定性 id + 伪 pubkey + basic，
  *   信用数据采集不受影响），注册时选择的榜单偏好直接落库，不等到首单证据；
  * - owner 在设置页开关时：既有 ref → 只更新 leaderboard_visible。
  *
  * 复用 routes/tradeEvidence.ts 的信任锚与限流骨架（同一机构级 bearer =
- * ACL_TRADE_INGEST_TOKEN，timing-safe 比较；120 批/10min/IP 内存桶）。身份变更
+ * A2T_TRADE_INGEST_TOKEN，timing-safe 比较；120 批/10min/IP 内存桶）。身份变更
  * 语义在 services/tavernIdentity.setTavernAgentVisibility（撞名 name-taken 零写入）。
  */
 
@@ -79,7 +79,7 @@ export async function agentVisibilityRoutes(app: FastifyInstance) {
     if (typeof auth !== 'string' || !auth.startsWith('Bearer ')) {
       return reply.code(401).send({ error: '缺少 bearer 凭证' });
     }
-    const expected = process.env.ACL_TRADE_INGEST_TOKEN;
+    const expected = process.env.A2T_TRADE_INGEST_TOKEN;
     if (!expected) {
       return reply.code(401).send({ error: '服务端未配置摄入凭证' });
     }

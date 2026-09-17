@@ -246,7 +246,7 @@ describe('ingestTradeEvidence', () => {
 //   仍由 delivery_failed → reliability/integrity 现有映射扣分，本批不新增惩罚路径。
 // B3 降权落点：confidential 单全部证据 source='real-confidential'（SOURCE_WEIGHTS=0.5）。
 // B4 聚合面：confidential 单 negotiation 只含 rounds/outcome（承诺哈希在事件顶层），
-// ACL 库不落金额/让步序列——payloadHash 之外本就零明细。
+// A2T 库不落金额/让步序列——payloadHash 之外本就零明细。
 describe('S5-T3 negotiation 实战证据接入', () => {
   const TRAJ = {
     rounds: 3,

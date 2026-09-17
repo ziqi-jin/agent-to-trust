@@ -35,7 +35,7 @@
 
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
-import type { Dimension, EvidenceResult, Source } from '@acl/core';
+import type { Dimension, EvidenceResult, Source } from '@a2t/core';
 import type { Database } from '../db/client';
 import { evidence } from '../db/schema';
 import { upsertTavernAgent } from './tavernIdentity';

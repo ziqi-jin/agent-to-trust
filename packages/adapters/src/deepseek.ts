@@ -1,5 +1,5 @@
 /**
- * @acl/adapters — DeepSeek 客户端。
+ * @a2t/adapters — DeepSeek 客户端。
  *
  * 用 Node 原生 fetch 调 DeepSeek OpenAI 兼容接口（chat/completions）。
  * 零第三方依赖，便于测试（可注入自定义 fetch 实现）。

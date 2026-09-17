@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { type Dimension, type Source } from '@acl/core';
+import { type Dimension, type Source } from '@a2t/core';
 import {
   badgesFromDimensions,
   computeScore,
@@ -9,12 +9,12 @@ import {
   REAL_EVIDENCE_SOURCES,
   type Badge,
   type EvidencePoint,
-} from '@acl/scoring';
+} from '@a2t/scoring';
 import { agents, creditScores, evidence, scoreSnapshots } from '../db/schema';
 import { createRateLimiter } from '../services/rateLimit';
 
 /**
- * 详情页勋章（2026-09-13 老大走查补）：与榜单行**同一口径**（@acl/scoring.badgesFromDimensions），
+ * 详情页勋章（2026-09-13 老大走查补）：与榜单行**同一口径**（@a2t/scoring.badgesFromDimensions），
  * 只认真实证据（REAL_EVIDENCE_SOURCES），时效由 freshnessDays 推算；客户端不得自报。
  */
 async function badgesForAgent(

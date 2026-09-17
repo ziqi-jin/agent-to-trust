@@ -13,7 +13,7 @@
  * - 红线：apiKey 只在本函数闭包/参数里，绝不写入 session 对象
  * - i18n（0904）：prompt/事件流文案按 session.locale 双语；未设 locale（旧路径）回退 zh
  */
-import { extractNumber, ScriptedCounterpart, type Locale, type NegotiationScenario } from 'sealit-sdk';
+import { extractNumber, ScriptedCounterpart, type Locale, type NegotiationScenario } from 'a2t';
 import type { PgActor, PgEventType, StoredSession } from './store';
 
 const ACCEPT_PAT = /accept|接受|同意/i;

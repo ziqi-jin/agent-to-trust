@@ -6,7 +6,7 @@
 import { DeepSeekClient } from '../src/deepseek';
 import { ModelAgent } from '../src/agent';
 import { runBenchmark, benchmarkToEvidence } from '../src/benchmark';
-import { computeScore } from '@acl/scoring';
+import { computeScore } from '@a2t/scoring';
 
 const apiKey = process.env.DEEPSEEK_API_KEY;
 const baseUrl = process.env.DEEPSEEK_BASE_URL;
@@ -23,7 +23,7 @@ const agent = new ModelAgent({
   systemPrompt:
     'You are a capable but honest AI assistant. Answer concisely. When you do not know something or the premise is fictional, say so directly instead of making things up.',
   capabilities: ['code', 'research'],
-  owner: 'acl-lab',
+  owner: 'a2t-lab',
 }, client);
 
 const results = await runBenchmark((p) => agent.reply(p));

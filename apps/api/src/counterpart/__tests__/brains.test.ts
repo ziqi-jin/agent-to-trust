@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DeepSeekClient } from '@acl/adapters';
+import type { DeepSeekClient } from '@a2t/adapters';
 import { createLiveBrain, createScriptedBrain } from '../brains';
 import { personaById } from '../personas';
 

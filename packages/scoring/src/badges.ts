@@ -4,7 +4,7 @@
  * 设计稿：docs/specs/2026-09-12-badge-system-design.md §3。
  *
  * 纯函数、零副作用、确定性：输入 = 各维度分数 + 真实证据统计，输出 = 已达成勋章列表。
- * 「每维最多一枚，取最高档」；输出顺序固定为 @acl/core 的 DIMENSIONS 顺序（前后端同源）。
+ * 「每维最多一枚，取最高档」；输出顺序固定为 @a2t/core 的 DIMENSIONS 顺序（前后端同源）。
  *
  * 红线：
  * - 只认真实证据（由调用方按 realEvidenceCount 传入；自报/仿真不计数）；
@@ -12,7 +12,7 @@
  * - 时效下限（证据过旧不亮，防吃老本）。
  */
 
-import { DIMENSIONS, type Dimension } from '@acl/core';
+import { DIMENSIONS, type Dimension } from '@a2t/core';
 
 export type BadgeTier = 'bronze' | 'silver' | 'gold';
 
@@ -114,7 +114,7 @@ export const REAL_EVIDENCE_SOURCES = ['real-benchmark', 'real', 'real-confidenti
  * **有考题覆盖**的维度（v1 suite + exam-v2 题库的维度并集）——用于灰章悬停提示：
  * 未解锁勋章里，哪些维度是**暂无考题**（欢迎贡献），哪些是**已有考题但尚未达标**。
  *
- * 口径单处：本常量与 sealit-sdk 题库映射（v1 `DIMENSION_MAP` + `negotiation` 场景，
+ * 口径单处：本常量与 a2t 题库映射（v1 `DIMENSION_MAP` + `negotiation` 场景，
  * exam-v2 `EXAM_V2_CASES`）的一致性由 apps/api 的回归测试守卫（scoring 不反向依赖 sdk）。
  * 当前**无考题**的维度：`economic`（仅靠酒馆交易真实证据）、`collaboration`（零证据来源）——
  * 正是 GitHub 贡献指南里最缺的两维。

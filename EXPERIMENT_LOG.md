@@ -1,4 +1,4 @@
-# EXPERIMENT LOG — Agent Credit Lab
+# EXPERIMENT LOG — Agent to Trust (A2T)
 
 > 用途：记录每一次实验的 Hypothesis / Setup / Result / Interpretation / Reproducibility。
 

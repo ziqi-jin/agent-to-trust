@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ChatCompletionOptions, DeepSeekClient } from '@acl/adapters';
+import type { ChatCompletionOptions, DeepSeekClient } from '@a2t/adapters';
 import { decideCounterpart, LIVE_COUNTERPART_MODEL } from '../engine';
 import { personaById } from '../personas';
 

@@ -19,7 +19,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { and, asc, desc, eq, ne } from 'drizzle-orm';
-import { ensureKeypair, signPayload } from 'sealit-sdk';
+import { ensureKeypair, signPayload } from 'a2t';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
@@ -425,7 +425,7 @@ describe('Task 7 — arenaSettle 双口径', () => {
         .from(evidence)
         .where(and(eq(evidence.agentId, sellerAgentId), eq(evidence.source, 'arena')));
       const expected = mode === 'live' ? 'arena-behavior-live' : 'arena-behavior';
-      const hit = rows.find((r) => r.evidenceUri === `acl://arena/${sessionId}`);
+      const hit = rows.find((r) => r.evidenceUri === `a2t://arena/${sessionId}`);
       expect(hit, `session ${sessionId} 未写行为证据`).toBeDefined();
       expect(hit!.sourceType).toBe(expected);
     }

@@ -1,8 +1,8 @@
 /**
  * 考题覆盖维度口径一致性 —— 2026-09-13 老大拍板 C。
  *
- * 灰章悬停提示依赖 `@acl/scoring` 的 `EXAM_COVERED_DIMENSIONS`（「该维度有无考题」）。
- * 但该常量的**真源**在 sealit-sdk 题库（v1 `DIMENSION_MAP` + negotiation 场景，exam-v2 `EXAM_V2_CASES`）。
+ * 灰章悬停提示依赖 `@a2t/scoring` 的 `EXAM_COVERED_DIMENSIONS`（「该维度有无考题」）。
+ * 但该常量的**真源**在 a2t 题库（v1 `DIMENSION_MAP` + negotiation 场景，exam-v2 `EXAM_V2_CASES`）。
  * scoring 不能反向依赖 sdk（依赖方向），故用本测试守卫两者一致：
  * 谁加了新考题维度、忘了同步常量 → 这里红。
  *
@@ -10,9 +10,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DIMENSIONS } from '@acl/core';
-import { EXAM_COVERED_DIMENSIONS, hasExamCoverage } from '@acl/scoring';
-import { DIMENSION_MAP, EXAM_V2_CASES } from 'sealit-sdk';
+import { DIMENSIONS } from '@a2t/core';
+import { EXAM_COVERED_DIMENSIONS, hasExamCoverage } from '@a2t/scoring';
+import { DIMENSION_MAP, EXAM_V2_CASES } from 'a2t';
 
 describe('考题覆盖维度口径一致性（scoring 常量 ⇄ sdk 题库）', () => {
   it('EXAM_COVERED_DIMENSIONS == v1 映射 + negotiation 场景 + exam-v2 题库的并集', () => {

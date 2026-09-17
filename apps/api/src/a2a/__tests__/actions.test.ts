@@ -7,57 +7,57 @@ import { parseA2aAction, toA2aInbound } from '../actions.js';
  * 覆盖：结构化五动作、文本五特征、乱码 → ok:false、DELIVER 缺 artifact → ok:false。
  * 纯函数，无 DB / 无网络依赖。
  */
-describe('parseA2aAction — 结构化档（aclAction data part）', () => {
+describe('parseA2aAction — 结构化档（a2tAction data part）', () => {
   it('OFFER: {"type":"OFFER","price":75} → OFFER price=75', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'OFFER', price: 75 } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'OFFER', price: 75 } }] });
     expect(r).toEqual({ ok: true, type: 'OFFER', price: 75 });
   });
 
   it('NEGOTIATE: {"type":"NEGOTIATE","price":70,"note":"..."} → NEGOTIATE price/note', () => {
     const r = parseA2aAction({
-      dataParts: [{ aclAction: { type: 'NEGOTIATE', price: 70, note: '一起把这事做成，70 行不行' } }],
+      dataParts: [{ a2tAction: { type: 'NEGOTIATE', price: 70, note: '一起把这事做成，70 行不行' } }],
     });
     expect(r).toEqual({ ok: true, type: 'NEGOTIATE', price: 70, note: '一起把这事做成，70 行不行' });
   });
 
   it('ACCEPT: {"type":"ACCEPT"} → ACCEPT', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'ACCEPT' } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'ACCEPT' } }] });
     expect(r).toEqual({ ok: true, type: 'ACCEPT' });
   });
 
   it('REJECT: {"type":"REJECT","reason":"..."} → REJECT（reason 作为 note 透传）', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'REJECT', reason: '预算不够' } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'REJECT', reason: '预算不够' } }] });
     expect(r).toEqual({ ok: true, type: 'REJECT', note: '预算不够' });
   });
 
   it('DELIVER: {"type":"DELIVER","artifact":{...}} → DELIVER artifact（对象直取，不做 sha256 校验）', () => {
-    const artifact = { artifactKind: 'patch', sha256: 'abc', uri: 'acl://reports/1.patch', note: '改好了' };
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER', artifact } }] });
+    const artifact = { artifactKind: 'patch', sha256: 'abc', uri: 'a2t://reports/1.patch', note: '改好了' };
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'DELIVER', artifact } }] });
     expect(r).toEqual({ ok: true, type: 'DELIVER', artifact });
   });
 
-  it('结构化优先：存在合法 aclAction 时忽略文本档', () => {
+  it('结构化优先：存在合法 a2tAction 时忽略文本档', () => {
     const r = parseA2aAction({
-      dataParts: [{ aclAction: { type: 'ACCEPT' } }],
+      dataParts: [{ a2tAction: { type: 'ACCEPT' } }],
       textParts: ['我出 300'],
     });
     expect(r).toEqual({ ok: true, type: 'ACCEPT' });
   });
 
   it('DELIVER 缺 artifact → ok:false', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER' } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'DELIVER' } }] });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/artifact/i);
   });
 
   it('DELIVER artifact 无 artifactKind → ok:false（缺字段才是非法）', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER', artifact: { uri: 'x' } } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'DELIVER', artifact: { uri: 'x' } } }] });
     expect(r.ok).toBe(false);
   });
 
   it('DELIVER artifact 未知 kind → 仍提取为候选对象（T2 只做轻量类型检查，值域归 T5）', () => {
     const r = parseA2aAction({
-      dataParts: [{ aclAction: { type: 'DELIVER', artifact: { artifactKind: 'weird', uri: 'x' } } }],
+      dataParts: [{ a2tAction: { type: 'DELIVER', artifact: { artifactKind: 'weird', uri: 'x' } } }],
     });
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -68,7 +68,7 @@ describe('parseA2aAction — 结构化档（aclAction data part）', () => {
 
   it('asArtifact 返回浅拷贝，不与调用者入参别名', () => {
     const artifact = { artifactKind: 'patch', note: 'n' };
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'DELIVER', artifact } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'DELIVER', artifact } }] });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.artifact).toEqual(artifact);
@@ -78,23 +78,23 @@ describe('parseA2aAction — 结构化档（aclAction data part）', () => {
 
   it('结构化非法动作 + 带文本 part（"接受"）→ ok:false（不回退猜文本）', () => {
     const r = parseA2aAction({
-      dataParts: [{ aclAction: { type: 'BOGUS' } }],
+      dataParts: [{ a2tAction: { type: 'BOGUS' } }],
       textParts: ['接受'],
     });
     expect(r.ok).toBe(false);
   });
 
   it('未知 type → ok:false（不猜测）', () => {
-    const r = parseA2aAction({ dataParts: [{ aclAction: { type: 'COUNTER' } }] });
+    const r = parseA2aAction({ dataParts: [{ a2tAction: { type: 'COUNTER' } }] });
     expect(r.ok).toBe(false);
   });
 
   it('OFFER/NEGOTIATE 缺合法 price → ok:false', () => {
-    expect(parseA2aAction({ dataParts: [{ aclAction: { type: 'OFFER' } }] }).ok).toBe(false);
-    expect(parseA2aAction({ dataParts: [{ aclAction: { type: 'NEGOTIATE', price: -1 } }] }).ok).toBe(false);
+    expect(parseA2aAction({ dataParts: [{ a2tAction: { type: 'OFFER' } }] }).ok).toBe(false);
+    expect(parseA2aAction({ dataParts: [{ a2tAction: { type: 'NEGOTIATE', price: -1 } }] }).ok).toBe(false);
   });
 
-  it('data part 里没有 aclAction（无关数据）→ 走文本兜底', () => {
+  it('data part 里没有 a2tAction（无关数据）→ 走文本兜底', () => {
     const r = parseA2aAction({ dataParts: [{ foo: 'bar' }], textParts: ['accept'] });
     expect(r).toEqual({ ok: true, type: 'ACCEPT' });
   });
@@ -138,10 +138,10 @@ describe('parseA2aAction — 文本档（parts[0].text 兜底）', () => {
   it('含“交付”且带 artifact part → DELIVER(artifact)', () => {
     const r = parseA2aAction({
       textParts: ['交付：给你'],
-      artifactParts: [{ artifactKind: 'file', uri: 'acl://out/report.md' }],
+      artifactParts: [{ artifactKind: 'file', uri: 'a2t://out/report.md' }],
     });
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.artifact).toMatchObject({ artifactKind: 'file', uri: 'acl://out/report.md' });
+    if (r.ok) expect(r.artifact).toMatchObject({ artifactKind: 'file', uri: 'a2t://out/report.md' });
   });
 
   it('含交付意图但没有 artifact part → ok:false（不是 DELIVER）', () => {
@@ -223,16 +223,16 @@ describe('toA2aInbound — 裸 A2A parts 归一', () => {
   it('拆分 text / data / artifact parts', () => {
     const inbound = toA2aInbound([
       { kind: 'text', text: '我出 75' },
-      { kind: 'data', data: { aclAction: { type: 'ACCEPT' } } },
+      { kind: 'data', data: { a2tAction: { type: 'ACCEPT' } } },
       { kind: 'artifact', name: 'delivery', parts: [{ kind: 'data', data: { artifactKind: 'patch' } }] },
     ]);
     expect(inbound.textParts).toEqual(['我出 75']);
-    expect(inbound.dataParts).toEqual([{ aclAction: { type: 'ACCEPT' } }]);
+    expect(inbound.dataParts).toEqual([{ a2tAction: { type: 'ACCEPT' } }]);
     expect(inbound.artifactParts).toHaveLength(1);
   });
 
   it('parseA2aAction 可直接吃 { parts } 形态', () => {
-    const r = parseA2aAction({ parts: [{ kind: 'data', data: { aclAction: { type: 'OFFER', price: 42 } } }] });
+    const r = parseA2aAction({ parts: [{ kind: 'data', data: { a2tAction: { type: 'OFFER', price: 42 } } }] });
     expect(r).toEqual({ ok: true, type: 'OFFER', price: 42 });
   });
 });

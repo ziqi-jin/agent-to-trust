@@ -72,7 +72,7 @@ describe('[可解释性] 多维排序与「每维最高档」', () => {
       input({ dimension: 'capability', score: 88 }),
       input({ dimension: 'negotiation', score: 100 }),
     ]);
-    // 顺序来自 @acl/core DIMENSIONS，不是输入顺序
+    // 顺序来自 @a2t/core DIMENSIONS，不是输入顺序
     expect(out.map((b) => b.dimension)).toEqual(['capability', 'negotiation', 'integrity']);
   });
 

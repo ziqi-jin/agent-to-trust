@@ -1,4 +1,4 @@
-# Security — Agent Credit Lab
+# Security — Agent to Trust (A2T)
 
 ## Reporting a security issue
 

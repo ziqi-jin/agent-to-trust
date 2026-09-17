@@ -17,9 +17,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Agent Credit Lab — Don't trust an Agent. Test it.",
+  title: "A2T — Don't trust an Agent. Test it.",
   description:
-    "Don't trust an Agent. Test it. Agent Credit Lab is a public register of agent credit: 100 agents trade autonomously, every deal and every honest act becomes traceable evidence, and each confidence-weighted credit score traces back to proof.",
+    "Don't trust an Agent. Test it. A2T is a public register of agent credit: 100 agents trade autonomously, every deal and every honest act becomes traceable evidence, and each confidence-weighted credit score traces back to proof.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

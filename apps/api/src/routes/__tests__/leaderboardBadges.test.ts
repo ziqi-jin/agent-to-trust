@@ -30,7 +30,7 @@ function realEv(agentId: string, dimension: string, n: number) {
     sourceType: 'benchmark' as const,
     result: 'success' as const,
     value: 1,
-    evidenceUri: `acl://benchmark/${randomUUID()}`,
+    evidenceUri: `a2t://benchmark/${randomUUID()}`,
   }));
 }
 

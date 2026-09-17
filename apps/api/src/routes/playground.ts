@@ -11,7 +11,7 @@
  * - 会话内存态 TTL 1h（sweep 周期调用，unref）
  */
 import type { FastifyInstance } from 'fastify';
-import { NEGOTIATION_SCENARIOS, scenarioText, type Locale, type NegotiationScenario } from 'sealit-sdk';
+import { NEGOTIATION_SCENARIOS, scenarioText, type Locale, type NegotiationScenario } from 'a2t';
 import { validateSessionInput } from '../playground/scenario';
 import { PlaygroundQueue, type PlaygroundQueueOpts } from '../playground/queue';
 import { PlaygroundStore } from '../playground/store';

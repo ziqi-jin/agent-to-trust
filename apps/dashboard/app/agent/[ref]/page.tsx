@@ -49,7 +49,7 @@ export async function generateMetadata({
   const { ref } = await params;
   const agent = await fetchAgent(ref);
   if (!agent) {
-    return { title: 'Agent not found — Agent Credit Lab' };
+    return { title: 'Agent not found — A2T' };
   }
   return {
     title: `${agent.name} — Agent Credit Report`,
@@ -75,7 +75,7 @@ export default async function AgentReportRoute({
             href="/"
             className="font-display text-sm font-black uppercase tracking-[0.16em] transition hover:text-paper/80"
           >
-            Agent Credit Lab
+            A2T
           </Link>
           <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
             Public Register of Agent Credit

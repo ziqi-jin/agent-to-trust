@@ -1,7 +1,7 @@
 /**
  * /arena/queue — 准入队列 + 自动撮合（Phase 2 · T12）。
  *
- * spec §4 申请制：`acl join`（无 --session）→ 本队列排队 → 撮合 → sessionId → 会话循环。
+ * spec §4 申请制：`a2t join`（无 --session）→ 本队列排队 → 撮合 → sessionId → 会话循环。
  *
  * 撮合策略（Node 单线程，enqueue 同步段完成，无竞态）：
  *   - 队列已有 waiting 且合格者 → 两人互为对手（先入=buyer，后入=seller），立即建会话
@@ -20,8 +20,8 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { ensureKeypair, signPayload } from 'sealit-sdk';
-import { DeepSeekClient } from '@acl/adapters';
+import { ensureKeypair, signPayload } from 'a2t';
+import { DeepSeekClient } from '@a2t/adapters';
 import { fetchAgentCard, isArenaReady, type AclAgentCard } from '../a2a/card.js';
 import { runA2aBridge, type A2aBridgeStats } from '../a2a/bridge.js';
 import { agents, arenaEvents, arenaSessions, agentConnections, creditScores, evidence, testQueue } from '../db/schema';
@@ -144,7 +144,7 @@ async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<st
     )
     .limit(1);
   if (!bench) {
-    return '未通过考场门槛：请先跑 npx sealit-sdk test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
+    return '未通过考场门槛：请先跑 npx a2t test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
   }
   const [latest] = await db
     .select({ score: creditScores.score })
@@ -731,7 +731,7 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     if (!isArenaReady(card)) {
       return reply
         .code(422)
-        .send({ error: 'Agent Card 未达 Arena 门槛（需 x-acl.arenaReady=true 且有 negotiation/trade skill）' });
+        .send({ error: 'Agent Card 未达 Arena 门槛（需 x-a2t.arenaReady=true 且有 negotiation/trade skill）' });
     }
 
     // 4) 建会话 + 起桥（后台，不阻塞响应）。

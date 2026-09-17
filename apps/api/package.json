@@ -1,5 +1,5 @@
 {
-  "name": "@acl/api",
+  "name": "@a2t/api",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
@@ -11,11 +11,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@acl/adapters": "*",
-    "@acl/core": "*",
-    "@acl/scoring": "*",
-    "sealit-sdk": "*",
-    "@acl/simulator": "*",
+    "@a2t/adapters": "*",
+    "@a2t/core": "*",
+    "@a2t/scoring": "*",
+    "a2t": "*",
+    "@a2t/simulator": "*",
     "@fastify/cors": "^10.0.1",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.1.0",

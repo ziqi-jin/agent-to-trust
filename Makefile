@@ -1,4 +1,4 @@
-# Makefile — Agent Credit Lab 常用命令
+# Makefile — A2T 常用命令
 
 .PHONY: up down logs ps doctor test typecheck build seed
 
@@ -39,4 +39,4 @@ test:
 
 ## 构建 dashboard
 build:
-	npm run build --workspace @acl/dashboard
+	npm run build --workspace @a2t/dashboard

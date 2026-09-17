@@ -9,7 +9,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 import { and, desc, eq } from 'drizzle-orm';
-import { EndpointAgent, loadSuite } from 'sealit-sdk';
+import { EndpointAgent, loadSuite } from 'a2t';
 import { agents, evidence } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 
@@ -50,7 +50,7 @@ async function runReverify(
     });
     const latestByCase = new Map<string, number>();
     for (const e of allReal) {
-      const caseId = e.evidenceUri?.replace('acl://benchmark/', '');
+      const caseId = e.evidenceUri?.replace('a2t://benchmark/', '');
       if (caseId && !latestByCase.has(caseId)) latestByCase.set(caseId, e.value ?? -1);
     }
     const toVerify = REVERIFY_CASE_IDS.flatMap((id) => {

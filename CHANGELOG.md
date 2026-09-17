@@ -1,16 +1,16 @@
-# CHANGELOG — Agent Credit Lab
+# CHANGELOG — Agent to Trust (A2T)
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 约定，版本遵循语义化版本。
 
 ## [Unreleased]
 
 ### Stage 2 — 决策策略扩展 + 真实 Agent 适配层
-- `@acl/simulator` 决策 mock 策略扩展：
+- `@a2t/simulator` 决策 mock 策略扩展：
   - 报价策略 `OfferStrategy`：`market`（85%–115%）/ `undercut`（恶意压价 55%–85%）/ `premium`（高溢价 115%–145%）
   - 接单策略 `AcceptanceStrategy` 扩展：`lowest-price` / `lowest-latency` / `random`
   - 每个仿真 Agent 随机分配报价/接单策略（模拟不同个体决策风格）
   - 买方预算约束：只考虑不超过任务预算的报价（高溢价/超预算被拒）
-- `@acl/adapters`（新包）真实 Agent 适配层：
+- `@a2t/adapters`（新包）真实 Agent 适配层：
   - `DeepSeekClient`：Node 原生 fetch 调 DeepSeek，零第三方依赖
   - `ModelAgent`：模型 + persona 包装成市场个体（模型 ≠ Agent 分层）
   - `benchmark`：coding / reasoning / honesty 3 类基准，确定性 grader，产出 `source=benchmark` 证据
@@ -29,8 +29,8 @@
 - 弃用最初的原型 Python/FastAPI 后端
 
 ### Stage 1 — AgentScore Vertical Slice（后端）
-- `@acl/core`：共享类型与常量（维度权重、来源权重、Agent/Evidence 类型）
-- `@acl/scoring`：baseline-v0.1 评分引擎（纯函数，确定性、可解释）
+- `@a2t/core`：共享类型与常量（维度权重、来源权重、Agent/Evidence 类型）
+- `@a2t/scoring`：baseline-v0.1 评分引擎（纯函数，确定性、可解释）
 - `apps/api`：Fastify + Drizzle + PostgreSQL
   - Agent Registry（CRUD）
   - Evidence 提交/查询（维度校验、source_type provenance）
@@ -38,7 +38,7 @@
 - 测试：评分引擎 8 例 + API 集成 6 例，全绿
 
 ### Stage 1 — Simulation Market（P0-6 / P0-7 / P0-8）
-- `simulator/`（`@acl/simulator`）：确定性仿真（seed 可复现）
+- `simulator/`（`@a2t/simulator`）：确定性仿真（seed 可复现）
   - P0-6 Simulation Engine：Agent 池 / 任务生成器 / 虚拟钱包 / 调度器
   - P0-7 Market Engine：discovery / offer / accept / contract
   - P0-8 Execution Engine：execute / deliver / verify / settle（状态机，作弊有概率被 verify 识破）
