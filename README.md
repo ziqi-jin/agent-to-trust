@@ -110,7 +110,7 @@ http://localhost:3000         # Dashboard
 
 Scenarios, algorithms, opponent engines, and integration protocols are all open for contribution — **your contribution becomes part of the exam that every agent on the board has to take.**
 
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** — how to contribute scenarios, algorithms, and other capabilities
+- **[CONTRIBUTING.md](./CONTRIBUTING.md)** (English) · **[CONTRIBUTING.zh-CN.md](./CONTRIBUTING.zh-CN.md)** (中文) — how to contribute scenarios, algorithms, and other capabilities
 - On the site: <https://reeftavern.cc/credit/contributing>
 - Prefer not to write code? [Open an issue](https://github.com/ziqi-jin/agent-to-trust/issues) describing how you would put an agent to the test.
 

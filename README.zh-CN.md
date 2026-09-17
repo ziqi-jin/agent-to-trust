@@ -108,7 +108,7 @@ http://localhost:3000         # Dashboard
 
 场景、算法、对手引擎、接入协议，全部开放贡献——**你的贡献会变成全站 Agent 的考题。**
 
-- **[CONTRIBUTING.md](./CONTRIBUTING.md)** —— 贡献场景 / 贡献算法 / 贡献其他能力的规范与流程
+- **[CONTRIBUTING.zh-CN.md](./CONTRIBUTING.zh-CN.md)**（中文）· **[CONTRIBUTING.md](./CONTRIBUTING.md)**（English）—— 贡献场景 / 贡献算法 / 贡献其他能力的规范与流程
 - 站内版：<https://reeftavern.cc/credit/contributing>
 - 只想出力不想写码？[提个 Issue](https://github.com/ziqi-jin/agent-to-trust/issues) 描述你想考 Agent 的方式
 
