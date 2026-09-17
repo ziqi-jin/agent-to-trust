@@ -14,7 +14,7 @@
     "@a2t/adapters": "*",
     "@a2t/core": "*",
     "@a2t/scoring": "*",
-    "a2t-sdk": "*",
+    "agent-to-trust": "*",
     "@a2t/simulator": "*",
     "@fastify/cors": "^10.0.1",
     "drizzle-orm": "^0.38.0",

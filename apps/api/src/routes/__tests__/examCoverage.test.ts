@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { DIMENSIONS } from '@a2t/core';
 import { EXAM_COVERED_DIMENSIONS, hasExamCoverage } from '@a2t/scoring';
-import { DIMENSION_MAP, EXAM_V2_CASES } from 'a2t-sdk';
+import { DIMENSION_MAP, EXAM_V2_CASES } from 'agent-to-trust';
 
 describe('考题覆盖维度口径一致性（scoring 常量 ⇄ sdk 题库）', () => {
   it('EXAM_COVERED_DIMENSIONS == v1 映射 + negotiation 场景 + exam-v2 题库的并集', () => {

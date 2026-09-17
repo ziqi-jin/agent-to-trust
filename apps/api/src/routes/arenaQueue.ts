@@ -20,7 +20,7 @@
 import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { ensureKeypair, signPayload } from 'a2t-sdk';
+import { ensureKeypair, signPayload } from 'agent-to-trust';
 import { DeepSeekClient } from '@a2t/adapters';
 import { fetchAgentCard, isArenaReady, type AclAgentCard } from '../a2a/card.js';
 import { runA2aBridge, type A2aBridgeStats } from '../a2a/bridge.js';

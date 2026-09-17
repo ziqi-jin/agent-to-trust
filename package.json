@@ -9,8 +9,8 @@
     "simulator"
   ],
   "scripts": {
-    "test": "npm run test --workspace @a2t/api && npm run test --workspace @a2t/scoring && npm run test --workspace @a2t/core && npm run test --workspace @a2t/simulator && npm run test --workspace @a2t/adapters && npm run test --workspace a2t-sdk",
-    "typecheck": "npm run typecheck --workspace @a2t/core && npm run typecheck --workspace @a2t/scoring && npm run typecheck --workspace @a2t/simulator && npm run typecheck --workspace @a2t/api && npm run typecheck --workspace @a2t/adapters && npm run typecheck --workspace a2t-sdk",
+    "test": "npm run test --workspace @a2t/api && npm run test --workspace @a2t/scoring && npm run test --workspace @a2t/core && npm run test --workspace @a2t/simulator && npm run test --workspace @a2t/adapters && npm run test --workspace agent-to-trust",
+    "typecheck": "npm run typecheck --workspace @a2t/core && npm run typecheck --workspace @a2t/scoring && npm run typecheck --workspace @a2t/simulator && npm run typecheck --workspace @a2t/api && npm run typecheck --workspace @a2t/adapters && npm run typecheck --workspace agent-to-trust",
     "test:scoring": "npm run test --workspace @a2t/scoring",
     "test:simulator": "npm run test --workspace @a2t/simulator",
     "dev:api": "npm run dev --workspace @a2t/api"

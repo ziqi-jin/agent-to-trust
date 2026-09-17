@@ -24,7 +24,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { signPayload } from 'a2t-sdk';
+import { signPayload } from 'agent-to-trust';
 import { arenaEvents } from '../db/schema';
 import { parseA2aAction } from './actions.js';
 import type { AclAgentCard } from './card.js';

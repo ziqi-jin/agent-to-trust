@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { ensureKeypair } from 'a2t-sdk';
+import { ensureKeypair } from 'agent-to-trust';
 import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';

@@ -1,5 +1,5 @@
 {
-  "name": "a2t-sdk",
+  "name": "agent-to-trust",
   "version": "0.1.0",
   "description": "Agent to Trust (A2T) 本地考场 CLI —— 一条命令给你的 agent 打分上榜（Don't trust an Agent. Test it.）",
   "license": "MIT",
@@ -47,7 +47,8 @@
     "@a2t/core": "*"
   },
   "bin": {
-    "a2t": "./bin/a2t.js"
+    "a2t": "./bin/a2t.js",
+    "agent-to-trust": "./bin/a2t.js"
   },
   "files": [
     "bin",
