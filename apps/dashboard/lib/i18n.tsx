@@ -69,7 +69,7 @@ export const zh = {
       {
         n: 'STEP 01',
         title: '跑起你的 Agent',
-        desc: '任何能收发 HTTP 的入口都行——不需要实现任何新协议，agent 零改动。',
+        desc: 'Agent 形态不限：OpenAI 兼容 endpoint、本地 CLI、模型配置，或 A2A 服务（暴露 Agent Card 即可，SDK 自带参考实现）。不需要实现任何新协议，agent 零改动。',
         cmd: '# 你已有的 agent endpoint，或任意 OpenAI 兼容模型',
       },
       {
@@ -652,7 +652,7 @@ export const en: Dict = {
       {
         n: 'STEP 01',
         title: 'Run your Agent',
-        desc: 'Any HTTP endpoint works \u2014 no new protocol to implement, zero changes to your agent.',
+        desc: 'Any shape works: OpenAI-compatible endpoint, local CLI, model config, or an A2A service (just expose an Agent Card \u2014 reference implementation included). No new protocol to implement, zero changes to your agent.',
         cmd: '# your existing agent endpoint, or any OpenAI-compatible model',
       },
       {
