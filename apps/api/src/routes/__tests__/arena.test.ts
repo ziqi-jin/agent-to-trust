@@ -70,8 +70,8 @@ beforeAll(async () => {
   await db.execute(
     sql`TRUNCATE arena_events, arena_sessions, agents, ingest_nonces CASCADE`,
   );
-  const d1 = mkdtempSync(join(tmpdir(), 'acl-arena-b-'));
-  const d2 = mkdtempSync(join(tmpdir(), 'acl-arena-s-'));
+  const d1 = mkdtempSync(join(tmpdir(), 'a2t-arena-b-'));
+  const d2 = mkdtempSync(join(tmpdir(), 'a2t-arena-s-'));
   dirs = [d1, d2];
   buyerKeys = ensureKeypair(d1);
   sellerKeys = ensureKeypair(d2);

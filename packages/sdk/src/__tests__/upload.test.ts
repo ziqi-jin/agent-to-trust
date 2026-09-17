@@ -14,7 +14,7 @@ async function fixtureSuite() {
 
 describe('buildIngestPayload', () => {
   it('contains required fields and valid signature', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     const payload = buildIngestPayload(suite, { name: 'test-agent', endpoint: 'http://x' }, keypair);
@@ -27,7 +27,7 @@ describe('buildIngestPayload', () => {
   });
 
   it('本地考场：私网/环回 endpoint 不上报（服务端 SSRF 卡口会 400）', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     for (const ep of [
@@ -45,7 +45,7 @@ describe('buildIngestPayload', () => {
   });
 
   it('公网 endpoint 照常上报', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     const p = buildIngestPayload(
@@ -59,7 +59,7 @@ describe('buildIngestPayload', () => {
 
 describe('uploadResults', () => {
   it('posts to /ingest/results and parses response', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     const fetchImpl = vi.fn().mockResolvedValue(
@@ -74,7 +74,7 @@ describe('uploadResults', () => {
   });
 
   it('retries once on 5xx then succeeds', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     const fetchImpl = vi
@@ -89,7 +89,7 @@ describe('uploadResults', () => {
   });
 
   it('does not retry on 4xx', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-up-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-up-'));
     const keypair = ensureKeypair(dir);
     const suite = await fixtureSuite();
     const fetchImpl = vi.fn().mockResolvedValue(new Response('bad signature', { status: 401 }));

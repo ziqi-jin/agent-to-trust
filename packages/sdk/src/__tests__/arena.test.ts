@@ -188,7 +188,7 @@ function baseHandlers(calls: Call[], eventsByPoll: unknown[][]): Handler[] {
 
 describe('runJoinLoop', () => {
   it('buyer 先手 → 还价 → 验收 → 补发 SETTLE，全程签名可验', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers = baseHandlers(calls, [
@@ -265,7 +265,7 @@ describe('runJoinLoop', () => {
   });
 
   it('连续 3 次空轮询 → idle-timeout', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers = baseHandlers(calls, [[], [], []]); // 3 次空
@@ -285,7 +285,7 @@ describe('runJoinLoop', () => {
   });
 
   it('对家 REJECT → 立即终止', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers = baseHandlers(calls, [
@@ -317,7 +317,7 @@ describe('runJoinLoop', () => {
   });
 
   it('会话已结算 → session-closed 零事件', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers: Handler[] = [
@@ -345,7 +345,7 @@ describe('runJoinLoop', () => {
   });
 
   it('非会话参与者 → 抛错', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers: Handler[] = [
@@ -373,7 +373,7 @@ describe('runJoinLoop', () => {
   });
 
   it('注册被拒（同名异钥）→ 抛 403', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers: Handler[] = [
@@ -398,7 +398,7 @@ describe('runJoinLoop', () => {
   });
 
   it('对家抢先结算（补发 SETTLE 撞 409）→ 无害退出', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers = baseHandlers(calls, [
@@ -429,7 +429,7 @@ describe('runJoinLoop', () => {
   });
 
   it('agent 回复无法解析 → 回退 NEGOTIATE', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const handlers = baseHandlers(calls, [
@@ -458,7 +458,7 @@ describe('runJoinLoop', () => {
 
   it('join --mode 透传到准入队列 body（live / scripted）', async () => {
     for (const mode of ['live', 'scripted'] as const) {
-      const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+      const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
       const keypair = ensureKeypair(dir);
       const calls: Call[] = [];
       const handlers: Handler[] = [
@@ -493,7 +493,7 @@ describe('runJoinLoop', () => {
   });
 
   it('结算后打印对手披露：persona + label + 理论根 + 引文（zh）', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const theory = {
@@ -546,7 +546,7 @@ describe('runJoinLoop', () => {
   });
 
   it('结算披露 locale=en 走英文文案', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'acl-join-'));
+    const dir = mkdtempSync(join(tmpdir(), 'a2t-join-'));
     const keypair = ensureKeypair(dir);
     const calls: Call[] = [];
     const theory = {

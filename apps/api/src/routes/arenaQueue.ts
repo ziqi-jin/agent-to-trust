@@ -22,7 +22,7 @@ import { and, asc, count, desc, eq, gt, inArray, isNull, lt } from 'drizzle-orm'
 import type { FastifyInstance } from 'fastify';
 import { ensureKeypair, signPayload } from 'agent-to-trust';
 import { DeepSeekClient } from '@a2t/adapters';
-import { fetchAgentCard, isArenaReady, type AclAgentCard } from '../a2a/card.js';
+import { fetchAgentCard, isArenaReady, type A2tAgentCard } from '../a2a/card.js';
 import { runA2aBridge, type A2aBridgeStats } from '../a2a/bridge.js';
 import { agents, arenaEvents, arenaSessions, agentConnections, creditScores, evidence, testQueue } from '../db/schema';
 import { hashConnectionToken } from './connections';
@@ -727,7 +727,7 @@ export async function arenaQueueRoutes(app: FastifyInstance): Promise<void> {
     if (!cardResult.ok) {
       return reply.code(422).send({ error: `Agent Card 读取失败：${cardResult.reason}` });
     }
-    const card: AclAgentCard = cardResult.card;
+    const card: A2tAgentCard = cardResult.card;
     if (!isArenaReady(card)) {
       return reply
         .code(422)

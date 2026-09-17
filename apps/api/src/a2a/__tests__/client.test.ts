@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { AclAgentCard } from '../card.js';
+import type { A2tAgentCard } from '../card.js';
 import {
   sendA2aMessage,
   type A2aOutboundMessage,
@@ -15,7 +15,7 @@ import {
 
 const CARD_URL = 'https://user.example/a2a';
 
-function makeCard(overrides: Partial<AclAgentCard> = {}): AclAgentCard {
+function makeCard(overrides: Partial<A2tAgentCard> = {}): A2tAgentCard {
   return {
     name: 'User Agent',
     description: 'a negotiation agent',
@@ -26,7 +26,7 @@ function makeCard(overrides: Partial<AclAgentCard> = {}): AclAgentCard {
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
     ...overrides,
-  } as AclAgentCard;
+  } as A2tAgentCard;
 }
 
 function makeMsg(overrides: Partial<A2aOutboundMessage> = {}): A2aOutboundMessage {
@@ -198,7 +198,7 @@ describe('sendA2aMessage — 失败映射（绝不抛）', () => {
   it('card.url 缺失 → {ok:false, reason:http}，不抛', async () => {
     const fn = (async () => jsonResponse({ jsonrpc: '2.0', result: { parts: [] } })) as unknown as typeof fetch;
     const res = await sendA2aMessage(
-      { url: undefined } as unknown as AclAgentCard,
+      { url: undefined } as unknown as A2tAgentCard,
       makeMsg(),
       { token: 't', fetchImpl: fn },
     );

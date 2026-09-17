@@ -69,7 +69,7 @@
 - [ ] P2-1 Benchmark Lab（≥5 类 benchmark，可复现，CLI）
 - [ ] P2-2 Attack Lab（Sybil / Collusion / Reputation Farming）
 - [ ] P2-3 Graph reputation / 抗刷模型对比
-- [ ] P2-4 SDK / CLI（`acl` / `agent-credit` 命令族）
+- [ ] P2-4 SDK / CLI（`a2t` 命令族）
 
 ### P3 — 商业能力（第一阶段不做）
 

@@ -24,7 +24,7 @@ import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
 import { arenaEvents } from '../../db/schema';
-import type { AclAgentCard } from '../card';
+import type { A2tAgentCard } from '../card';
 import { runA2aBridge, type A2aBridgeStats } from '../bridge';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
@@ -70,7 +70,7 @@ function newKeys(): Keypair {
   return ensureKeypair(dir);
 }
 
-function makeCard(): AclAgentCard {
+function makeCard(): A2tAgentCard {
   return {
     name: 'A2A User Agent',
     description: 'a negotiation agent',
@@ -81,7 +81,7 @@ function makeCard(): AclAgentCard {
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
     'x-a2t': { arenaReady: true },
-  } as AclAgentCard;
+  } as A2tAgentCard;
 }
 
 async function registerAgent(name: string, pubkey: string): Promise<string> {

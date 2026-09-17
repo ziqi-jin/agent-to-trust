@@ -32,7 +32,7 @@ beforeAll(async () => {
   await db.execute(
     sql`TRUNCATE arena_events, arena_sessions, agents, ingest_nonces CASCADE`,
   );
-  const d = mkdtempSync(join(tmpdir(), 'acl-identity-'));
+  const d = mkdtempSync(join(tmpdir(), 'a2t-identity-'));
   dirs = [d];
   keys = ensureKeypair(d);
 });
@@ -97,7 +97,7 @@ describe('upsertAgentIdentity 同名补绑 pubkey', () => {
   });
 
   it('已绑钥 agent 换钥注册 → 403 name-taken（钥不可被覆盖）', async () => {
-    const d = mkdtempSync(join(tmpdir(), 'acl-identity-2-'));
+    const d = mkdtempSync(join(tmpdir(), 'a2t-identity-2-'));
     dirs.push(d);
     const other = ensureKeypair(d);
     const dup = await app.inject({

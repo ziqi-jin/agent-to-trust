@@ -66,7 +66,7 @@ beforeAll(async () => {
   await db.execute(
     sql`TRUNCATE evidence, credit_scores, score_snapshots, agents, ingest_nonces CASCADE`,
   );
-  keypair = ensureKeypair(mkdtempSync(join(tmpdir(), 'acl-a4-')));
+  keypair = ensureKeypair(mkdtempSync(join(tmpdir(), 'a2t-a4-')));
   suiteFixture = await runSuite({ reply: async () => '10' }, { filter: (id) => id === 'coding-sum' });
 });
 

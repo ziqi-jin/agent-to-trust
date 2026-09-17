@@ -55,7 +55,7 @@ beforeAll(async () => {
   await db.execute(
     sql`TRUNCATE evidence, credit_scores, score_snapshots, agents, ingest_nonces CASCADE`,
   );
-  keypair = ensureKeypair(mkdtempSync(join(tmpdir(), 'acl-rv-')));
+  keypair = ensureKeypair(mkdtempSync(join(tmpdir(), 'a2t-rv-')));
 });
 
 afterAll(async () => {

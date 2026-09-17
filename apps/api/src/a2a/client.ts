@@ -20,7 +20,7 @@
  * 本模块零业务依赖：不碰 DB、不碰内核；网络经 `fetchImpl` 可注入（测试不真发请求）。
  */
 
-import type { AclAgentCard } from './card.js';
+import type { A2tAgentCard } from './card.js';
 
 /** A2A part（宽松结构，不过度建模：text / data / file 或未来扩展）。 */
 export interface A2aPart {
@@ -105,7 +105,7 @@ function extractParts(json: Record<string, unknown>): A2aPart[] | null {
  * 失败不抛异常，返回 `{ ok:false, reason }`。
  */
 export async function sendA2aMessage(
-  card: AclAgentCard,
+  card: A2tAgentCard,
   msg: A2aOutboundMessage,
   opts: SendA2aMessageOpts = {},
 ): Promise<A2aSendResult> {

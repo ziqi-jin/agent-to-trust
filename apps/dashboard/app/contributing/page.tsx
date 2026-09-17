@@ -171,7 +171,7 @@ export default function ContributingPage() {
 
       <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
         <div className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-xs text-dim">AGENT CREDIT LAB · CONTRIBUTING</p>
+          <p className="font-mono text-xs text-dim">A2T · CONTRIBUTING</p>
           <p className="font-mono text-xs text-dim">Don&apos;t trust an Agent. Test it.</p>
         </div>
       </footer>

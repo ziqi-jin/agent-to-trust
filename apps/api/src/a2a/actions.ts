@@ -126,7 +126,7 @@ function normalizeInput(input: A2aParseInput): A2aInbound {
 // —— 结构化档 ——
 
 /** 找出第一个带 `a2tAction` 的 data part（只有这一个 key 才算结构化档）。 */
-function findAclAction(input: A2aInbound): unknown {
+function findA2tAction(input: A2aInbound): unknown {
   for (const p of input.dataParts ?? []) {
     if (isRecord(p) && 'a2tAction' in p) return p.a2tAction;
   }
@@ -320,7 +320,7 @@ function parseText(text: string, artifacts: DeliveryArtifact[]): ParsedAction {
 export function parseA2aAction(input: A2aParseInput): ParsedAction {
   const inbound = normalizeInput(input);
 
-  const a2tAction = findAclAction(inbound);
+  const a2tAction = findA2tAction(inbound);
   if (a2tAction !== undefined) {
     // 有结构化意图就按结构化办：即便写坏了也是「无效回合」，绝不用文本兜底去猜
     return parseStructured(a2tAction);

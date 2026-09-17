@@ -27,7 +27,7 @@ import type { FastifyInstance } from 'fastify';
 import { signPayload } from 'agent-to-trust';
 import { arenaEvents } from '../db/schema';
 import { parseA2aAction } from './actions.js';
-import type { AclAgentCard } from './card.js';
+import type { A2tAgentCard } from './card.js';
 import { sendA2aMessage, type A2aPart } from './client.js';
 import { fromParsedAction, toA2aMessage, type KernelEvent } from './wire.js';
 
@@ -71,7 +71,7 @@ export interface A2aBridgeOpts {
   /** 该身份的 Ed25519 密钥（照 arenaQueue 的 keys 形状）。 */
   keys: { publicKeyPem: string; privateKeyPem: string };
   /** 用户 A2A agent 的 Agent Card（`fetchAgentCard` 产出）。 */
-  card: AclAgentCard;
+  card: A2tAgentCard;
   /** 可选 Bearer token。 */
   token?: string;
 
@@ -132,7 +132,7 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
   const history: KernelEvent[] = [];
   /** 已注入事件的 seq → 当时 A2A 往返轮次（供自己事件回放时正确归轮）。 */
   const roundBySeq = new Map<number, number>();
-  const contextId = `acl-${sessionId}`;
+  const contextId = `a2t-${sessionId}`;
   const deadline = Date.now() + maxWaitMs;
 
   /**
@@ -271,7 +271,7 @@ export async function runA2aBridge(app: FastifyInstance, opts: A2aBridgeOpts): P
 
         // 内核事件 → A2A 自包含消息 → 打用户 agent（selfAgentId=平台侧身份 → 历史按「你/对家」归属）
         const { text, metadata } = toA2aMessage(kernelEvent, historyBefore, { selfAgentId: platformAgentId });
-        const taskId = `acl-${sessionId}-r${e.seq}`;
+        const taskId = `a2t-${sessionId}-r${e.seq}`;
         const send = await sendA2aMessage(
           card,
           { contextId, taskId, text, metadata },

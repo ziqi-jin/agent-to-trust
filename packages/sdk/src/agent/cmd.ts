@@ -51,7 +51,7 @@ export class CmdAgent implements A2tAgent {
 
       // cwd 隔离：CLI agent 会在工作目录里读写文件（aider 建/改文件等），
       // 未显式指定 cwd 时每题一个临时目录，防止污染宿主目录（含 a2t 仓库自身）。
-      const cwd = this.opts.cwd ?? mkdtempSync(join(tmpdir(), 'acl-cmd-'));
+      const cwd = this.opts.cwd ?? mkdtempSync(join(tmpdir(), 'a2t-cmd-'));
 
       const child = spawn('sh', ['-c', fullCmd], {
         cwd,

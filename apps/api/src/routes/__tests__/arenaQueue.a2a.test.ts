@@ -24,7 +24,7 @@ import { buildApp } from '../../app';
 import { createDb, type Database } from '../../db/client';
 import { migrate } from '../../db/migrate';
 import { agents, arenaSessions } from '../../db/schema';
-import { __clearCardCache, type AclAgentCard } from '../../a2a/card';
+import { __clearCardCache, type A2tAgentCard } from '../../a2a/card';
 import { resetQueueForTests, stopAllQueueEngines, __setA2aRunOverrides } from '../arenaQueue';
 
 const TEST_URL = process.env.TEST_DATABASE_URL;
@@ -51,7 +51,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 /** arenaReady 的 Agent Card（x-a2t.arenaReady=true + negotiation skill）。 */
-function arenaReadyCard(): AclAgentCard {
+function arenaReadyCard(): A2tAgentCard {
   return {
     name: 'A2A User Agent',
     description: 'a negotiation agent',
@@ -62,11 +62,11 @@ function arenaReadyCard(): AclAgentCard {
     defaultOutputModes: ['application/json'],
     skills: [{ id: 'negotiate', tags: ['negotiation'] }],
     'x-a2t': { arenaReady: true },
-  } as AclAgentCard;
+  } as A2tAgentCard;
 }
 
 /** 未过门槛的卡：`x-a2t.arenaReady !== true`。 */
-function notReadyCard(): AclAgentCard {
+function notReadyCard(): A2tAgentCard {
   const c = arenaReadyCard();
   return { ...c, 'x-a2t': { arenaReady: false } };
 }

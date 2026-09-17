@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { __clearCardCache, fetchAgentCard, isArenaReady, type AclAgentCard } from '../card.js';
+import { __clearCardCache, fetchAgentCard, isArenaReady, type A2tAgentCard } from '../card.js';
 
 /**
  * Task 3: 用户 A2A Agent Card 读取 + Arena 分流 + TTL 缓存。
@@ -66,12 +66,12 @@ describe('fetchAgentCard — 成功路径', () => {
 
 describe('isArenaReady — 分流规则', () => {
   it('arenaReady=true + tags 含 negotiation → true', () => {
-    expect(isArenaReady(makeCard() as unknown as AclAgentCard)).toBe(true);
+    expect(isArenaReady(makeCard() as unknown as A2tAgentCard)).toBe(true);
   });
 
   it('arenaReady=true + tags 含 trade → true', () => {
     const card = makeCard({ skills: [{ id: 's', tags: ['trade'] }] });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(true);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(true);
   });
 
   it('多 skill 只要有一个带 negotiation → true', () => {
@@ -81,51 +81,51 @@ describe('isArenaReady — 分流规则', () => {
         { id: 'b', tags: ['other', 'trade'] },
       ],
     });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(true);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(true);
   });
 
   it('arenaReady=false → false', () => {
     const card = makeCard({ 'x-a2t': { arenaReady: false, protocolVersion: '2026.09' } });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('x-a2t 缺失 → false', () => {
     const card = makeCard();
     delete card['x-a2t'];
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('x-a2t.arenaReady 非布尔 true（如 "true" 字符串）→ false', () => {
     const card = makeCard({ 'x-a2t': { arenaReady: 'true' } });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('tags 不含 negotiation/trade → false', () => {
     const card = makeCard({ skills: [{ id: 's', tags: ['chat', 'summarize'] }] });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('skills 为空数组 → false', () => {
     const card = makeCard({ skills: [] });
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('skills 缺失 → false', () => {
     const card = makeCard();
     delete card.skills;
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('畸形 skills（不是数组）→ false 不抛', () => {
     const card = makeCard({ skills: { id: 's', tags: ['negotiation'] } });
-    expect(() => isArenaReady(card as unknown as AclAgentCard)).not.toThrow();
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(() => isArenaReady(card as unknown as A2tAgentCard)).not.toThrow();
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 
   it('畸形 tags（不是数组）→ false 不抛', () => {
     const card = makeCard({ skills: [{ id: 's', tags: 'negotiation' }] });
-    expect(() => isArenaReady(card as unknown as AclAgentCard)).not.toThrow();
-    expect(isArenaReady(card as unknown as AclAgentCard)).toBe(false);
+    expect(() => isArenaReady(card as unknown as A2tAgentCard)).not.toThrow();
+    expect(isArenaReady(card as unknown as A2tAgentCard)).toBe(false);
   });
 });
 

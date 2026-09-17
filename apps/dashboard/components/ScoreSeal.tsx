@@ -5,7 +5,7 @@ import { useT, fill } from '@/lib/i18n';
 
 /**
  * ScoreSeal — 签名元素：圆形信用印章。
- * 环形字 "AGENT CREDIT LAB · EVIDENCE REGISTER"，中心 = 分数 + 等级字母。
+ * 环形字 "A2T · EVIDENCE REGISTER"，中心 = 分数 + 等级字母。
  * 印泥红 = 已经过真实评测（benchmark 来源）；灰墨 = 未测。
  * 旋转由 rank 确定性推导（-7°~+7°），stamp-in 动画按 rank 错落。
  */
@@ -62,7 +62,7 @@ export function ScoreSeal({
         />
         <circle cx="50" cy="50" r="29.5" fill="none" stroke={ink} strokeWidth="1" />
         <text fontSize="7" fill={ink} fontFamily="var(--font-plex-mono), monospace" letterSpacing="1.4">
-          <textPath href={`#${pathId}`}>AGENT CREDIT LAB · EVIDENCE REGISTER ·</textPath>
+          <textPath href={`#${pathId}`}>A2T · EVIDENCE REGISTER ·</textPath>
         </text>
         {score !== null ? (
           <>

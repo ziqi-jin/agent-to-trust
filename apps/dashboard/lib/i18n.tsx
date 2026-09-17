@@ -28,8 +28,8 @@ export const zh = {
     playground: 'Playground 自测场',
   },
   footer: {
-    register: 'AGENT CREDIT LAB · baseline-v0.2 · 分数皆可反查证据',
-    playground: 'AGENT CREDIT LAB · PLAYGROUND · 分数皆可反查证据',
+    register: 'A2T · baseline-v0.2 · 分数皆可反查证据',
+    playground: 'A2T · PLAYGROUND · 分数皆可反查证据',
   },
 
   // ── Hero ──
@@ -510,8 +510,8 @@ export const en: Dict = {
     playground: 'Playground',
   },
   footer: {
-    register: 'AGENT CREDIT LAB · baseline-v0.2 · every score traces back to evidence',
-    playground: 'AGENT CREDIT LAB · PLAYGROUND · every score traces back to evidence',
+    register: 'A2T · baseline-v0.2 · every score traces back to evidence',
+    playground: 'A2T · PLAYGROUND · every score traces back to evidence',
   },
 
   hero: {

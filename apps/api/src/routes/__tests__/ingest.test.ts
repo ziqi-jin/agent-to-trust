@@ -39,8 +39,8 @@ beforeAll(async () => {
   await db.execute(
     sql`TRUNCATE evidence, credit_scores, score_snapshots, agents, ingest_nonces CASCADE`,
   );
-  const dir = mkdtempSync(join(tmpdir(), 'acl-api-a-'));
-  const otherDir = mkdtempSync(join(tmpdir(), 'acl-api-b-'));
+  const dir = mkdtempSync(join(tmpdir(), 'a2t-api-a-'));
+  const otherDir = mkdtempSync(join(tmpdir(), 'a2t-api-b-'));
   keypair = ensureKeypair(dir);
   otherKeypair = ensureKeypair(otherDir);
   suiteFixture = await runSuite({ reply: async () => '10' }, { filter: (id) => id === 'coding-sum' });

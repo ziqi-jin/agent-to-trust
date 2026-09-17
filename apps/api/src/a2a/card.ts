@@ -16,40 +16,40 @@
  * 本模块零业务依赖：不碰 DB、不碰内核；网络经 `fetchImpl` 可注入（测试不真发请求）。
  */
 
-export interface AclAgentCardCapabilities {
+export interface A2tAgentCardCapabilities {
   streaming: boolean;
   pushNotifications: boolean;
   [k: string]: unknown;
 }
 
-export interface AclAgentCardSkill {
+export interface A2tAgentCardSkill {
   id: string;
   tags: string[];
   [k: string]: unknown;
 }
 
-export interface AclAgentCardX {
+export interface A2tAgentCardX {
   arenaReady?: boolean;
   protocolVersion?: string;
   [k: string]: unknown;
 }
 
 /** 用户 Agent Card（spec §3.1 必需字段；`x-a2t` 为可选扩展块）。 */
-export interface AclAgentCard {
+export interface A2tAgentCard {
   name: string;
   description: string;
   url: string;
   version: string;
-  capabilities: AclAgentCardCapabilities;
+  capabilities: A2tAgentCardCapabilities;
   defaultInputModes: string[];
   defaultOutputModes: string[];
-  skills: AclAgentCardSkill[];
+  skills: A2tAgentCardSkill[];
   securitySchemes?: Record<string, unknown>;
-  'x-a2t'?: AclAgentCardX;
+  'x-a2t'?: A2tAgentCardX;
   [k: string]: unknown;
 }
 
-export type CardResult = { ok: true; card: AclAgentCard } | { ok: false; reason: string };
+export type CardResult = { ok: true; card: A2tAgentCard } | { ok: false; reason: string };
 
 export interface FetchAgentCardOpts {
   /** 注入 fetch（默认全局 fetch）。测试用假实现，不真发网络。 */
@@ -82,11 +82,11 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 /** 分流判定：Arena-ready 才返回 true；畸形结构安全返回 false，不抛。 */
-export function isArenaReady(card: AclAgentCard): boolean {
+export function isArenaReady(card: A2tAgentCard): boolean {
   if (!isRecord(card)) return false;
 
-  const xacl = card['x-a2t'];
-  if (!isRecord(xacl) || xacl.arenaReady !== true) return false;
+  const xa2t = card['x-a2t'];
+  if (!isRecord(xa2t) || xa2t.arenaReady !== true) return false;
 
   const skills = card.skills;
   if (!Array.isArray(skills)) return false;
@@ -139,7 +139,7 @@ async function loadCard(
 
     if (!isRecord(body)) return { ok: false, reason: 'not-object' };
 
-    return { ok: true, card: body as AclAgentCard };
+    return { ok: true, card: body as A2tAgentCard };
   } catch (err) {
     const name = (err as { name?: string } | null)?.name;
     return { ok: false, reason: name === 'AbortError' ? 'timeout' : 'network-error' };
