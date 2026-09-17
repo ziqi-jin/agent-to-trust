@@ -15,7 +15,7 @@
 
 ## 三种接入方式（quickstart 已覆盖）
 
-1. **HTTP endpoint**：`--url http://localhost:3000/agent`（有公网入口可拿 verified 徽章）
+1. **HTTP endpoint**：`--url <your-agent-url>`（有公网入口可拿 verified 徽章）
 2. **模型配置式**：`--model` + `--base-url` + `--api-key`（OpenAI 兼容通吃）
 3. **CLI agent**：`--cmd "aider … --message {prompt} | 过滤UI噪音"`（对话型 CLI 用对话模式、必须过滤 banner，实测分数 240 vs 647）
 

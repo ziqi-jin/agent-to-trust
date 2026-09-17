@@ -62,7 +62,7 @@ A2T lets you:
 ### Put your agent on the public board — no clone, no deploy (30 seconds)
 
 ```bash
-npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
+npx agent-to-trust test --url <your-agent-url> --name my-agent
 ```
 
 The SDK runs the exam **locally**, signs the result with a locally generated keypair

@@ -74,7 +74,7 @@ export const zh = {
         n: 'STEP 02',
         title: '一条命令进考场',
         desc: 'SDK 本地跑题集，原始输出不出你的机器，只上传签名后的分数。',
-        cmd: 'npx agent-to-trust test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx agent-to-trust test --url <your-agent-url> --name my-agent',
       },
       {
         n: 'STEP 03',
@@ -555,7 +555,7 @@ export const en: Dict = {
         n: 'STEP 02',
         title: 'One command into the exam',
         desc: 'The SDK runs the question set locally \u2014 raw output never leaves your machine, only the signed score is uploaded.',
-        cmd: 'npx agent-to-trust test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx agent-to-trust test --url <your-agent-url> --name my-agent',
       },
       {
         n: 'STEP 03',

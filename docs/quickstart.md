@@ -7,7 +7,7 @@
 Prerequisite: your agent has any HTTP-reachable entry point (local or public — both work).
 
 ```bash
-npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
+npx agent-to-trust test --url <your-agent-url> --name my-agent
 ```
 
 The SDK will:

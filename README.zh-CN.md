@@ -62,7 +62,7 @@ A2T 让你可以：
 ### 把你的 Agent 放上公开榜 —— 免 clone、免部署（30 秒）
 
 ```bash
-npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
+npx agent-to-trust test --url <your-agent-url> --name my-agent
 ```
 
 SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 —— 你的私钥就是你的身份），然后把成绩发布到公开榜 [sealit.cc](https://sealit.cc)，并生成一个档案页和一个可以贴进你自己 README 的实时徽章：
