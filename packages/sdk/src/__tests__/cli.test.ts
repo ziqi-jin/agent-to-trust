@@ -72,6 +72,25 @@ describe('parseCli', () => {
     }
   });
 
+  it('parses a2a mode (test)', () => {
+    const p = parseCli(['test', '--a2a', 'http://127.0.0.1:9999', '--name', 'a2a-agent']);
+    expect(p.command).toBe('test');
+    expect(p.test?.a2a).toBe('http://127.0.0.1:9999');
+    expect(validateTestOptions(p.test!)).toBeNull();
+  });
+
+  it('parses a2a mode (join)', () => {
+    const p = parseCli(['join', '--a2a', 'http://127.0.0.1:9999']);
+    expect(p.command).toBe('join');
+    expect(p.join?.a2a).toBe('http://127.0.0.1:9999');
+    expect(validateJoinOptions(p.join!)).toBeNull();
+  });
+
+  it('parses demo command', () => {
+    const p = parseCli(['demo']);
+    expect(p.command).toBe('demo');
+  });
+
   it('empty argv → help', () => {
     expect(parseCli([]).command).toBe('help');
   });
@@ -82,12 +101,13 @@ describe('parseCli', () => {
 });
 
 describe('validateTestOptions', () => {
-  it('requires url, model, or cmd', () => {
+  it('requires url, model, cmd, or a2a', () => {
     expect(validateTestOptions({})).toMatch(/--url/);
     expect(validateTestOptions({ model: 'm' })).toMatch(/--base-url/);
     expect(validateTestOptions({ url: 'http://x' })).toBeNull();
     expect(validateTestOptions({ model: 'm', baseUrl: 'u', apiKey: 'k' })).toBeNull();
     expect(validateTestOptions({ cmd: 'aider --message' })).toBeNull();
+    expect(validateTestOptions({ a2a: 'http://x' })).toBeNull();
   });
 });
 

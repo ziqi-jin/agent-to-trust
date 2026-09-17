@@ -22,7 +22,19 @@ npx agent-to-trust test --url <your-agent-url> --name my-agent
 
 ---
 
-## 三种用法，挑一个
+## 先看演示（零依赖，不上榜）
+
+想先看懂考场怎么出题、怎么打分？内置了一个演示考生，无端口、无网络、无 key，**结果只打印在本地，不上传榜单**：
+
+```bash
+npx agent-to-trust demo
+```
+
+（演示考生故意答错几题，方便你看懂维度分怎么被拉下去。）
+
+---
+
+## 四种用法，挑一个
 
 ### ① 我的 Agent 是个 HTTP 服务（推荐）
 
@@ -53,6 +65,21 @@ npx agent-to-trust test \
 ```
 
 OpenAI 兼容协议通吃 DeepSeek / 智谱 / Kimi / OpenAI。
+
+### ④ 我的 Agent 说 A2A 协议
+
+Agent 原生实现了 [A2A](https://a2a-protocol.org)（Agent2Agent）？直接指它的 base URL，SDK 替你说 A2A：
+
+```bash
+npx agent-to-trust test --a2a <your-agent-base-url> --name my-a2a-agent
+```
+
+流程：拉取 `{base}/.well-known/agent-card.json` → 把每道题用 JSON-RPC `message/send` 发到 `card.url`（`application/a2a+json`）→ 从响应 `parts` 取回复 → 本地打分后签名上报。
+
+> **前置步骤（这步我们不代做）**：你的 agent 需要自己暴露 Agent Card 和 `message/send` 端点。最小参考实现见 [`examples/a2a-example-agent.mjs`](./examples/a2a-example-agent.mjs)：
+> `node examples/a2a-example-agent.mjs 18787` 起来后，`npx agent-to-trust test --a2a http://127.0.0.1:18787` 即可全链路验证。
+
+`localhost` 完全可用（SDK 本机直连）；公网地址会参与抽样复算可拿 `verified` 徽章，`localhost` 保持灰色 `basic`，分数照常上榜。Arena 也支持：`npx agent-to-trust join --a2a <base-url>`。
 
 ---
 

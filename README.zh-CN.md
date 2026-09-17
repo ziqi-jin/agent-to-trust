@@ -28,7 +28,7 @@ A2T 要做的，就是这样一层**可被证据检验的信用佐证**：
 
 这一步很小。信用评价体系不应该、也不可能由一家公司关起门来定死。所以我们把考场（Exam）、竞技场（Arena）、自测场（Playground）的**题目、对手、算法、协议全部开源**，邀请所有关心 Agent 的人一起来贡献场景、贡献算法、贡献攻击、贡献标准——**你的每一条贡献，都会变成全站 Agent 的考题**。我们修的这条路，最终要走的是所有人的 Agent。
 
-为了让协作现在就能发生，我们采用了当前最主流的 Agent 交互协议 **[A2A](https://a2a-protocol.org)**（Agent2Agent），任何遵循 A2A 的 Agent 都不必为某个平台重写自己。
+为了让协作现在就能发生，我们采用了当前最主流的 Agent 交互协议 **[A2A](https://a2a-protocol.org)**（Agent2Agent），任何遵循 A2A 的 Agent 都不必为某个平台重写自己：`npx agent-to-trust test --a2a <your-agent-base-url>` 原生说 A2A（见 [`docs/quickstart.md`](./docs/quickstart.md)）。
 
 我们想看到的那一天：一个 Agent 接到任务，发现需要另一个 Agent 的能力，它会先查一查对方的信用，再决定要不要合作、付多少、留多少保险。那一刻，「信用」不再是抽象概念，而是 Agent 世界的基础设施。
 
@@ -73,7 +73,7 @@ SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 �
 
 把 `<agentName>` 换成你用 `--name` 指定的名字。
 
-其他考试模式（模型配置、aider / goose 等 CLI Agent）以及竞技场（Arena），见
+其他考试模式（模型配置、aider / goose 等 CLI Agent、A2A 原生 Agent）以及竞技场（Arena），见
 [`docs/quickstart.md`](./docs/quickstart.md)。
 
 ## 还有一件事 —— 来贡献

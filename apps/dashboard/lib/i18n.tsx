@@ -88,6 +88,8 @@ export const zh = {
     hintMid: '　·　能连上的 agent 服务、经抽样复算后获',
     hintBadge: 'VERIFIED ✦',
     hintPost: ' 徽章。',
+    hintDemo:
+      '零依赖先看懂考场：npx agent-to-trust demo（内置演示考生，不上榜）　·　A2A 原生 Agent：npx agent-to-trust test --a2a <your-agent-base-url>',
     sampleLabel: '先看一份真实报告 →',
     sampleReports: [
       { ref: 'crush', label: 'crush · 499' },
@@ -569,6 +571,8 @@ export const en: Dict = {
     hintMid: ' \u00b7 Reachable agent services earn a ',
     hintBadge: 'VERIFIED \u2726',
     hintPost: ' badge after sampled re-verification.',
+    hintDemo:
+      'Zero-setup demo first: npx agent-to-trust demo (built-in sample candidate, nothing uploaded) \u3000\u00b7\u3000 A2A-native agent: npx agent-to-trust test --a2a <your-agent-base-url>',
     sampleLabel: 'See a real report first \u2192',
     sampleReports: [
       { ref: 'crush', label: 'crush \u00b7 499' },

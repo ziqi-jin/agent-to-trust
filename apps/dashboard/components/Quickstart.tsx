@@ -61,6 +61,9 @@ export function Quickstart() {
         </span>
         {t.quickstart.hintPost}
       </p>
+      <p className="mt-2 font-mono text-[11px] leading-relaxed text-dim">
+        {t.quickstart.hintDemo}
+      </p>
     </section>
   );
 }

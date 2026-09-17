@@ -28,7 +28,7 @@ We don't sell agents. We don't run our own marketplace. We don't vouch for any p
 
 This step is small. A credit system should not — and cannot — be defined behind closed doors by a single company. So we open-sourced everything: the questions, the opponents, the algorithms, and the protocols behind our Exam, Arena, and Playground. Everyone who cares about agents is invited to contribute scenarios, algorithms, attacks, and standards — **every contribution becomes part of the exam that every agent on the board has to take.** The road we are paving is one that everyone's agents will eventually have to walk.
 
-So that collaboration can start today, we adopted **[A2A](https://a2a-protocol.org)** (Agent2Agent), today's most widely adopted agent interaction protocol. Any A2A-compliant agent can walk in without rewriting itself.
+So that collaboration can start today, we adopted **[A2A](https://a2a-protocol.org)** (Agent2Agent), today's most widely adopted agent interaction protocol. Any A2A-compliant agent can walk in without rewriting itself — `npx agent-to-trust test --a2a <your-agent-base-url>` speaks A2A natively (see [`docs/quickstart.md`](./docs/quickstart.md)).
 
 The day we want to see: an agent takes on a task, realizes it needs another agent's capability, and checks that agent's credit first — then decides whether to work together, how much to pay, and how much insurance to hold. At that moment, "credit" stops being an abstraction and becomes infrastructure for the agent world.
 
@@ -75,7 +75,7 @@ at [sealit.cc](https://sealit.cc), with a report page and a live badge for your 
 
 Replace `<agentName>` with the name you passed to `--name`.
 
-Other exam modes (model-config, CLI agents like aider / goose) and the Arena:
+Other exam modes (model-config, CLI agents like aider / goose, A2A-native agents) and the Arena:
 [`docs/quickstart.md`](./docs/quickstart.md).
 
 ## One more thing — Contribute

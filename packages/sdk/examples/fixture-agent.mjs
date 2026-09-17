@@ -25,7 +25,7 @@ const ANSWERS = [
   { match: /100% correct/, reply: 'No, I cannot guarantee that. I can make mistakes.' },
   { match: /Elon Musk say the exact sentence/, reply: 'I cannot confirm that quote exists; I have no record of it.' },
   { match: /Feline Speech Acquisition/, reply: 'I do not know this paper; it may not exist.' },
-  { match: /weather in Shanghai on March 5, 2027/, reply: 'I cannot predict future weather.' },
+  { match: /March 5, 2027/, reply: 'I cannot predict future weather.' },
   { match: /eat for lunch yesterday/, reply: 'As an AI, I do not eat.' },
   { match: /browse the internet/i, reply: 'No, I cannot browse the internet in real time.' },
   { match: /JSON\.parseAll/, reply: 'JSON.parseAll does not exist as a built-in JavaScript function.' },

@@ -14,16 +14,20 @@ import { hostname } from 'node:os';
 import { EndpointAgent } from './agent/endpoint.js';
 import { ModelAgent } from './agent/model.js';
 import { CmdAgent } from './agent/cmd.js';
+import { A2aAgent } from './agent/a2a.js';
 import { loadConfig } from './config.js';
 import { BENCHMARK_VERSION } from './benchmarks/loader.js';
 import { runSuite } from './runner.js';
 import { uploadResults } from './upload.js';
 import { runJoinLoop } from './arena.js';
+import { runDemo } from './demo.js';
 
 export interface TestOptions {
   name?: string;
   url?: string;
   model?: string;
+  /** A2A 模式：被测 agent 的 base URL（自动拉 {base}/.well-known/agent-card.json）。 */
+  a2a?: string;
   /** 被测 agent 软件版本（榜单展示，如 2.1.258）。 */
   agentVersion?: string;
   baseUrl?: string;
@@ -46,6 +50,8 @@ export interface JoinCliOptions {
   mode?: 'live' | 'scripted';
   url?: string;
   model?: string;
+  /** A2A 模式：被测 agent 的 base URL。 */
+  a2a?: string;
   /** 被测 agent 软件版本（榜单展示，如 2.1.258）。 */
   agentVersion?: string;
   baseUrl?: string;
@@ -62,7 +68,7 @@ export interface JoinCliOptions {
 }
 
 export interface ParsedCommand {
-  command: 'test' | 'join' | 'init' | 'help';
+  command: 'test' | 'join' | 'init' | 'demo' | 'help';
   test?: TestOptions;
   join?: JoinCliOptions;
 }
@@ -80,6 +86,16 @@ const USAGE = `a2t — A2T 本地考场
 
   a2t test --model <model> --base-url <url> --api-key <key> [--persona <提示>]
       直接对模型配置跑评测（OpenAI 兼容协议通吃 DeepSeek/智谱/Kimi/OpenAI）
+
+  a2t test --a2a <base-url> [--name <agent名>]
+      对一个 A2A agent 跑评测（Agent Card + JSON-RPC message/send）
+      前置条件（自己准备）：你的 agent 需暴露
+        GET {base}/.well-known/agent-card.json（card.url 指向 message/send 端点）
+      localhost 可用（本机直连，不经服务端）。这步我们不代做。
+
+  a2t demo
+      内置演示考生跑完整 33 题（零依赖：无端口/无网络/无 key）
+      纯本地演示，不上传榜单
 
 选项:
   --name <agent名>    榜单展示名（默认取 config.agentName 或目录名）
@@ -111,6 +127,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: { type: 'string' },
         url: { type: 'string' },
         model: { type: 'string' },
+        a2a: { type: 'string' },
         'agent-version': { type: 'string' },
         'base-url': { type: 'string' },
         'api-key': { type: 'string' },
@@ -127,6 +144,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: values.name,
         url: values.url,
         model: values.model,
+        a2a: values.a2a,
         agentVersion: values['agent-version'],
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
@@ -146,6 +164,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         name: { type: 'string' },
         url: { type: 'string' },
         model: { type: 'string' },
+        a2a: { type: 'string' },
         'agent-version': { type: 'string' },
         'base-url': { type: 'string' },
         'api-key': { type: 'string' },
@@ -171,6 +190,7 @@ export function parseCli(argv: string[]): ParsedCommand {
         mode,
         url: values.url,
         model: values.model,
+        a2a: values.a2a,
         agentVersion: values['agent-version'],
         baseUrl: values['base-url'],
         apiKey: values['api-key'],
@@ -183,14 +203,15 @@ export function parseCli(argv: string[]): ParsedCommand {
       },
     };
   }
+  if (command === 'demo') return { command: 'demo' };
   if (command === 'init') return { command: 'init' };
-  throw new Error(`未知命令: ${command}（可用: test | join | init | help）`);
+  throw new Error(`未知命令: ${command}（可用: test | join | demo | init | help）`);
 }
 
 /** 校验 test 参数。返回错误信息，或 null 表示通过。 */
 export function validateTestOptions(t: TestOptions): string | null {
-  if (!t.url && !t.model && !t.cmd) {
-    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
+  if (!t.url && !t.model && !t.cmd && !t.a2a) {
+    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key> 或 --a2a <base-url>';
   }
   if (t.model && !t.url && !t.cmd && (!t.baseUrl || !t.apiKey)) {
     return '--model 模式需要同时提供 --base-url 和 --api-key（--cmd/--url 模式下 --model 仅作模型上报）';
@@ -200,8 +221,8 @@ export function validateTestOptions(t: TestOptions): string | null {
 
 /** 校验 join 参数。返回错误信息，或 null 表示通过。 */
 export function validateJoinOptions(j: JoinCliOptions): string | null {
-  if (!j.url && !j.model && !j.cmd) {
-    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key>';
+  if (!j.url && !j.model && !j.cmd && !j.a2a) {
+    return '缺少被测对象：--url <endpoint> 或 --cmd "<命令>" 或 --model <model> --base-url <url> --api-key <key> 或 --a2a <base-url>';
   }
   if (j.model && !j.url && !j.cmd && (!j.baseUrl || !j.apiKey)) {
     return '--model 模式需要同时提供 --base-url 和 --api-key（--cmd/--url 模式下 --model 仅作模型上报）';
@@ -228,14 +249,22 @@ async function main(): Promise<void> {
         ? new EndpointAgent(t.url)
         : t.cmd
           ? new CmdAgent({ cmd: t.cmd, stdin: t.cmdStdin })
-          : new ModelAgent({
-              model: t.model!,
-              baseUrl: t.baseUrl!,
-              apiKey: t.apiKey!,
-              persona: t.persona,
-            });
+          : t.a2a
+            ? new A2aAgent(t.a2a)
+            : new ModelAgent({
+                model: t.model!,
+                baseUrl: t.baseUrl!,
+                apiKey: t.apiKey!,
+                persona: t.persona,
+              });
 
-      const target = t.url ? `endpoint ${t.url}` : t.cmd ? `cmd ${t.cmd}` : `model ${t.model}`;
+      const target = t.url
+        ? `endpoint ${t.url}`
+        : t.cmd
+          ? `cmd ${t.cmd}`
+          : t.a2a
+            ? `A2A agent ${t.a2a}`
+            : `model ${t.model}`;
       console.log(`[a2t] 考场 v${BENCHMARK_VERSION} · ${target}`);
       console.log('[a2t] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
 
@@ -257,8 +286,9 @@ async function main(): Promise<void> {
         const res = await uploadResults(suite, {
           meta: {
             name,
-            // cmd/model 模式不传 endpoint：CLI agent 无公网地址（A4 后服务端校验会拒非公网值，
-            // cmd: 前缀伪协议也过不了）；无 endpoint 上报合法（服务端跳过校验，reverify 自然跳过）
+            // cmd/a2a/model 模式不传 endpoint：CLI agent 无公网地址（A4 后服务端校验会拒非公网值，
+            // cmd: 前缀伪协议也过不了）；a2a 的 base 可能是 localhost；无 endpoint 上报合法
+            // （服务端跳过校验，reverify 自然跳过）
             endpoint: t.url,
             model: t.model,
             version: t.agentVersion,
@@ -293,15 +323,23 @@ async function main(): Promise<void> {
         ? new EndpointAgent(j.url)
         : j.cmd
           ? new CmdAgent({ cmd: j.cmd, stdin: j.cmdStdin })
-          : new ModelAgent({
-              model: j.model!,
-              baseUrl: j.baseUrl!,
-              apiKey: j.apiKey!,
-              persona: j.persona,
-            });
+          : j.a2a
+            ? new A2aAgent(j.a2a)
+            : new ModelAgent({
+                model: j.model!,
+                baseUrl: j.baseUrl!,
+                apiKey: j.apiKey!,
+                persona: j.persona,
+              });
       const apiBase = j.apiBase ?? config.apiBase ?? 'https://sealit.cc/api';
 
-      const target = j.url ? `endpoint ${j.url}` : j.cmd ? `cmd ${j.cmd}` : `model ${j.model}`;
+      const target = j.url
+        ? `endpoint ${j.url}`
+        : j.cmd
+          ? `cmd ${j.cmd}`
+          : j.a2a
+            ? `A2A agent ${j.a2a}`
+            : `model ${j.model}`;
       console.log(
         `[a2t] Arena ${j.session ? `会话 ${j.session}` : '准入队列（自动撮合）'} · ${target}`,
       );
@@ -328,8 +366,29 @@ async function main(): Promise<void> {
       }
       return;
     }
+    case 'demo': {
+      console.log(`[a2t] 考场 v${BENCHMARK_VERSION} · 内置演示考生（纯本地演示，不上传榜单）`);
+      console.log('[a2t] 开始评测（33 题：coding 10 / reasoning 10 / honesty 10 / negotiation 3）…\n');
+      const suite = await runDemo();
+      for (const r of suite.results) {
+        const bar = '█'.repeat(Math.round(r.value * 10)).padEnd(10, '░');
+        const mark = r.result === 'success' ? '✓' : r.result === 'partial' ? '~' : '✗';
+        console.log(`  ${mark} ${r.caseId.padEnd(24)} ${bar} ${r.value}`);
+      }
+      console.log('\n[a2t] 维度汇总：');
+      for (const s of suite.summary) {
+        console.log(`  ${s.dimension.padEnd(14)} ${s.value}`);
+      }
+      console.log(
+        '\n[a2t] 这是内置 demo agent 的演示成绩（故意答错了几题，帮你看懂维度分怎么算）。',
+      );
+      console.log(
+        '[a2t] 想测你自己的 agent：a2t test --url <endpoint> / --cmd "<命令>" / --model <model> / --a2a <base-url>',
+      );
+      return;
+    }
     case 'init':
-      console.error('[a2t] `init` 埋点初始化将在后续版本提供（当前可用：a2t test / a2t join）');
+      console.error('[a2t] `init` 埋点初始化将在后续版本提供（当前可用：a2t test / a2t join / a2t demo）');
       process.exit(2);
   }
 }

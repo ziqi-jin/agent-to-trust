@@ -1,6 +1,6 @@
 {
   "name": "agent-to-trust",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agent to Trust (A2T) 本地考场 CLI —— 一条命令给你的 agent 打分上榜（Don't trust an Agent. Test it.）",
   "license": "MIT",
   "type": "module",
