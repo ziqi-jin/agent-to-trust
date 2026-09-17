@@ -75,6 +75,10 @@ services:
     build:
       context: apps/dashboard
       dockerfile: Dockerfile
+    environment:
+      # 服务端（generateMetadata / RSC）取数走容器网：相对路径 /api 在服务端没有 origin。
+      # 客户端仍用 NEXT_PUBLIC_API_URL（/api，同源走 nginx）。
+      API_INTERNAL_URL: http://api:8000
     ports:
       - "3001:3001"
     restart: unless-stopped

@@ -1,4 +1,5 @@
 import { useT } from '@/lib/i18n';
+import { reportPath } from '@/lib/api';
 import { CopyButton } from './CopyButton';
 
 export function Quickstart() {
@@ -32,6 +33,22 @@ export function Quickstart() {
               <CopyButton text={s.cmd} className="absolute right-2 top-2" />
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* 零门槛入口：不想跑命令，也先看一份真报告（证据链长什么样） */}
+      <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-hairline pt-4">
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-dim">
+          {t.quickstart.sampleLabel}
+        </span>
+        {t.quickstart.sampleReports.map((r) => (
+          <a
+            key={r.ref}
+            href={reportPath(r.ref)}
+            className="border border-hairline px-2.5 py-1 font-mono text-[11px] text-ink transition hover:border-ink hover:bg-panel"
+          >
+            {r.label} ↗
+          </a>
         ))}
       </div>
 

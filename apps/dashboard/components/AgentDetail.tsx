@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   api,
+  badgeMarkdown,
+  badgeSvgUrl,
+  reportPath,
+  PUBLIC_SITE_URL,
   type Agent,
   type Evidence,
   type ScoreResponse,
@@ -314,12 +318,27 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
             </Panel>
           </div>
 
+          {/* 公开档案链接（分享用：可直接贴进 README / issue / 微信群） */}
+          <div className="mt-4">
+            <Panel title={t.detail.reportTitle} note={t.detail.reportDesc}>
+              <div className="relative">
+                <div className="break-words border border-hairline bg-panel p-3 pr-20 font-mono text-xs text-ink">
+                  {`${PUBLIC_SITE_URL}${reportPath(agent.name)}`}
+                </div>
+                <CopyButton
+                  text={`${PUBLIC_SITE_URL}${reportPath(agent.name)}`}
+                  className="absolute right-2 top-2"
+                />
+              </div>
+            </Panel>
+          </div>
+
           {/* README Badge（增长飞轮） */}
           <div className="mt-4">
             <Panel title="README Badge">
               <div className="mb-3 flex items-center gap-3">
                 <img
-                  src={`/credit/api/badge/${agent.id}.svg`}
+                  src={badgeSvgUrl(agent.id)}
                   alt="ACL badge"
                   className="h-7"
                   onError={(ev) => {
@@ -330,12 +349,9 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
               </div>
               <div className="relative">
                 <div className="whitespace-pre-wrap break-words border border-hairline bg-panel p-3 pr-20 font-mono text-xs text-ink">
-                  {`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
+                  {badgeMarkdown(agent)}
                 </div>
-                <CopyButton
-                  text={`[![ACL](https://reeftavern.cc/credit/api/badge/${agent.id}.svg)](https://reeftavern.cc/credit)`}
-                  className="absolute right-2 top-2"
-                />
+                <CopyButton text={badgeMarkdown(agent)} className="absolute right-2 top-2" />
               </div>
               <p className="mt-2 font-mono text-[11px] text-dim">{t.detail.badgeCopy}</p>
             </Panel>

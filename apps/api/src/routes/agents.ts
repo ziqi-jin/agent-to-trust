@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { eq, inArray } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { agents, creditScores } from '../db/schema';
@@ -90,6 +90,31 @@ export async function agentsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const agent = await app.db.query.agents.findFirst({ where: eq(agents.id, id) });
     if (!agent) return reply.code(404).send({ error: `Agent 不存在：${id}` });
+    return agent;
+  });
+
+  // GET /agents/by-name/:name — 按注册名查档案（2026-09-17，任务② Agent 档案页）。
+  //
+  // 动机：badge 早已支持按注册名（GET /badge/name/:name.svg），README 徽章挂出去
+  // 是一串可读名字；但名字点进去没有档案页——只能拿到 uuid。本路由补齐「名字 → 档案」
+  // 这一跳，口径与 badge 的 name 路由完全一致（同名取最新注册）。
+  //
+  // 契约锚点：
+  // - 公开读（与 GET /agents/:id 同级，无认证），60/min/IP 限流防扫库放大；
+  // - 注册名唯一性由 POST /agents 的 409 保证（不存在同名共存），desc 兜底是防历史脏数据;
+  // - 未知名字 → 404，响应形状与 GET /agents/:id 同形（前端一套 notFound 处理）；
+  // - 静态段在 Fastify 路由树里优先于 /agents/:id，不会把 by-name 当成 id。
+  const byNameLimited = createRateLimiter({ max: 60, windowMs: 60_000 });
+  app.get('/agents/by-name/:name', async (req, reply) => {
+    if (byNameLimited(req as FastifyRequest)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
+    const { name } = req.params as { name: string };
+    const agent = await app.db.query.agents.findFirst({
+      where: eq(agents.name, name),
+      orderBy: [desc(agents.createdAt)],
+    });
+    if (!agent) return reply.code(404).send({ error: `Agent 不存在：${name}` });
     return agent;
   });
 

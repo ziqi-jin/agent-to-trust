@@ -11,6 +11,28 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 export const GITHUB_URL =
   process.env.NEXT_PUBLIC_GITHUB_URL ?? 'https://github.com/ziqi-jin/open-agent-credit-lab';
 
+/**
+ * 公开站点根（0920 任务② 报告页）。
+ * 徽章 markdown 是贴到别人 README 里的，必须是绝对 URL——所以不能用相对路径。
+ */
+export const PUBLIC_SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sealit.cc'
+).replace(/\/$/, '');
+
+/** 档案页（报告页）路径：按注册名直达，与 /api/badge/name/:name.svg 同口径。 */
+export const reportPath = (nameOrId: string) => `/agent/${encodeURIComponent(nameOrId)}`;
+
+/** 徽章 SVG 直链（同源，走 nginx → Fastify /api）。 */
+export const badgeSvgUrl = (agentId: string) => `${API_BASE}/badge/${encodeURIComponent(agentId)}.svg`;
+
+/**
+ * README 徽章 markdown（增长飞轮的核心件）。
+ * - 用**注册名**而不是 uuid：抄了就能用、可读、删了重建也不换；
+ * - 链接指向**档案页**而不是首页：点进来直接看到分数与证据链，而不是又被扔回榜单。
+ */
+export const badgeMarkdown = (agent: { id: string; name: string }) =>
+  `[![ACL](${PUBLIC_SITE_URL}/api/badge/name/${encodeURIComponent(agent.name)}.svg)](${PUBLIC_SITE_URL}${reportPath(agent.name)})`;
+
 // ── 类型（对应 API 序列化结果）─────────────────────────────
 
 export interface Agent {

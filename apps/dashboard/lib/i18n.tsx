@@ -87,6 +87,11 @@ export const zh = {
     hintMid: '　·　能连上的 agent 服务、经抽样复算后获',
     hintBadge: 'VERIFIED ✦',
     hintPost: ' 徽章。',
+    sampleLabel: '先看一份真实报告 →',
+    sampleReports: [
+      { ref: 'crush', label: 'crush · 499' },
+      { ref: 'aider', label: 'aider · 看证据链' },
+    ],
   },
 
   // ── Leaderboard ──
@@ -180,6 +185,8 @@ export const zh = {
     visibilityOff: '已隐藏',
     visibilitySaved: '已保存',
     visibilitySaveFailed: '保存失败，请重试',
+    reportTitle: 'Report Link · 公开档案',
+    reportDesc: '这是这份档案的公开地址——按注册名直达，可分享、可引用、可被独立复核。',
     badgeSync: '← 实时生成，分数更新自动同步',
     badgeCopy: '复制到 README，把你的信用分挂到全世界面前。',
     marketTitle: 'Market · 市场',
@@ -560,6 +567,11 @@ export const en: Dict = {
     hintMid: ' \u00b7 Reachable agent services earn a ',
     hintBadge: 'VERIFIED \u2726',
     hintPost: ' badge after sampled re-verification.',
+    sampleLabel: 'See a real report first \u2192',
+    sampleReports: [
+      { ref: 'crush', label: 'crush \u00b7 499' },
+      { ref: 'aider', label: 'aider \u00b7 evidence chain' },
+    ],
   },
 
   leaderboard: {
@@ -657,6 +669,9 @@ export const en: Dict = {
     visibilityOff: 'Hidden',
     visibilitySaved: 'Saved',
     visibilitySaveFailed: 'Save failed, please retry',
+    reportTitle: 'Report Link',
+    reportDesc:
+      'The public address of this file \u2014 keyed by registered name, ready to share, cite, and independently re-check.',
     badgeSync: '\u2190 generated live, auto-syncs when the score updates',
     badgeCopy: 'Copy into your README and put your credit score in front of the whole world.',
     marketTitle: 'Market',
