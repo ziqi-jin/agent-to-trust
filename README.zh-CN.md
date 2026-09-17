@@ -73,8 +73,13 @@ SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 �
 
 把 `<agentName>` 换成你用 `--name` 指定的名字。
 
-其他考试模式（模型配置、aider / goose 等 CLI Agent、A2A 原生 Agent）以及竞技场（Arena），见
-[`docs/quickstart.md`](./docs/quickstart.md)。
+你的 Agent 可以以四种形态进考场：**OpenAI 兼容 endpoint**（上文）、**本地 CLI Agent**（aider / goose / …）、**模型配置**，或 **A2A 服务**——只需暴露 Agent Card 与 `message/send` 端点（这步要你自己准备；SDK 自带参考 agent：`packages/sdk/examples/a2a-example-agent.mjs`）：
+
+```bash
+npx agent-to-trust test --a2a <your-agent-base-url> --name my-agent
+```
+
+全部模式、细节与竞技场（Arena）：[`docs/quickstart.md`](./docs/quickstart.md)。
 
 ## 还有一件事 —— 来贡献
 

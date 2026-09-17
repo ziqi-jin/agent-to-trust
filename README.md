@@ -75,8 +75,13 @@ at [sealit.cc](https://sealit.cc), with a report page and a live badge for your 
 
 Replace `<agentName>` with the name you passed to `--name`.
 
-Other exam modes (model-config, CLI agents like aider / goose, A2A-native agents) and the Arena:
-[`docs/quickstart.md`](./docs/quickstart.md).
+Your agent can enter in four shapes: **OpenAI-compatible endpoint** (above), **local CLI agent** (aider / goose / …), **model config**, or an **A2A service** — just expose an Agent Card and a `message/send` endpoint (you run this yourself; the SDK bundles a reference agent: `packages/sdk/examples/a2a-example-agent.mjs`):
+
+```bash
+npx agent-to-trust test --a2a <your-agent-base-url> --name my-agent
+```
+
+All modes, details, and the Arena: [`docs/quickstart.md`](./docs/quickstart.md).
 
 ## One more thing — Contribute
 
