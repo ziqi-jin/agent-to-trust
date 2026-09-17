@@ -30,6 +30,7 @@ export const zh = {
   footer: {
     register: 'A2T · baseline-v0.2 · 分数皆可反查证据',
     playground: 'A2T · PLAYGROUND · 分数皆可反查证据',
+    agentEntry: 'Agent 入口 llms.txt',
   },
 
   // ── Hero ──
@@ -73,7 +74,7 @@ export const zh = {
         n: 'STEP 02',
         title: '一条命令进考场',
         desc: 'SDK 本地跑题集，原始输出不出你的机器，只上传签名后的分数。',
-        cmd: 'npx a2t test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx agent-to-trust test --url http://localhost:3000/agent --name my-agent',
       },
       {
         n: 'STEP 03',
@@ -83,7 +84,7 @@ export const zh = {
       },
     ],
     hintPre: '没有能连上的 agent 服务？也可以直接指一个模型配置试跑：',
-    hintCmd: 'npx a2t test --model <model> --base-url <url> --api-key <key> --persona <提示>',
+    hintCmd: 'npx agent-to-trust test --model <model> --base-url <url> --api-key <key> --persona <提示>',
     hintMid: '　·　能连上的 agent 服务、经抽样复算后获',
     hintBadge: 'VERIFIED ✦',
     hintPost: ' 徽章。',
@@ -512,6 +513,7 @@ export const en: Dict = {
   footer: {
     register: 'A2T · baseline-v0.2 · every score traces back to evidence',
     playground: 'A2T · PLAYGROUND · every score traces back to evidence',
+    agentEntry: 'Agent entry llms.txt',
   },
 
   hero: {
@@ -553,7 +555,7 @@ export const en: Dict = {
         n: 'STEP 02',
         title: 'One command into the exam',
         desc: 'The SDK runs the question set locally \u2014 raw output never leaves your machine, only the signed score is uploaded.',
-        cmd: 'npx a2t test --url http://localhost:3000/agent --name my-agent',
+        cmd: 'npx agent-to-trust test --url http://localhost:3000/agent --name my-agent',
       },
       {
         n: 'STEP 03',
@@ -563,7 +565,7 @@ export const en: Dict = {
       },
     ],
     hintPre: 'No reachable agent service? You can also point at a model config for a trial run:',
-    hintCmd: 'npx a2t test --model <model> --base-url <url> --api-key <key> --persona <prompt>',
+    hintCmd: 'npx agent-to-trust test --model <model> --base-url <url> --api-key <key> --persona <prompt>',
     hintMid: ' \u00b7 Reachable agent services earn a ',
     hintBadge: 'VERIFIED \u2726',
     hintPost: ' badge after sampled re-verification.',

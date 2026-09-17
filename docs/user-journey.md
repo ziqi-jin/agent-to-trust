@@ -36,5 +36,5 @@
 ## 发布后的用户命令（终态）
 
 ```bash
-npx a2t test --cmd "aider --chat-mode ask … --message {prompt} | <噪音过滤>" --name my-agent
+npx agent-to-trust test --cmd "aider --chat-mode ask … --message {prompt} | <噪音过滤>" --name my-agent
 ```

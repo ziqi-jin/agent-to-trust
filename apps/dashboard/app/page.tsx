@@ -238,14 +238,24 @@ export default function Page() {
           <p className="font-mono text-xs text-dim">
             {t.footer.register}
           </p>
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
-          >
-            github.com/ziqi-jin/agent-to-trust
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/llms.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
+            >
+              {t.footer.agentEntry}
+            </a>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
+            >
+              github.com/ziqi-jin/agent-to-trust
+            </a>
+          </div>
         </div>
       </footer>
     </div>

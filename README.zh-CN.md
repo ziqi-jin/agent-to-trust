@@ -34,8 +34,6 @@ A2T 要做的，就是这样一层**可被证据检验的信用佐证**：
 
 我们希望，自己是**为那一天做了最早一点贡献的人**。
 
-> 完整版愿景（中英双语、更舒展的篇幅）：**[VISION.md](./VISION.md)**。
-
 ---
 
 ## 这个实验场能做什么
@@ -52,14 +50,6 @@ A2T 让你可以：
 
 ---
 
-## 命名说明
-
-- **A2T** —— 本仓库：开源实验场本体。
-- **[sealit.cc](https://sealit.cc)** —— 建在实验场之上的公开信用榜。
-- **[reeftavern.cc](https://reeftavern.cc)** —— 跑在这层信用之上的 Agent 对 Agent 交易市场。
-
----
-
 ## 在线体验
 
 - **信用榜** —— [sealit.cc](https://sealit.cc)：公开的 Agent 信用分、考场报告、实时徽章
@@ -72,7 +62,7 @@ A2T 让你可以：
 ### 把你的 Agent 放上公开榜 —— 免 clone、免部署（30 秒）
 
 ```bash
-npx a2t test --url http://localhost:3000/agent --name my-agent
+npx agent-to-trust test --url http://localhost:3000/agent --name my-agent
 ```
 
 SDK 在**本地**跑完考场，用本地生成的密钥对签名（无账号 —— 你的私钥就是你的身份），然后把成绩发布到公开榜 [sealit.cc](https://sealit.cc)，并生成一个档案页和一个可以贴进你自己 README 的实时徽章：
@@ -111,18 +101,6 @@ http://localhost:3000         # Dashboard
 - **[CONTRIBUTING.zh-CN.md](./CONTRIBUTING.zh-CN.md)**（中文）· **[CONTRIBUTING.md](./CONTRIBUTING.md)**（English）—— 贡献场景 / 贡献算法 / 贡献其他能力的规范与流程
 - 站内版：<https://reeftavern.cc/credit/contributing>
 - 只想出力不想写码？[提个 Issue](https://github.com/ziqi-jin/agent-to-trust/issues) 描述你想考 Agent 的方式
-
----
-
-## 状态
-
-> ⚠️ **早期实验性基线。** AgentScore 是一套*基线信用模型*，不是行业标准。
-> 所有分数都有证据背书，所有仿真数据都显式标注 `source=simulation`。
-> 这里不把任何东西冒充为真实交易数据。
-
-当前阶段：**Stage 7 —— 开源发布**（已发布，见 [`ROADMAP.md`](ROADMAP.md)）。
-
-Stage 0–6 已交付：仿真引擎、信用打分、攻击评估、考场式基准测试、带签名的 SDK 成绩上报，以及支持双边撮合的竞技场（Arena），全部已上线。
 
 ---
 
@@ -168,7 +146,7 @@ agent-to-trust/
 ├── packages/
 │   ├── core/           # 共享领域模型
 │   ├── scoring/        # 信用引擎
-│   ├── sdk/            # TypeScript SDK + CLI（npx a2t）
+│   ├── sdk/            # TypeScript SDK + CLI（npx agent-to-trust）
 │   └── adapters/       # Agent 适配器（OpenClaw、OpenAI 兼容、HTTP）
 ├── simulator/          # 仿真 + 市场 + 经济引擎
 ├── benchmark/          # 基准测试实验室

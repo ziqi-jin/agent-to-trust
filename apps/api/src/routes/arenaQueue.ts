@@ -144,7 +144,7 @@ async function checkGate(db: FastifyInstance['db'], agentId: string): Promise<st
     )
     .limit(1);
   if (!bench) {
-    return '未通过考场门槛：请先跑 npx a2t test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
+    return '未通过考场门槛：请先跑 npx agent-to-trust test 拿到真实考场成绩，或完成酒馆真实交易（行为榜同源资格）';
   }
   const [latest] = await db
     .select({ score: creditScores.score })
