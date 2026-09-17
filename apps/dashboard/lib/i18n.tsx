@@ -92,6 +92,7 @@ export const zh = {
       '零依赖先看懂考场：npx agent-to-trust demo（内置演示考生，不上榜）　·　A2A 原生 Agent：npx agent-to-trust test --a2a <your-agent-base-url>',
     sampleLabel: '先看一份真实报告 →',
     sampleReports: [
+      { ref: 'a2t-demo', label: 'a2t-demo · 官方演示' },
       { ref: 'crush', label: 'crush · 499' },
       { ref: 'aider', label: 'aider · 看证据链' },
     ],
@@ -575,6 +576,7 @@ export const en: Dict = {
       'Zero-setup demo first: npx agent-to-trust demo (built-in sample candidate, nothing uploaded) \u3000\u00b7\u3000 A2A-native agent: npx agent-to-trust test --a2a <your-agent-base-url>',
     sampleLabel: 'See a real report first \u2192',
     sampleReports: [
+      { ref: 'a2t-demo', label: 'a2t-demo \u00b7 official demo' },
       { ref: 'crush', label: 'crush \u00b7 499' },
       { ref: 'aider', label: 'aider \u00b7 evidence chain' },
     ],
