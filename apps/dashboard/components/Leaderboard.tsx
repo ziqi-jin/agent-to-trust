@@ -316,7 +316,7 @@ export function Leaderboard({
             <p className="mt-2 text-sm text-dim">{t.leaderboard.emptyDesc}</p>
             <div className="relative mt-3 inline-block">
               <code className="block whitespace-pre-wrap break-words bg-panel py-1.5 pl-3 pr-20 font-mono text-xs text-ledger">
-                npx agent-to-trust test --url <your-agent-url> --name my-agent
+                {'npx agent-to-trust test --url <your-agent-url> --name my-agent'}
               </code>
               <CopyButton
                 text="npx agent-to-trust test --url <your-agent-url> --name my-agent"
