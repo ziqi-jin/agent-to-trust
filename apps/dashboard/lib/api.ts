@@ -334,6 +334,8 @@ export const api = {
   // scope=public：门面展示口径（排仿真号/E2E 测试号），api 默认全量保 P0-10 可溯红线
   stats: () => http<StatsResponse>('/stats?scope=public'),
   statsSummary: () => http<StatsSummary>('/stats/summary'),
+  // 访问计数（0918 老大：页脚显示站点流量）。POST = 上报一次 PV，GET = 只读。
+  visit: () => http<{ total: number; today: number }>('/visits', { method: 'POST', body: '{}' }),
   submitFeedback: (message: string, contact?: string, page?: string) =>
     http<{ ok: boolean }>('/feedback', {
       method: 'POST',

@@ -48,6 +48,7 @@ export const zh = {
     agentEntry: 'Agent 入口 llms.txt',
     privacy: '隐私政策',
     terms: '服务条款',
+    visits: '访问 {n}',
   },
 
   // ── Hero ──
@@ -663,6 +664,7 @@ export const en: Dict = {
     agentEntry: 'Agent entry llms.txt',
     privacy: 'Privacy',
     terms: 'Terms',
+    visits: '{n} visits',
   },
 
   hero: {

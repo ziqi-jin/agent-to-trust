@@ -12,6 +12,7 @@ import { GITHUB_URL } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { fmtStars, useGithubStars } from '@/lib/useGithubStars';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { VisitsCounter } from './VisitsCounter';
 
 export function GithubIcon({ size = 14 }: { size?: number }) {
   return (
@@ -228,6 +229,7 @@ export function SiteFooter({ tagline }: { tagline?: string }) {
         <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 font-mono text-[11px] text-dim sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© {new Date().getFullYear()} A2T · MIT License</span>
           <span>baseline-v0.2 · seed 42 · deterministic</span>
+          <VisitsCounter />
         </div>
       </div>
     </footer>

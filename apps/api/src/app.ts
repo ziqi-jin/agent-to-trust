@@ -16,6 +16,7 @@ import { scoresRoutes } from './routes/scores';
 import { simulationRoutes } from './routes/simulation';
 import { statsRoutes } from './routes/stats';
 import { tradeEvidenceRoutes } from './routes/tradeEvidence';
+import { visitsRoutes } from './routes/visits';
 import type { PlaygroundQueueOpts } from './playground/queue';
 
 declare module 'fastify' {
@@ -65,6 +66,7 @@ export function buildApp(
   app.register(simulationRoutes);
   app.register(statsRoutes);
   app.register(tradeEvidenceRoutes);
+  app.register(visitsRoutes);
   app.get('/health', async () => ({ status: 'ok' }));
   return app;
 }

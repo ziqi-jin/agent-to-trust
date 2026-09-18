@@ -161,6 +161,12 @@ CREATE TABLE IF NOT EXISTS agent_connections (
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_connections_agent_id ON agent_connections(agent_id);
+
+-- 全站访问计数（PV，按天聚合）。老大 2026-09-18：两个站的页脚都要显示访问数，便于感知流量。
+CREATE TABLE IF NOT EXISTS page_visits (
+  day date PRIMARY KEY,
+  hits integer NOT NULL DEFAULT 0
+);
 `;
 
 export async function migrate(url: string): Promise<void> {
