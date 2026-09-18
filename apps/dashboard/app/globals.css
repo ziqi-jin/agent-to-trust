@@ -3,52 +3,241 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* 锚点跳转避开吸顶导航 */
+  background-color: #09090b;
 }
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
 }
 
 body {
-  background: #faf6ee;
-  color: #1c1917;
-  font-family: var(--font-archivo), system-ui, sans-serif;
+  background-color: #09090b;
+  color: #f2f2f3;
+  font-family: var(--font-inter), system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: #1c1917;
-  color: #faf6ee;
+  background: #ff6a1f;
+  color: #09090b;
 }
 
-/* 细滚动条（划线灰） */
+:focus-visible {
+  outline: 2px solid #ff6a1f;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 细滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d8cebc transparent;
+  scrollbar-color: #3a3a42 transparent;
 }
 *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #d8cebc;
+  background: #3a3a42;
   border-radius: 4px;
 }
 
-/* ── 签名元素：印章落下 ─────────────────────────────
-   每枚印章带 --rot（确定性微旋转），错落延迟"盖"到纸上。
-   尊重 prefers-reduced-motion：直接呈现，不播动画。 */
+@layer components {
+  /* ── 按钮 ───────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border px-5 py-2.5 text-sm font-semibold transition-all duration-200 ease-out disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply btn border-ledger bg-ledger text-paper shadow-glow hover:-translate-y-0.5 hover:bg-ledger-dark active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply btn border-line-strong bg-surface/80 text-ink hover:-translate-y-0.5 hover:border-ledger/60 hover:text-ink active:translate-y-0;
+  }
+  .btn-ghost {
+    @apply btn border-transparent text-dim hover:bg-panel hover:text-ink;
+  }
+
+  /* ── 卡片 ───────────────────────────────── */
+  .card {
+    @apply rounded-lg border border-line bg-surface;
+  }
+  .card-hover {
+    @apply transition-all duration-300 ease-out-expo hover:-translate-y-1 hover:border-ledger/50 hover:shadow-glow-sm;
+  }
+
+  /* ── 标签 ───────────────────────────────── */
+  .chip {
+    @apply inline-flex shrink-0 items-center gap-1 rounded-[3px] border px-1.5 py-0.5 font-mono text-[11px] font-medium leading-4;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-[4px] border border-line-strong bg-surface px-2.5 py-1.5 font-mono text-[12px] text-dim transition-all duration-150 hover:border-dim hover:text-ink;
+  }
+  .pill[aria-pressed='true'] {
+    @apply border-ledger bg-ledger-soft text-ledger shadow-glow-sm hover:text-ledger;
+  }
+
+  /* ── 段落标头 ───────────────────────────── */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-ledger;
+  }
+  .section-title {
+    @apply font-display text-[2.1rem] font-bold leading-[1.05] tracking-[-0.03em] text-ink md:text-5xl;
+  }
+  .section-sub {
+    @apply mt-4 max-w-2xl text-[15px] leading-relaxed text-dim;
+  }
+
+  /* ── 表单 ───────────────────────────────── */
+  .input {
+    @apply mt-1.5 w-full rounded-md border border-line-strong bg-night px-3.5 py-2.5 text-sm text-ink transition placeholder:text-dim/50 focus:border-ledger focus:shadow-glow-sm focus:outline-none;
+  }
+
+  /* ── 终端 ───────────────────────────────── */
+  .terminal {
+    @apply overflow-hidden rounded-lg border border-line-strong bg-night text-[#E6E6E9];
+  }
+
+  /* ── HUD 角标框：四角橙色直角，像取景器锁定目标 ── */
+  .hud {
+    position: relative;
+  }
+  .hud::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    pointer-events: none;
+    border-radius: inherit;
+    --c: rgba(255, 106, 31, 0.9);
+    --l: 14px;
+    --w: 2px;
+    background:
+      linear-gradient(var(--c), var(--c)) top left / var(--l) var(--w) no-repeat,
+      linear-gradient(var(--c), var(--c)) top left / var(--w) var(--l) no-repeat,
+      linear-gradient(var(--c), var(--c)) top right / var(--l) var(--w) no-repeat,
+      linear-gradient(var(--c), var(--c)) top right / var(--w) var(--l) no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom left / var(--l) var(--w) no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom left / var(--w) var(--l) no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom right / var(--l) var(--w) no-repeat,
+      linear-gradient(var(--c), var(--c)) bottom right / var(--w) var(--l) no-repeat;
+  }
+}
+
+@layer utilities {
+  /* 橙色强调文字（轻微流光） */
+  .text-gradient {
+    background: linear-gradient(100deg, #ff6a1f 0%, #ffb27a 45%, #ff6a1f 90%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradient-pan 6s ease-in-out infinite alternate;
+  }
+
+  /* 技术网格 + 交点十字 */
+  .bg-tech-grid {
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cpath d='M0 .5h7M.5 0v7' stroke='rgba(255,255,255,0.22)' fill='none'/%3E%3C/svg%3E"),
+      linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size:
+      96px 96px,
+      48px 48px,
+      48px 48px;
+    background-position:
+      -3px -3px,
+      0 0,
+      0 0;
+  }
+  .bg-dots {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  /* 顶部信号橙辉光（纯渐变，无模糊层） */
+  .bg-signal-glow {
+    background: radial-gradient(60% 50% at 70% 0%, rgba(255, 106, 31, 0.16), transparent 70%);
+  }
+
+  .mask-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+  .mask-fade-b {
+    -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 20%, #000 35%, transparent 100%);
+    mask-image: radial-gradient(ellipse 85% 75% at 50% 20%, #000 35%, transparent 100%);
+  }
+
+  .glass {
+    background: rgba(9, 9, 11, 0.72);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    backdrop-filter: saturate(160%) blur(14px);
+  }
+
+  /* 数据流虚线（流程串联线） */
+  .dash-line {
+    background-image: linear-gradient(to right, rgba(255, 106, 31, 0.8) 50%, transparent 50%);
+    background-size: 12px 1px;
+    background-repeat: repeat-x;
+  }
+}
+
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% center;
+  }
+  100% {
+    background-position: 100% center;
+  }
+}
+
+/* 控制台行逐条「打印」 */
+@keyframes type-in {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+.type-in {
+  animation: type-in 0.5s steps(20, end) both;
+}
+
+/* ── 滚动显现：<Reveal> 挂 data-shown ───────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal[data-shown='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── 签名元素：印章锁定 ─────────────────────────────
+   每枚印章带 --rot（确定性微旋转），错落延迟落下。 */
 @keyframes stamp-in {
   0% {
     opacity: 0;
-    transform: scale(1.22) rotate(calc(var(--rot, 0deg) - 4deg));
+    transform: scale(1.25) rotate(calc(var(--rot, 0deg) - 4deg));
+    filter: blur(2px);
   }
   62% {
     opacity: 1;
     transform: scale(0.97) rotate(var(--rot, 0deg));
+    filter: blur(0);
   }
   100% {
     opacity: 1;
@@ -56,16 +245,7 @@ body {
   }
 }
 .stamp-in {
-  animation: stamp-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stamp-in {
-    animation: none;
-  }
-  .ticker-track {
-    animation: none;
-  }
+  animation: stamp-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
 
 /* 证据流 ticker */
@@ -78,8 +258,194 @@ body {
   }
 }
 .ticker-track {
-  animation: ticker-scroll 44s linear infinite;
+  animation: ticker-scroll 70s linear infinite;
 }
 .ticker-track:hover {
   animation-play-state: paused;
+}
+
+/* 尊重 prefers-reduced-motion：直接呈现，不播动画 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .ticker-track {
+    animation: none;
+  }
+}
+
+/* ── Agent 角色动效：眨眼 / 扫描 / 天线脉冲 ─────────── */
+.agent-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: agent-blink 5.2s infinite;
+}
+@keyframes agent-blink {
+  0%,
+  93%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.12);
+  }
+}
+.agent-scan {
+  transform-box: fill-box;
+  animation: agent-scan 2.4s ease-in-out infinite alternate;
+}
+@keyframes agent-scan {
+  from {
+    transform: translateX(-4px);
+  }
+  to {
+    transform: translateX(4px);
+  }
+}
+.agent-tip {
+  animation: agent-pulse 2.2s ease-in-out infinite;
+}
+@keyframes agent-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+/* 悬停时 agent 「看过来」：眼睛放大一点 */
+.group:hover .agent-face {
+  transform: translateY(-1px) scale(1.04);
+}
+.agent-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── 3D 场景通用 ───────────────────────────── */
+.p3d {
+  transform-style: preserve-3d;
+}
+/* 跳跃（考场流程里 agent 换台） */
+@keyframes hop {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-46px);
+  }
+  70% {
+    transform: translateY(4px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.animate-hop {
+  animation: hop 0.8s cubic-bezier(0.3, 0.7, 0.4, 1) both;
+}
+/* 证据块从高处落下 */
+@keyframes slab-drop {
+  0% {
+    opacity: 0;
+    transform: translateZ(var(--from, 160px));
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateZ(var(--to, 0px));
+  }
+}
+/* 模块方块自转 */
+@keyframes cube-spin {
+  from {
+    transform: rotateX(-18deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateX(-18deg) rotateY(360deg);
+  }
+}
+/* 模块方块轮流「入坞」 */
+@keyframes dock {
+  0%,
+  62%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  72%,
+  86% {
+    transform: translate3d(var(--dx), var(--dy), 40px);
+  }
+}
+/* 地面脉冲环 */
+@keyframes ring-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.animate-ring-pulse {
+  animation: ring-pulse 2.2s ease-out infinite;
+}
+/* 虚线流动（SVG） */
+@keyframes dash-move {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.animate-dash {
+  animation: dash-move 1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-eyes,
+  .agent-scan,
+  .agent-tip {
+    animation: none;
+  }
+}
+
+/* 证据卡从交易点飞入证据链（--fx/--fy 为起点地面坐标） */
+@keyframes evi-fly {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--fx), var(--fy), 30px) rotateZ(40deg) rotateX(-90deg) scale(1);
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0px, 0px, 110px) rotateZ(40deg) rotateX(-90deg) scale(0.55);
+  }
+}
+/* 步骤进度条 */
+@keyframes step-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }

@@ -1,10 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import {
   api,
-  GITHUB_URL,
   type Evidence,
   type LeaderboardEntry,
   type StatsResponse,
@@ -12,7 +10,7 @@ import {
 } from '@/lib/api';
 import { useLocale, useT, mapApiError } from '@/lib/i18n';
 import { DIMENSIONS } from '@a2t/core';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { SiteFooter, SiteHeader } from '@/components/SiteChrome';
 import { FeedbackBubble } from '@/components/FeedbackBubble';
 import { Hero } from '@/components/Hero';
 import { CounterpartTheory } from '@/components/CounterpartTheory';
@@ -125,9 +123,9 @@ export default function Page() {
     return m;
   }, [entries]);
 
-  const scrollToQuickstart = () => {
-    document.getElementById('quickstart')?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const scrollTo = useCallback((id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   const onBack = useCallback(() => {
     const url = new URL(window.location.href);
@@ -137,134 +135,74 @@ export default function Page() {
     refresh();
   }, [refresh]);
 
+  // 导航锚点：详情态先回榜单，等下一帧 DOM 就绪再滚动
+  const onAnchor = useCallback(
+    (id: string) => {
+      if (selectedId) {
+        onBack();
+        window.setTimeout(() => scrollTo(id), 60);
+      } else {
+        scrollTo(id);
+      }
+    },
+    [selectedId, onBack, scrollTo],
+  );
+
   const onSelectAgent = useCallback((id: string) => {
     const url = new URL(window.location.href);
     url.searchParams.set('agent', id);
     window.history.pushState({}, '', url);
     setSelectedId(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // 报头版本行：名册的期号 = 真实登记数据（结构即信息）
-  const edition = [
-    `VOL. 2026-09`,
-    `${stats?.agentCount ?? '—'} REGISTERED`,
-    `${summary?.leaderboard1Participants ?? '—'} EXAMINED`,
-    `${summary?.leaderboard2Participants ?? '—'} ARENA-TESTED`,
-    `SEED 42 · DETERMINISTIC`,
-  ].join(' · ');
-
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-ink">
-      {/* 报头：账簿绿整块，公开名册的刊头（390 下收敛为两行紧凑布局，navH ≤ 88） */}
-      <header className="bg-ledger text-paper">
-        <div className="mx-auto max-w-6xl px-4 pb-2.5 pt-2.5 sm:px-6 sm:pb-4 sm:pt-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
-            <div>
-              <h1 className="font-display text-lg font-black uppercase leading-tight tracking-[0.14em] md:text-2xl md:leading-8 md:tracking-[0.16em]">
-                A2T
-              </h1>
-              <p className="mt-1 hidden font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70 sm:block">
-                {t.masthead.registerSub}
-              </p>
-            </div>
-            <div className="flex items-center justify-between gap-2 sm:justify-end">
-              <LanguageSwitcher />
-              <a
-                href="/playground"
-                className="hidden border border-paper/40 px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-paper transition hover:border-paper hover:bg-paper/10 sm:inline"
-              >
-                {t.masthead.playground}
-              </a>
-              <a
-                href="#quickstart"
-                className="hidden font-mono text-[11px] uppercase tracking-widest text-paper/80 transition hover:text-paper sm:inline"
-              >
-                Docs
-              </a>
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 border border-paper/40 px-3 py-1.5 font-mono text-xs text-paper transition hover:border-paper hover:bg-paper/10"
-              >
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden>
-                  <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-                </svg>
-                Star
-              </a>
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <SiteHeader onAnchor={onAnchor} />
+
+      <main id="main" className="flex-1">
+        {error && (
+          <div className="mx-auto mt-4 max-w-6xl px-4 sm:px-6">
+            <div className="animate-fade-in rounded-xl border border-seal/30 bg-seal/5 px-4 py-2.5 font-mono text-sm text-seal">
+              {error}
             </div>
           </div>
-          <p className="mt-3 hidden border-t border-paper/25 pt-2 font-mono text-[10px] tracking-[0.14em] text-paper/75 sm:block">
-            {edition}
-          </p>
-        </div>
-      </header>
+        )}
 
-      {error && (
-        <div className="mx-6 mt-4 border border-seal/50 bg-seal/10 px-4 py-2 font-mono text-sm text-seal">
-          {error}
-        </div>
-      )}
-
-      {selectedId ? (
-        <AgentDetail agentId={selectedId} onBack={onBack} />
-      ) : (
-        <>
-          <Hero stats={stats} onTestAgent={scrollToQuickstart} />
-          <CounterpartTheory variant="card" />
-          <Leaderboard
-            entries={entries}
-            onSelect={onSelectAgent}
-            board={board}
-            setBoard={changeBoard}
-            summary={summary}
-            dims={dims}
-            setDims={changeDims}
-            mode={mode}
-            setMode={setMode}
-          />
-          <Ticker events={events} nameMap={nameMap} />
-          <HowItWorks />
-          <Quickstart />
-          <OneMoreThing />
-        </>
-      )}
+        {selectedId ? (
+          <AgentDetail agentId={selectedId} onBack={onBack} />
+        ) : (
+          <>
+            <Hero
+              stats={stats}
+              summary={summary}
+              onTestAgent={() => scrollTo('quickstart')}
+              onViewBoard={() => scrollTo('leaderboard')}
+            />
+            <Ticker events={events} nameMap={nameMap} />
+            <Leaderboard
+              entries={entries}
+              onSelect={onSelectAgent}
+              board={board}
+              setBoard={changeBoard}
+              summary={summary}
+              dims={dims}
+              setDims={changeDims}
+              mode={mode}
+              setMode={setMode}
+            />
+            <HowItWorks />
+            <CounterpartTheory variant="card" />
+            <Quickstart />
+            <OneMoreThing />
+          </>
+        )}
+      </main>
 
       {/* 反馈入口（隐蔽）：右下角小气泡 */}
       <FeedbackBubble />
 
-      {/* 页脚：双划线收底 */}
-      <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-xs text-dim">
-            {t.footer.register}
-          </p>
-          <div className="flex items-center gap-4">
-            <Link href="/privacy" className="font-mono text-xs text-ledger underline-offset-4 hover:underline">
-              {t.footer.privacy}
-            </Link>
-            <Link href="/terms" className="font-mono text-xs text-ledger underline-offset-4 hover:underline">
-              {t.footer.terms}
-            </Link>
-            <a
-              href="/llms.txt"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
-            >
-              {t.footer.agentEntry}
-            </a>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-xs text-ledger underline-offset-4 hover:underline"
-            >
-              github.com/ziqi-jin/agent-to-trust
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

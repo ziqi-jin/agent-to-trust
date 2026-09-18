@@ -24,19 +24,20 @@ export function ScoreSeal({
 }) {
   const t = useT();
   const rot = ((rank * 37) % 15) - 7;
-  const ink = tested ? '#991B1B' : '#A39B90';
+  const ink = tested ? '#FF6A1F' : '#6B6B75';
   const grade = tested && score !== null ? gradeFor(score).label : '';
   const pathId = `seal-ring-${rank}-${score ?? 'na'}-${tested ? 't' : 'u'}`;
 
   return (
     <div
-      className={`stamp-in shrink-0 ${tested ? 'opacity-90' : 'opacity-70'}`}
+      className={`stamp-in shrink-0 ${tested ? '' : 'opacity-80'}`}
       style={
         {
           '--rot': `${rot}deg`,
           transform: `rotate(${rot}deg)`,
           animationDelay: delayMs != null ? `${delayMs}ms` : undefined,
-          mixBlendMode: 'multiply',
+          // 深底上的「发光印章」：已测才带辉光
+          filter: tested ? 'drop-shadow(0 0 10px rgba(255,106,31,0.35))' : undefined,
         } as React.CSSProperties
       }
       title={
@@ -60,6 +61,7 @@ export function ScoreSeal({
           strokeWidth="2"
           strokeDasharray={tested ? undefined : '3 3'}
         />
+        {tested && <circle cx="50" cy="50" r="46" fill="rgba(255,106,31,0.06)" />}
         <circle cx="50" cy="50" r="29.5" fill="none" stroke={ink} strokeWidth="1" />
         <text fontSize="7" fill={ink} fontFamily="var(--font-plex-mono), monospace" letterSpacing="1.4">
           <textPath href={`#${pathId}`}>A2T · EVIDENCE REGISTER ·</textPath>
@@ -73,7 +75,7 @@ export function ScoreSeal({
               fill={ink}
               fontSize="21"
               fontWeight="800"
-              fontFamily="var(--font-archivo), sans-serif"
+              fontFamily="var(--font-grotesk), sans-serif"
             >
               {score}
             </text>

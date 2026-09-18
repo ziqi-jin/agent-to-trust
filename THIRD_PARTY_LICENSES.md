@@ -24,6 +24,22 @@ Production dependency license distribution (transitive, `npm ci --omit=dev`):
   linked and consumed as an unmodified dependency; this is the standard, widely accepted use
   and does not affect the MIT licensing of this project's own source.
 
+## Fonts, icons & visual assets (dashboard)
+
+| Asset | Used for | License |
+|---|---|---|
+| Space Grotesk | display headings | SIL Open Font License 1.1 |
+| Inter | body text | SIL Open Font License 1.1 |
+| IBM Plex Mono | data / code | SIL Open Font License 1.1 |
+| lucide-react | UI icons | ISC |
+
+- Fonts are loaded through `next/font/google`, which downloads them at **build time** and self-hosts
+  them — visitors' browsers make no requests to Google. OFL permits bundling and redistribution.
+- All other visuals (the credit dial, seal, HUD frames, grids, backgrounds) are original SVG/CSS in
+  this repo; no stock imagery, no third-party UI kits, no imitation of other products' window chrome.
+- The GitHub mark appears only on links to this project's GitHub repository, which GitHub's logo
+  guidelines permit.
+
 To re-run the scan across all installed production dependencies:
 
 ```bash

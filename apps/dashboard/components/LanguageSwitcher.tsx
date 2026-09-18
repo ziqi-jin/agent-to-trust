@@ -1,41 +1,42 @@
 'use client';
 
 /**
- * 语言切换器：EN | 中文 两段按钮（放在刊头按钮区）。
- * 风格与刊头按钮一致：border border-paper/40 / hover:bg-paper/10；
- * 当前语言高亮用 bg-paper text-ledger。语言名本身不翻译。
+ * 语言切换器：EN | 中文 分段胶囊，选中态为滑动的白色底块。
+ * 语言名本身不翻译。
  */
 import { useLocale } from '@/lib/i18n';
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ className = '' }: { className?: string }) {
   const { locale, setLocale } = useLocale();
 
-  const base =
-    'px-2.5 py-1.5 transition';
-  const active = 'bg-paper text-ledger';
-  const idle = 'text-paper hover:bg-paper/10';
-
   return (
-    <div className="inline-flex items-center overflow-hidden border border-paper/40 font-mono text-[11px] uppercase tracking-widest text-paper">
-      <button
-        type="button"
-        onClick={() => setLocale('en')}
-        aria-pressed={locale === 'en'}
-        className={`${base} ${locale === 'en' ? active : idle}`}
-      >
-        EN
-      </button>
-      <span aria-hidden className="select-none text-paper/40">
-        |
-      </span>
-      <button
-        type="button"
-        onClick={() => setLocale('zh')}
-        aria-pressed={locale === 'zh'}
-        className={`${base} ${locale === 'zh' ? active : idle}`}
-      >
-        中文
-      </button>
+    <div
+      className={`relative inline-grid grid-cols-2 items-center rounded-md border border-line-strong bg-surface p-0.5 font-mono text-[11px] font-medium ${className}`}
+    >
+      <span
+        aria-hidden
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-2px)] rounded-[3px] bg-ledger transition-transform duration-300 ease-out-expo ${
+          locale === 'zh' ? 'translate-x-full' : ''
+        }`}
+      />
+      {(
+        [
+          ['en', 'EN'],
+          ['zh', '中文'],
+        ] as const
+      ).map(([l, label]) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLocale(l)}
+          aria-pressed={locale === l}
+          className={`relative z-10 whitespace-nowrap px-2.5 py-1 transition-colors ${
+            locale === l ? 'font-semibold text-paper' : 'text-dim hover:text-ink'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

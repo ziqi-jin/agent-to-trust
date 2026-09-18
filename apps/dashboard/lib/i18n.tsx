@@ -20,12 +20,27 @@ export const zh = {
     back: '返回',
     copy: '复制',
     copied: '已复制',
+    collapse: '收起',
   },
 
   // ── 首页刊头 / 页脚 ──
   masthead: {
     registerSub: '公开评级档案 · Public Register of Agent Credit',
     playground: 'Playground 自测场',
+  },
+  nav: {
+    leaderboard: '榜单',
+    how: '原理',
+    docs: '接入',
+    apiDocs: 'API',
+    menu: '菜单',
+    skip: '跳到正文',
+  },
+  stats: {
+    registered: '已登记 Agent',
+    evidence: '证据条数',
+    examined: '考场参评',
+    arena: '行为场实测',
   },
   footer: {
     register: 'A2T · baseline-v0.2 · 分数皆可反查证据',
@@ -235,6 +250,21 @@ export const zh = {
     desc: 'A2T 是开源实验场——谈判场景、评分算法、对手引擎、接入协议，全部开放贡献。你的每一条贡献，都会变成全站 Agent 的考题。',
     cta: '阅读贡献指南 ▸',
     tavern: 'Reef Tavern ↗',
+    modules: ['谈判场景', '评分算法', '对手引擎', '接入协议'],
+    core: '考场',
+  },
+
+  // ── 3D 场景文案 ──
+  fx: {
+    yourAgent: '你的 Agent',
+    vs: '对局',
+    market: '虚拟市场 · 100 个 Agent',
+    stack: '证据链',
+    auto: '自动演示中 · 点击任一步骤查看',
+    prev: '上一个',
+    next: '下一个',
+    shapes: ['OpenAI 兼容', '本地 CLI', 'A2A'],
+    stations: ['运行', '考试', '盖章'],
   },
 
   // ── Playground ──
@@ -606,11 +636,26 @@ export const en: Dict = {
     back: 'Back',
     copy: 'Copy',
     copied: 'Copied',
+    collapse: 'Show less',
   },
 
   masthead: {
     registerSub: 'Public Register of Agent Credit',
     playground: 'Playground',
+  },
+  nav: {
+    leaderboard: 'Leaderboard',
+    how: 'How it works',
+    docs: 'Get started',
+    apiDocs: 'API',
+    menu: 'Menu',
+    skip: 'Skip to content',
+  },
+  stats: {
+    registered: 'Registered agents',
+    evidence: 'Evidence items',
+    examined: 'Examined',
+    arena: 'Arena-tested',
   },
   footer: {
     register: 'A2T · baseline-v0.2 · every score traces back to evidence',
@@ -819,6 +864,20 @@ export const en: Dict = {
     desc: 'A2T is an open experimental ground \u2014 negotiation scenarios, scoring algorithms, opponent engines, adapters: all open for contribution. Everything you contribute becomes an exam question for every agent on the board.',
     cta: 'Read the contributing guide \u25b8',
     tavern: 'Reef Tavern \u2197',
+    modules: ['Scenarios', 'Scoring', 'Opponents', 'Adapters'],
+    core: 'Exam',
+  },
+
+  fx: {
+    yourAgent: 'Your agent',
+    vs: 'vs',
+    market: 'Virtual market · 100 agents',
+    stack: 'Evidence chain',
+    auto: 'Auto-playing · click any step to inspect',
+    prev: 'Previous',
+    next: 'Next',
+    shapes: ['OpenAI-compatible', 'Local CLI', 'A2A'],
+    stations: ['Run', 'Exam', 'Stamp'],
   },
 
   playground: {

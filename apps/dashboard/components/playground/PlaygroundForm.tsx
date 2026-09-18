@@ -8,14 +8,29 @@ import {
 } from '@/lib/api';
 import { useLocale, useT, fill } from '@/lib/i18n';
 import { InfoDot } from '@/components/InfoDot';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 type Mode = 'template' | 'custom';
 type Style = 'tough' | 'balanced' | 'gentle';
 
-const INPUT_CLS =
-  'mt-1.5 w-full border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none';
+const INPUT_CLS = 'input';
 
-const LABEL_CLS = 'block font-mono text-[11px] uppercase tracking-[0.18em] text-dim';
+const LABEL_CLS = 'flex items-center font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-dim';
+
+/** 表单分节卡：编号圆点 + 标题。 */
+function FormSection({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  return (
+    <section className="card animate-fade-up p-5 md:p-6" style={{ animationDelay: `${n * 80}ms` }}>
+      <p className="flex items-center gap-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-ink">
+        <span className="grid h-6 w-6 place-items-center rounded-[4px] bg-ledger text-[11px] font-bold text-paper">
+          {n}
+        </span>
+        {title}
+      </p>
+      {children}
+    </section>
+  );
+}
 
 /** 自定义场景字段（数值先用字符串承载，提交时再解析）。 */
 interface CustomDraft {
@@ -179,11 +194,10 @@ export function PlaygroundForm({
         setMode(m);
         setFormError(null);
       }}
-      className={
-        mode === m
-          ? 'px-4 py-2 uppercase tracking-widest transition bg-ink text-paper'
-          : 'border border-hairline px-4 py-2 uppercase tracking-widest text-dim transition hover:text-ink'
-      }
+      aria-pressed={mode === m}
+      className={`relative z-10 rounded-[4px] px-4 py-2 uppercase tracking-[0.1em] transition-colors duration-300 ${
+        mode === m ? 'font-semibold text-paper' : 'text-dim hover:text-ink'
+      }`}
     >
       {label}
     </button>
@@ -192,13 +206,10 @@ export function PlaygroundForm({
   const f = t.playground.form;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-4">
       {/* 被测 agent */}
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-          {f.sectionAgent}
-        </p>
-        <div className="mt-4 flex flex-col gap-4">
+      <FormSection n={1} title={f.sectionAgent.replace(/^§PG-\d+\s*—\s*/, '')}>
+        <div className="mt-5 flex flex-col gap-4">
           <label>
             <span className={LABEL_CLS}>
               {f.nameLabel}
@@ -224,7 +235,7 @@ export function PlaygroundForm({
               spellCheck={false}
               className={INPUT_CLS}
             />
-            <span className="mt-1 block text-[11px] leading-relaxed text-dim">
+            <span className="mt-1.5 block text-[11px] leading-relaxed text-dim">
               {f.endpointHelper}
             </span>
           </label>
@@ -241,7 +252,7 @@ export function PlaygroundForm({
               placeholder={f.apiKeyPlaceholder}
               className={INPUT_CLS}
             />
-            <span className="mt-1 block text-[11px] leading-relaxed text-dim">
+            <span className="mt-1.5 block text-[11px] leading-relaxed text-dim">
               {f.apiKeyHelper}
             </span>
           </label>
@@ -258,19 +269,22 @@ export function PlaygroundForm({
               placeholder={f.modelPlaceholder}
               className={INPUT_CLS}
             />
-            <span className="mt-1 block text-[11px] leading-relaxed text-dim">
+            <span className="mt-1.5 block text-[11px] leading-relaxed text-dim">
               {f.modelHelper}
             </span>
           </label>
         </div>
-      </section>
+      </FormSection>
 
       {/* 场景来源 */}
-      <section>
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">
-          {f.sectionScenario}
-        </p>
-        <div className="mt-4 flex gap-1 font-mono text-xs">
+      <FormSection n={2} title={f.sectionScenario.replace(/^§PG-\d+\s*—\s*/, '')}>
+        <div className="relative mt-5 grid grid-cols-2 rounded-md border border-line-strong bg-night p-1 font-mono text-[11px] font-medium">
+          <span
+            aria-hidden
+            className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-[4px] bg-ledger shadow-glow-sm transition-transform duration-300 ease-out-expo ${
+              mode === 'custom' ? 'translate-x-full' : ''
+            }`}
+          />
           {modeBtn('template', f.tabTemplate)}
           {modeBtn('custom', f.tabCustom)}
         </div>
@@ -278,15 +292,15 @@ export function PlaygroundForm({
         {mode === 'template' ? (
           <div className="mt-4">
             {templatesError ? (
-              <p className="border border-seal/50 bg-seal/10 px-3 py-2 text-xs text-seal">
+              <p className="rounded-xl border border-seal/30 bg-seal/5 px-3 py-2.5 text-xs text-seal">
                 {templatesError}
               </p>
             ) : templates === null ? (
-              <p className="border border-dashed border-hairline px-3 py-3 font-mono text-xs text-dim">
+              <p className="h-11 animate-pulse rounded-md bg-panel px-3 py-3 font-mono text-xs text-dim">
                 {f.loadingTemplates}
               </p>
             ) : templates.length === 0 ? (
-              <p className="border border-dashed border-hairline px-3 py-3 font-mono text-xs text-dim">
+              <p className="rounded-md border border-dashed border-line-strong px-3 py-3 font-mono text-xs text-dim">
                 {f.noTemplates}
               </p>
             ) : (
@@ -312,7 +326,7 @@ export function PlaygroundForm({
                   </select>
                 </label>
                 {selectedTemplate && (
-                  <div className="mt-3 border border-hairline bg-panel p-3">
+                  <div className="mt-3 animate-pop-in rounded-xl border border-ledger/15 bg-ledger-soft/50 p-4">
                     <p className="text-[13px] leading-relaxed text-ink">
                       {selectedTemplate.scenario.brief}
                     </p>
@@ -459,16 +473,17 @@ export function PlaygroundForm({
                       type="button"
                       onClick={() => setStyle(s.value as Style)}
                       title={s.desc}
-                      className={
+                      aria-pressed={style === s.value}
+                      className={`flex-1 rounded-xl border px-1 py-2 text-xs transition-all duration-200 ${
                         style === s.value
-                          ? 'flex-1 px-1 py-2 text-xs font-bold transition bg-ink text-paper'
-                          : 'flex-1 border border-hairline px-1 py-2 text-xs text-dim transition hover:text-ink'
-                      }
+                          ? 'border-ledger bg-ledger-soft font-bold text-ledger shadow-glow-sm'
+                          : 'border-hairline bg-surface text-dim hover:-translate-y-0.5 hover:border-line-strong hover:text-ink'
+                      }`}
                     >
                       <span className="block">{s.label}</span>
                       <span
-                        className={`mt-0.5 block text-[10px] leading-tight ${
-                          style === s.value ? 'text-paper/70' : 'text-dim'
+                        className={`mt-0.5 block text-[11px] leading-tight ${
+                          style === s.value ? 'text-ledger/80' : 'text-dim'
                         }`}
                       >
                         {s.desc}
@@ -480,18 +495,23 @@ export function PlaygroundForm({
             </div>
           </div>
         )}
-      </section>
+      </FormSection>
 
       {/* 提交 */}
-      <section>
-        {formError && <p className="mb-3 text-xs text-seal">{formError}</p>}
-        <button
-          type="button"
-          onClick={submit}
-          disabled={submitting}
-          className="w-full bg-ledger px-5 py-3 text-sm font-bold text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
-        >
-          {submitting ? f.submitting : f.submit}
+      <section className="px-1">
+        {formError && (
+          <p className="mb-3 animate-pop-in rounded-xl border border-seal/30 bg-seal/5 px-3 py-2 text-xs text-seal">
+            {formError}
+          </p>
+        )}
+        <button type="button" onClick={submit} disabled={submitting} className="btn-primary group w-full py-3.5">
+          {submitting ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : null}
+          {submitting ? f.submitting : f.submit.replace(/\s*[▸→]\s*$/, '')}
+          {!submitting && (
+            <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+          )}
         </button>
         <p className="mt-3 font-mono text-[11px] leading-relaxed text-dim">{f.footnote}</p>
       </section>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { AgentReportPage } from '@/components/AgentReportPage';
+import { SiteFooter, SiteHeader } from '@/components/SiteChrome';
 
 /**
  * /agent/[ref] — Agent 信用报告页（2026-09-17，任务②）。
@@ -68,21 +68,12 @@ export default async function AgentReportRoute({
   const agentId = agent?.id ?? ref;
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-ink">
-      <header className="bg-ledger text-paper">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-6 py-3">
-          <Link
-            href="/"
-            className="font-display text-sm font-black uppercase tracking-[0.16em] transition hover:text-paper/80"
-          >
-            A2T
-          </Link>
-          <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
-            Public Register of Agent Credit
-          </span>
-        </div>
-      </header>
-      <AgentReportPage agentId={agentId} />
+    <div className="flex min-h-screen flex-col bg-paper text-ink">
+      <SiteHeader crumb="Agent Report" />
+      <div id="main" className="flex-1">
+        <AgentReportPage agentId={agentId} />
+      </div>
+      <SiteFooter />
     </div>
   );
 }

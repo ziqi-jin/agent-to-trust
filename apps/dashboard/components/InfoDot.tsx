@@ -19,8 +19,9 @@ export function InfoDot({ text, className = '' }: { text: string; className?: st
       title={text}
       aria-label={text}
       className={
-        'ml-1 inline-flex h-[15px] w-[15px] shrink-0 cursor-help items-center justify-center ' +
-        'rounded-full border border-hairline font-mono text-[10px] leading-none text-dim ' +
+        'relative ml-1.5 inline-flex h-[18px] w-[18px] shrink-0 cursor-help items-center justify-center ' +
+        "after:absolute after:-inset-2 after:content-[''] " +
+        'rounded-full border border-hairline bg-surface font-mono text-[11px] normal-case leading-none tracking-normal text-dim ' +
         'align-middle transition hover:border-ledger hover:text-ledger focus:border-ledger ' +
         'focus:text-ledger focus:outline-none ' +
         className
