@@ -6,28 +6,34 @@
  * 整页双语：中文逐字保留，英文高质量面向开发者。
  */
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { GITHUB_URL } from '@/lib/api';
 import { useT } from '@/lib/i18n';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { CopyButton } from '@/components/CopyButton';
+import { Reveal } from '@/components/motion';
+import { PageHero, SiteFooter, SiteHeader } from '@/components/SiteChrome';
 const CONTRIB_MD_URL = `${GITHUB_URL}/blob/master/CONTRIBUTING.md`;
 
 function Section({ id, label, title, children }: { id: string; label: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="border-t-2 border-ink pt-6 scroll-mt-6">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-dim">{label}</p>
-      <h2 className="mt-2 font-display text-xl font-black tracking-tight text-ink">{title}</h2>
-      <div className="mt-3 space-y-2 text-[13px] leading-relaxed text-ink/85">{children}</div>
-    </section>
+    <Reveal>
+      <section id={id} className="card scroll-mt-24 p-6 md:p-8">
+        <p className="eyebrow">{label}</p>
+        <h2 className="mt-2 font-display text-2xl font-black tracking-tight text-ink">{title}</h2>
+        <div className="mt-4 space-y-2.5 text-[14px] leading-relaxed text-ink/85">{children}</div>
+      </section>
+    </Reveal>
   );
 }
 
 function Rules({ items }: { items: string[] }) {
   return (
-    <ul className="mt-1 space-y-1.5">
+    <ul className="mt-1 space-y-2">
       {items.map((txt, i) => (
-        <li key={i} className="flex gap-2">
-          <span className="font-mono text-[11px] text-brass">{String(i + 1).padStart(2, '0')}</span>
+        <li key={i} className="flex gap-3">
+          <span className="mt-0.5 grid h-5 w-7 shrink-0 place-items-center rounded-md bg-brass/10 font-mono text-[11px] font-semibold text-brass">
+            {String(i + 1).padStart(2, '0')}
+          </span>
           <span>{txt}</span>
         </li>
       ))}
@@ -42,36 +48,19 @@ export default function ContributingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
-      {/* 报头 */}
-      <header className="bg-ledger text-paper">
-        <div className="mx-auto max-w-3xl px-6 pt-5 pb-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-paper/70">
-                A2T · One more thing
-              </p>
-              <h1 className="mt-1 font-display text-xl font-black uppercase tracking-[0.16em] md:text-2xl">
-                {c.title}
-              </h1>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/70">
-                {c.subtitle}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <LanguageSwitcher />
-              <Link
-                href="/"
-                className="border border-paper/40 px-3 py-1.5 font-mono text-xs text-paper transition hover:border-paper hover:bg-paper/10"
-              >
-                {c.back}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader crumb="Contributing" />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-10 px-6 py-10">
-        <p className="text-sm leading-relaxed text-ink/85">
+      <PageHero eyebrow="A2T · Open Source" title={c.title} subtitle={c.subtitle}>
+        <div className="mt-6">
+          <Link href="/" className="btn-secondary group px-4 py-2 text-[13px]">
+            <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+            {c.back.replace(/^←\s*/, '')}
+          </Link>
+        </div>
+      </PageHero>
+
+      <main id="main" className="mx-auto w-full max-w-4xl flex-1 space-y-5 px-4 py-12 sm:px-6">
+        <p className="rounded-2xl border border-ledger/20 bg-ledger-soft/60 p-5 text-[15px] leading-relaxed text-ink/85">
           {c.introPre}
           <strong>{c.introStrong}</strong>
           {c.introPost}
@@ -80,13 +69,13 @@ export default function ContributingPage() {
         <Section id="c1" label={s.c1.label} title={s.c1.title}>
           <p>
             {s.c1.introPre}
-            <code className="font-mono text-[12px] text-ledger">{s.c1.introCode}</code>
+            <code className="rounded bg-ledger-soft px-1 py-0.5 font-mono text-[12px] text-ledger">{s.c1.introCode}</code>
             {s.c1.introPost}
           </p>
           <Rules items={s.c1.rules} />
           <p className="pt-1">
             {s.c1.flowPre}
-            <code className="font-mono text-[12px] text-ledger">{s.c1.flowCode}</code>
+            <code className="rounded bg-ledger-soft px-1 py-0.5 font-mono text-[12px] text-ledger">{s.c1.flowCode}</code>
             {s.c1.flowPost}
           </p>
         </Section>
@@ -102,7 +91,7 @@ export default function ContributingPage() {
 
         <Section id="c4" label={s.c4.label} title={s.c4.title}>
           <Rules items={s.c4.rules} />
-          <div className="mt-3 border border-seal/40 bg-seal/5 p-3">
+          <div className="mt-3 rounded-xl border border-seal/25 bg-seal/5 p-4">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-seal">
               {s.c4.redlineLabel}
             </p>
@@ -117,10 +106,10 @@ export default function ContributingPage() {
 
         <Section id="c5" label={s.c5.label} title={s.c5.title}>
           <div className="relative">
-            <pre className="whitespace-pre-wrap break-words border border-hairline bg-panel p-3 pr-20 font-mono text-[12px] leading-relaxed text-ink">
+            <pre className="whitespace-pre-wrap break-words rounded-md border border-line bg-night p-4 pr-20 font-mono text-[12px] leading-relaxed text-ink">
               {s.c5.code}
             </pre>
-            <CopyButton text={s.c5.code} className="absolute right-2 top-2" />
+            <CopyButton text={s.c5.code} className="absolute right-2.5 top-2.5" dark />
           </div>
           <p className="pt-1">
             {s.c5.contributePre}
@@ -128,7 +117,7 @@ export default function ContributingPage() {
               href={`${GITHUB_URL}/issues`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ledger underline underline-offset-4"
+              className="font-medium text-ledger underline decoration-ledger/30 underline-offset-4 transition hover:decoration-ledger"
             >
               {s.c5.contributeLink}
             </a>
@@ -140,7 +129,7 @@ export default function ContributingPage() {
           <p>{s.c6.intro}</p>
           <ul className="mt-2 space-y-2">
             {s.c6.gaps.map((g) => (
-              <li key={g.dim} className="border-l-2 border-seal/60 pl-3">
+              <li key={g.dim} className="rounded-xl border border-seal/20 bg-seal/[0.04] px-4 py-3">
                 <span className="font-mono text-[12px] font-semibold text-seal">{g.dim}</span>
                 <p className="mt-0.5 text-[13px] text-ink/85">{g.need}</p>
               </li>
@@ -149,32 +138,29 @@ export default function ContributingPage() {
           <p className="pt-2 font-semibold text-ink">{s.c6.thinTitle}</p>
           <ul className="space-y-1">
             {s.c6.thin.map((txt, i) => (
-              <li key={i} className="flex gap-2">
-                <span className="font-mono text-[11px] text-brass">{String(i + 1).padStart(2, '0')}</span>
+              <li key={i} className="flex gap-3">
+                <span className="mt-0.5 grid h-5 w-7 shrink-0 place-items-center rounded-md bg-brass/10 font-mono text-[11px] font-semibold text-brass">
+                  {String(i + 1).padStart(2, '0')}
+                </span>
                 <span>{txt}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-3 border border-hairline bg-panel p-3 font-mono text-[11px] leading-relaxed text-dim">
+          <p className="mt-3 rounded-md border border-line bg-night p-4 font-mono text-[11px] leading-relaxed text-dim">
             {s.c6.hint}
           </p>
         </Section>
 
-        <p className="border-t border-hairline pt-4 font-mono text-xs text-dim">
+        <p className="px-1 pt-3 text-[13px] text-dim">
           {c.syncPre}
-          <a href={CONTRIB_MD_URL} target="_blank" rel="noopener noreferrer" className="text-ledger underline underline-offset-4">
+          <a href={CONTRIB_MD_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-ledger underline decoration-ledger/30 underline-offset-4 transition hover:decoration-ledger">
             {c.syncLink}
           </a>
           {c.syncPost}
         </p>
       </main>
 
-      <footer className="mt-auto border-t-[3px] border-double border-ink/70 px-6 py-6">
-        <div className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-xs text-dim">A2T · CONTRIBUTING</p>
-          <p className="font-mono text-xs text-dim">Don&apos;t trust an Agent. Test it.</p>
-        </div>
-      </footer>
+      <SiteFooter tagline="A2T · CONTRIBUTING" />
     </div>
   );
 }

@@ -1,11 +1,19 @@
-import type { Metadata } from 'next';
-import { Archivo, IBM_Plex_Mono } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { IBM_Plex_Mono, Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 
-const archivo = Archivo({
+// 字体均为 SIL Open Font License，由 next/font 构建期自托管（运行时不请求第三方）
+const grotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-archivo',
+  weight: ['500', '600', '700'],
+  variable: '--font-grotesk',
+  display: 'swap',
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -22,10 +30,15 @@ export const metadata: Metadata = {
     "Don't trust an Agent. Test it. A2T is a public register of agent credit: 100 agents trade autonomously, every deal and every honest act becomes traceable evidence, and each confidence-weighted credit score traces back to proof.",
 };
 
+export const viewport: Viewport = {
+  themeColor: '#09090B',
+  colorScheme: 'dark',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${archivo.variable} ${plexMono.variable}`}>
+      <body className={`${grotesk.variable} ${inter.variable} ${plexMono.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -35,7 +35,7 @@ export function FeedbackBubble() {
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
       {open && (
-        <div className="w-72 border border-hairline bg-paper p-4 shadow-xl">
+        <div className="w-80 max-w-[calc(100vw-2.5rem)] origin-bottom-right animate-pop-in rounded-2xl border border-hairline bg-surface p-4 shadow-lift">
           {status === 'sent' ? (
             <div className="py-3 text-center">
               <p className="text-sm font-medium text-ink">{t.feedback.sent}</p>
@@ -44,41 +44,41 @@ export function FeedbackBubble() {
                   setOpen(false);
                   setStatus('idle');
                 }}
-                className="mt-3 border border-hairline px-3 py-1 font-mono text-xs text-dim transition hover:text-ink"
+                className="btn-secondary mt-3 px-3 py-1.5 font-mono text-xs"
               >
                 {t.feedback.close}
               </button>
             </div>
           ) : (
             <>
-              <p className="mb-2 font-mono text-[11px] text-dim">{t.feedback.prompt}</p>
+              <p className="mb-3 text-[13px] font-medium text-ink">{t.feedback.prompt}</p>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 rows={3}
                 maxLength={2000}
                 placeholder={t.feedback.placeholder}
-                className="w-full resize-none border border-hairline bg-panel px-2.5 py-2 text-sm text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
+                className="input mt-0 resize-none"
               />
               <input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
                 maxLength={200}
                 placeholder={t.feedback.contactPlaceholder}
-                className="mt-2 w-full border border-hairline bg-panel px-2.5 py-1.5 text-xs text-ink placeholder:text-dim/60 focus:border-ledger focus:outline-none"
+                className="input mt-2 py-2 text-xs"
               />
               {error && <p className="mt-1.5 text-xs text-seal">{error}</p>}
               <div className="mt-3 flex justify-end gap-2">
                 <button
                   onClick={() => setOpen(false)}
-                  className="px-2.5 py-1 font-mono text-xs text-dim transition hover:text-ink"
+                  className="btn-ghost px-3 py-1.5 font-mono text-xs"
                 >
                   {t.feedback.cancel}
                 </button>
                 <button
                   onClick={submit}
                   disabled={status === 'sending' || !message.trim()}
-                  className="bg-ledger px-3 py-1 font-mono text-xs font-medium text-paper transition hover:bg-[#9A3412] disabled:opacity-40"
+                  className="btn-primary px-4 py-1.5 font-mono text-xs shadow-none"
                 >
                   {status === 'sending' ? t.feedback.sending : t.feedback.send}
                 </button>
@@ -91,7 +91,10 @@ export function FeedbackBubble() {
         onClick={() => setOpen((v) => !v)}
         aria-label={t.feedback.title}
         title={t.feedback.title}
-        className="flex h-8 w-8 items-center justify-center border border-hairline bg-paper/80 text-dim/70 opacity-50 transition-all hover:border-ledger hover:text-ledger hover:opacity-100"
+        aria-expanded={open}
+        className={`flex h-10 w-10 items-center justify-center rounded-full border bg-surface shadow-card transition-all duration-300 hover:scale-110 hover:border-ledger hover:text-ledger hover:opacity-100 ${
+          open ? 'border-ledger text-ledger opacity-100' : 'border-hairline text-dim opacity-60'
+        }`}
       >
         <svg
           width="14"
