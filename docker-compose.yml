@@ -50,6 +50,8 @@ services:
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL}
       # S4-B 酒馆证据摄入 bearer（与酒馆仓 .env 同值；实际值 gitignored .env 注入，不提交明文）
       A2T_TRADE_INGEST_TOKEN: ${A2T_TRADE_INGEST_TOKEN:-}
+      # 反馈摘要读取令牌（GET /feedback；未设置时接口关闭）
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       # T12 准入队列：平台买家密钥持久化（重启不丢，防同名异钥 403）+ solo 等待时长
       PLATFORM_KEY_DIR: /app/data/.acl-platform
       QUEUE_SOLO_WAIT_MS: ${QUEUE_SOLO_WAIT_MS:-12000}

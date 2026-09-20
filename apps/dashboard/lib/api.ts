@@ -336,13 +336,14 @@ export const api = {
   statsSummary: () => http<StatsSummary>('/stats/summary'),
   // 访问计数（0918 老大：页脚显示站点流量）。POST = 上报一次 PV，GET = 只读。
   visit: () => http<{ total: number; today: number }>('/visits', { method: 'POST', body: '{}' }),
-  submitFeedback: (message: string, contact?: string, page?: string) =>
+  submitFeedback: (message: string, contact?: string, page?: string, website?: string) =>
     http<{ ok: boolean }>('/feedback', {
       method: 'POST',
       body: JSON.stringify({
         message,
         ...(contact ? { contact } : {}),
         ...(page ? { page } : {}),
+        ...(website ? { website } : {}),
       }),
     }),
   events: () => http<Evidence[]>('/events?scope=public'),

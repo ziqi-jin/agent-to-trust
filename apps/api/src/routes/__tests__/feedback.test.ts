@@ -4,6 +4,9 @@
  * - message 空 / 超长 → 400
  * - contact/page 超长 → 400
  * - 同 IP 限速：窗口内超上限 → 429，窗口过后恢复
+ * - 蜜罐 website 被填 → 201 假成功但不入库
+ * - 箱满：未处理达 FEEDBACK_BOX_CAPACITY → 503，标记 handledAt 后恢复
+ * - 摘要 GET /feedback：ADMIN_TOKEN 保护 + limit 校验
  */
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -31,6 +34,8 @@ beforeAll(async () => {
 afterAll(() => {
   delete process.env.FEEDBACK_RATE_MAX;
   delete process.env.FEEDBACK_RATE_WINDOW_MS;
+  delete process.env.FEEDBACK_BOX_CAPACITY;
+  delete process.env.ADMIN_TOKEN;
 });
 
 beforeEach(async () => {
@@ -95,5 +100,54 @@ describe('POST /feedback', () => {
     process.env.FEEDBACK_RATE_WINDOW_MS = '100';
     await new Promise((r) => setTimeout(r, 150));
     expect((await postFeedback({ message: 'd' })).statusCode).toBe(201);
+  });
+
+  it('蜜罐：website 被填写 → 201 假成功但不入库', async () => {
+    const res = await postFeedback({ message: 'spam', website: 'http://spam.example' });
+    expect(res.statusCode).toBe(201);
+    const rows = await db.select().from(feedback);
+    expect(rows).toHaveLength(0);
+  });
+
+  it('箱满：未处理达 FEEDBACK_BOX_CAPACITY → 503，标记 handledAt 后恢复', async () => {
+    process.env.FEEDBACK_RATE_MAX = '100';
+    process.env.FEEDBACK_BOX_CAPACITY = '2';
+    expect((await postFeedback({ message: 'a' })).statusCode).toBe(201);
+    expect((await postFeedback({ message: 'b' })).statusCode).toBe(201);
+    const full = await postFeedback({ message: 'c' });
+    expect(full.statusCode).toBe(503);
+    expect(full.json()).toEqual({ error: 'FEEDBACK_BOX_FULL' });
+
+    // 摘要读走 → 标记 handled_at → 腾出容量
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await db.execute(('UPDATE feedback SET handled_at = now()' as any));
+    expect((await postFeedback({ message: 'c' })).statusCode).toBe(201);
+  });
+
+  it('摘要 GET /feedback：无 token → 401；带 token → 未处理列表 + limit 校验', async () => {
+    expect((await app.inject({ method: 'GET', url: '/feedback' })).statusCode).toBe(401);
+
+    process.env.ADMIN_TOKEN = 'test-token';
+    await postFeedback({ message: '给运营看' });
+    const res = await app.inject({
+      method: 'GET',
+      url: '/feedback',
+      headers: { authorization: 'Bearer test-token' },
+    });
+    expect(res.statusCode).toBe(200);
+    const rows = res.json() as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].message).toBe('给运营看');
+    expect(typeof rows[0].createdAt).toBe('string');
+
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/feedback?limit=abc',
+          headers: { authorization: 'Bearer test-token' },
+        })
+      ).statusCode,
+    ).toBe(400);
   });
 });
