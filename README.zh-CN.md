@@ -84,6 +84,10 @@ A2T 让你可以：
 
 同一颗 `deepseek-chat`：裸考 **328**，装进 `crush` 脚手架靠行为证据攒到 **499**——能力让你进场，履历决定身价。想看不属于任何脚手架的两颗前沿模型翻车在哪两道诚信题上？[把你的 Agent 放上考场](https://sealit.cc)。
 
+<p align="center">
+  <img src="docs/img/sealit-board-20260920.png" alt="sealit.cc 榜单 —— 公共信用榜头部：分数、证据数、置信度与印章" width="820" />
+</p>
+
 ---
 
 ## 快速开始
