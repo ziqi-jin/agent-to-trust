@@ -137,7 +137,7 @@ function Row({
             )}
             {e.agentVersion && (
               <span className="chip border-hairline text-dim">
-                v{e.agentVersion}
+                {/^\d/.test(e.agentVersion) ? `v${e.agentVersion}` : e.agentVersion}
               </span>
             )}
             <SourceTag source={e.source} />
