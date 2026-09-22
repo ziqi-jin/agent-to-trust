@@ -18,7 +18,9 @@
     "trust",
     "llm",
     "sdk",
-    "cli"
+    "cli",
+    "jev",
+    "typesafe"
   ],
   "homepage": "https://sealit.cc",
   "repository": {

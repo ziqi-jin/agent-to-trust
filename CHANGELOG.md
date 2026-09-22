@@ -4,6 +4,13 @@
 
 ## [Unreleased]
 
+### Added — Jev judge cross-check（蹭 Jev 热度实验）
+- 新包 `@a2t/jev`（独立、可摘除）：`JevClient`（TypeSafe System One）+ 三方统一 `Judge` 接口（deterministic / llm / jev）+ R3 构造样本 + 跑批与报告生成。
+- 反向依赖锁：`core`/`scoring`/`sdk`/`adapters`/`apps` 永不 import `@a2t/jev`（架构测试守护）。
+- 主页嵌入 `<JevCrosscheck />` 区块（自包含，读静态 JSON），现有榜单/评分零改动。
+- `docs/jev.md`（对外公开页）、`README` 中英各加一节、`packages/sdk` keywords 加 `jev`/`typesafe`、repo topics 加 `jev`/`typesafe`/`llm-evaluation`/`llm`。
+- `scripts/remove-jev.sh`：幂等摘除脚本（支持 `--dry-run`）。
+
 ### Stage 2 — 决策策略扩展 + 真实 Agent 适配层
 - `@a2t/simulator` 决策 mock 策略扩展：
   - 报价策略 `OfferStrategy`：`market`（85%–115%）/ `undercut`（恶意压价 55%–85%）/ `premium`（高溢价 115%–145%）

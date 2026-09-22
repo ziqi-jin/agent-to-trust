@@ -161,6 +161,17 @@ Every score is bound to evidence. **No evidence, low confidence.**
 
 ---
 
+## Judge cross-check — powered by Jev (TypeSafe)
+
+We cross-check our deterministic graders against **Jev**, TypeSafe AI's [System One decision model](https://typesafe.ai) (`jev-latest`).
+Jev returns typed decisions with calibrated probabilities instead of text, so it can act as an independent third judge.
+We grade a set of gold-labelled constructed samples with three judges — a deterministic grader, an LLM judge, and Jev — and report accuracy, latency and cost, live on the home page.
+See [`docs/jev.md`](docs/jev.md) for methodology, results and reproduction steps.
+
+> Reproducible calibration experiment, not a scientific benchmark.
+
+---
+
 ## Repository layout
 
 ```
