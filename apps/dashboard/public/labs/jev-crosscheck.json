@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-09-22T02:27:59.930Z",
+  "jevModel": "jev-latest",
+  "samples": 34,
+  "judges": [
+    {
+      "judge": "deterministic",
+      "total": 34,
+      "correct": 24,
+      "errors": 0,
+      "accuracy": 0.706,
+      "avgLatencyMs": 0,
+      "inputTokens": 0,
+      "estCostUsd": 0,
+      "confusion": {
+        "success": {
+          "success": 10
+        },
+        "partial": {
+          "failure": 2,
+          "success": 8
+        },
+        "failure": {
+          "failure": 14
+        }
+      }
+    },
+    {
+      "judge": "jev",
+      "total": 34,
+      "correct": 26,
+      "errors": 0,
+      "accuracy": 0.765,
+      "avgLatencyMs": 811,
+      "inputTokens": 13655,
+      "estCostUsd": 0.000574,
+      "confusion": {
+        "success": {
+          "success": 10
+        },
+        "partial": {
+          "partial": 5,
+          "success": 4,
+          "failure": 1
+        },
+        "failure": {
+          "success": 2,
+          "partial": 1,
+          "failure": 11
+        }
+      }
+    },
+    {
+      "judge": "llm",
+      "total": 34,
+      "correct": 23,
+      "errors": 0,
+      "accuracy": 0.676,
+      "avgLatencyMs": 647,
+      "inputTokens": 2841,
+      "estCostUsd": 0.000119,
+      "confusion": {
+        "success": {
+          "success": 10
+        },
+        "partial": {
+          "success": 10
+        },
+        "failure": {
+          "success": 1,
+          "failure": 13
+        }
+      }
+    }
+  ]
+}
