@@ -17,6 +17,7 @@ import { CounterpartTheory } from '@/components/CounterpartTheory';
 import { HowItWorks } from '@/components/HowItWorks';
 import { Quickstart } from '@/components/Quickstart';
 import { OneMoreThing } from '@/components/OneMoreThing';
+import { JevCrosscheck } from '@/components/JevCrosscheck';
 import { Leaderboard } from '@/components/Leaderboard';
 import { Ticker } from '@/components/Ticker';
 import { AgentDetail } from '@/components/AgentDetail';
@@ -193,6 +194,7 @@ export default function Page() {
             />
             <HowItWorks />
             <CounterpartTheory variant="card" />
+            <JevCrosscheck />
             <Quickstart />
             <OneMoreThing />
           </>
