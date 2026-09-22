@@ -13,6 +13,9 @@ COPY .next/standalone ./
 # 静态资源（standalone 不含，需手动复制）
 COPY .next/static ./apps/dashboard/.next/static
 
+# public/ 静态文件（standalone 不含，需手动复制；如 /labs/*.json）
+COPY public ./apps/dashboard/public
+
 EXPOSE 3001
 
 CMD ["node", "apps/dashboard/server.js"]
