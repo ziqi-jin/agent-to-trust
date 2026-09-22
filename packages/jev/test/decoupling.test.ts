@@ -16,7 +16,7 @@ function walk(dir: string): string[] {
 }
 
 describe('reverse-dependency lock', () => {
-  it('core/scoring/sdk/adapters 与 apps/* 不得引用 @a2t/jev', () => {
+  it('core/scoring/sdk/adapters 与 apps/* 不得 import @a2t/jev', () => {
     const targets = [
       join(REPO, 'packages', 'core'),
       join(REPO, 'packages', 'scoring'),
@@ -24,10 +24,12 @@ describe('reverse-dependency lock', () => {
       join(REPO, 'packages', 'adapters'),
       join(REPO, 'apps'),
     ];
+    // 只查真正的 import（不是文档/字符串里出现包名）。
+    const IMPORT_RE = /(?:from\s+|import\s*\(\s*|require\s*\(\s*)['"]@a2t\/jev['"]/;
     const offenders: string[] = [];
     for (const t of targets) {
       for (const f of walk(t)) {
-        if (readFileSync(f, 'utf8').includes('@a2t/jev')) offenders.push(f);
+        if (IMPORT_RE.test(readFileSync(f, 'utf8'))) offenders.push(f);
       }
     }
     expect(offenders).toEqual([]);
