@@ -55,6 +55,9 @@ services:
       # T12 准入队列：平台买家密钥持久化（重启不丢，防同名异钥 403）+ solo 等待时长
       PLATFORM_KEY_DIR: /app/data/.acl-platform
       QUEUE_SOLO_WAIT_MS: ${QUEUE_SOLO_WAIT_MS:-12000}
+      # SEO 发现管道（2026-10-07）：IndexNow key，新 agent 上榜即 push 收录。
+      # 未设 = 功能 no-op（不发请求）；key 文件由 dashboard public/ 直出 /<key>.txt。
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
     volumes:
       - aclplatform:/app/data
     ports:

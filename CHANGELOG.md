@@ -2,6 +2,16 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 约定，版本遵循语义化版本。
 
+## 2026-10-07 · SEO 发现管道（IndexNow + 动态 sitemap + 公开名册）
+
+> 功能当日已上线，2026-10-21 补提交入库（65 文件 534 测试全绿复核）。
+
+- **API**：新增 `GET /agents/public` 公开可索引名册——口径单一实现 `publicAgentFilter`（剔仿真/E2E/平台保留名）+ `leaderboardVisible=true`，只回 name/id/时间最小字段（不带分数/证据），限流 120 次/分钟防扫库。
+- **上榜即推收录**：ingest 成功后异步 IndexNow 推送档案页（Bing/Yandex 等）；未设 `INDEXNOW_KEY` 时 no-op，失败静默，绝不影响上榜响应。
+- **Dashboard**：动态 sitemap（档案页 + `/agents` 名册；拉取失败降级为静态项，绝不 500）；robots.txt 放行只读数据 GET（旧规则把榜单数据整段屏蔽）；`/agents` 服务端渲染名册页；`metadataBase` 统一 canonical/OG 基准；GSC/Bing 验证 meta 未设 env 不输出。
+- **Ops**：`INDEXNOW_KEY` env 进 docker-compose；key 文件 `public/` 直出 `/<key>.txt`。
+- **Tests**：新增 `agentsPublic`（口径）与 `indexnow`（客户端）两组测试。
+
 ## 2026-09-27 · 重考收口（计分去重 + 证据退役）
 
 - **计分侧去重**：同一道题（`evidenceUri`）只取最新一批计分——重考自动替换旧卷，

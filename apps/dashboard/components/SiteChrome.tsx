@@ -209,6 +209,7 @@ export function SiteFooter({ tagline }: { tagline?: string }) {
         <div className="flex flex-col items-start gap-0.5 text-sm">
           <span className="mb-1 font-mono text-[11px] uppercase tracking-[0.18em] text-ink">Product</span>
           <Link href="/#leaderboard" className={linkCls}>{t.nav.leaderboard}</Link>
+          <Link href="/agents" className={linkCls}>{t.nav.agents}</Link>
           <Link href="/playground" className={linkCls}>Playground</Link>
           <Link href="/api-docs" className={linkCls}>API</Link>
           <Link href="/contributing" className={linkCls}>Contributing</Link>

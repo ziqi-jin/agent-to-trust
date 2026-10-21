@@ -23,6 +23,7 @@ import { evidence, ingestNonces } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';
 import { upsertAgentIdentity, normalizeHandle } from '../services/agentIdentity';
+import { agentReportUrl, submitIndexNow } from '../services/indexnow';
 import { computeAndPersist } from './scores';
 
 const MIN_BENCHMARK_VERSION = '1.0.0';
@@ -226,6 +227,11 @@ export async function ingestRoutes(app: FastifyInstance) {
 
     // 10) 异步抽样复算（不阻塞响应；endpoint 模式才可能升级 verified）
     void reverifyAgent(app, agentId).catch(() => {});
+
+    // 11) 异步 IndexNow 收录推送（2026-10-07，SEO 发现管道）——把新上榜 agent 的档案页
+    //     秒级推给 Bing/Yandex 等。fire-and-forget：未设 INDEXNOW_KEY 时内部 no-op；
+    //     任何失败都被 catch，绝不影响上榜响应。
+    void submitIndexNow([agentReportUrl(cleanName)]).catch(() => {});
 
     return reply.send({
       agentId,

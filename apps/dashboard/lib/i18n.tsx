@@ -30,6 +30,7 @@ export const zh = {
   },
   nav: {
     leaderboard: '榜单',
+    agents: '名册',
     how: '原理',
     docs: '接入',
     apiDocs: 'API',
@@ -677,6 +678,7 @@ export const en: Dict = {
   },
   nav: {
     leaderboard: 'Leaderboard',
+    agents: 'Agents',
     how: 'How it works',
     docs: 'Get started',
     apiDocs: 'API',

@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { agents, creditScores } from '../db/schema';
 import { createRateLimiter } from '../services/rateLimit';
 import { tavernExternalId } from '../services/tavernIdentity';
+import { publicAgentFilter } from './publicScope';
 
 interface AgentBody {
   name?: string;
@@ -84,6 +85,34 @@ export async function agentsRoutes(app: FastifyInstance) {
 
   app.get('/agents', async () => {
     return app.db.query.agents.findMany({ orderBy: (a, { desc }) => [desc(a.createdAt)] });
+  });
+
+  // GET /agents/public — 公开可索引名册（2026-10-07，SEO 发现管道）。
+  //
+  // 动机：榜单页是客户端渲染，爬虫看不到 agent 名；sitemap 又写死 4 条。
+  // 结果搜「sealit + 任意上榜 agent」搜不到。本端点给服务端 SSR 首页/名册 + 动态
+  // sitemap 提供「可索引 agent 全量」这一口数据，让每份档案页都有固定发现路径。
+  //
+  // 口径（单一实现 publicAgentFilter）：剔除仿真号 / E2E 号 / 平台保留名，再要求
+  // leaderboardVisible=true（opt-out 的 agent 不建索引页，档案直链不受影响）。
+  // 只回 SEO 必需的最小字段（name/id/一级时间），不回任何分数/证据，防扫库放大。
+  const publicListLimited = createRateLimiter({ max: 120, windowMs: 60_000 });
+  app.get('/agents/public', async (req, reply) => {
+    if (publicListLimited(req as FastifyRequest)) {
+      return reply.code(429).send({ error: '请求过于频繁，稍后再试' });
+    }
+    const rows = await app.db.query.agents.findMany({
+      where: and(publicAgentFilter, eq(agents.leaderboardVisible, true)),
+      orderBy: (a, { desc }) => [desc(a.createdAt)],
+      limit: 5000,
+    });
+    return {
+      agents: rows.map((a) => ({
+        id: a.id,
+        name: a.name,
+        updatedAt: (a.lastSeenAt ?? a.createdAt)?.toISOString() ?? null,
+      })),
+    };
   });
 
   app.get('/agents/:id', async (req, reply) => {

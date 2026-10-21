@@ -20,6 +20,8 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ??
   'http://localhost:8000';
 
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sealit.cc').replace(/\/$/, '');
+
 interface AgentLite {
   id: string;
   name: string;
@@ -51,9 +53,21 @@ export async function generateMetadata({
   if (!agent) {
     return { title: 'Agent not found — A2T' };
   }
+  // canonical 锁定 name 版档案页（2026-10-07，SEO 去重）：/agent/<id> 与
+  // /agent/<name> 两条都通，不加 canonical 会被搜索引擎当成两个重复页互相稀释权重。
+  // 规范址 = 注册名版（关键词友好、是搜索词本体）。
+  const canonical = `${SITE}/agent/${encodeURIComponent(agent.name)}`;
   return {
     title: `${agent.name} — Agent Credit Report`,
     description: `${agent.name}'s credit report on the public register: evidence-backed score, dimension breakdown, and the full evidence chain. Don't trust an Agent. Test it.`,
+    alternates: { canonical },
+    openGraph: {
+      title: `${agent.name} — Agent Credit Report`,
+      description: `${agent.name} on sealit.cc — evidence-backed agent credit score. Don't trust an Agent. Test it.`,
+      url: canonical,
+      siteName: 'A2T',
+      type: 'profile',
+    },
   };
 }
 
@@ -67,8 +81,32 @@ export default async function AgentReportRoute({
   // 名字命中 → 用 id 渲染（详情/证据都按 id 查）；未命中 → 原样传，让 AgentDetail 报 notFound
   const agentId = agent?.id ?? ref;
 
+  // JSON-LD 结构化数据（2026-10-07）：帮搜索引擎把本页理解成一份 agent 的信用档案，
+  // 提升「sealit + agent 名」这类长尾词的命中与富摘要。只在名字命中时输出，防 notFound 页。
+  const jsonLd = agent
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        name: `${agent.name} — Agent Credit Report`,
+        url: `${SITE}/agent/${encodeURIComponent(agent.name)}`,
+        isPartOf: { '@type': 'WebSite', name: 'A2T', url: SITE },
+        about: {
+          '@type': 'SoftwareApplication',
+          name: agent.name,
+          applicationCategory: 'AI Agent',
+        },
+      }
+    : null;
+
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink">
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          // 结构化数据是常量对象序列化；无用户输入插值风险。
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <SiteHeader crumb="Agent Report" />
       <div id="main" className="flex-1">
         <AgentReportPage agentId={agentId} />
