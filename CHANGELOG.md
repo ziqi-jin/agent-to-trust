@@ -2,6 +2,14 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 约定，版本遵循语义化版本。
 
+## 2026-11-14 · 副本出处（provenance v1）
+
+- 区分出版者（签名钥）、发行指纹（版本标签 + 配置 + 工具 + 评测条件）和运行实例。版本标签相同但配置不同不算同一发行。
+- 考场能力证据（`real-benchmark` / `benchmark`）可在指纹一致时引用；引用不写入 evidence、不进入 `baseline-v0.3`。身份、履约、容量不随克隆继承，自称容量不汇总。
+- 签名只证明钥签过记录，不证明物理唯一、成绩为真、独占或稀缺。容量与许可只标 `self-declared`，没有独立核验设施。
+- 新表随 `migrate.ts` 幂等追加，旧档案与旧分数不受影响。说明见 `docs/provenance.md`。
+- 依赖只做当前主版本内的安全补丁：next 15.5.29、fastify 5.12.8、fast-uri 4.2.3、sharp 0.35.5、source-map-js 1.2.2。vitest 4、zod 4、drizzle-orm 0.45、next 16 未升级。
+
 ## 2026-10-07 · SEO 发现管道（IndexNow + 动态 sitemap + 公开名册）
 
 > 功能当日已上线，2026-10-21 补提交入库（65 文件 534 测试全绿复核）。

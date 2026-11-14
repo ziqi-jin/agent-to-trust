@@ -20,4 +20,5 @@ export * from './runner.js';
 export * from './keys.js';
 export * from './upload.js';
 export * from './claim.js';
+export * from './provenance.js';
 export * from './arena.js';

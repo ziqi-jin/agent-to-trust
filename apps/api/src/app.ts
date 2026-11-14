@@ -12,6 +12,7 @@ import { evidenceRoutes } from './routes/evidence';
 import { feedbackRoutes } from './routes/feedback';
 import { ingestRoutes } from './routes/ingest';
 import { playgroundRoutes } from './routes/playground';
+import { provenanceRoutes } from './routes/provenance';
 import { scoresRoutes } from './routes/scores';
 import { simulationRoutes } from './routes/simulation';
 import { statsRoutes } from './routes/stats';
@@ -59,6 +60,7 @@ export function buildApp(
   app.register(evidenceRoutes);
   app.register(feedbackRoutes);
   app.register(ingestRoutes);
+  app.register(provenanceRoutes);
   app.register(playgroundRoutes, {
     fetchImpl: opts.playgroundFetchImpl,
     queueOpts: opts.playgroundQueueOpts,
