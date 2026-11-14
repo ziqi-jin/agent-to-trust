@@ -1,7 +1,19 @@
 # DATA MODEL — Agent to Trust (A2T)
 
-> 版本：v0.2
-> 更新：2026-09-17
+> 版本：v0.2，另加 2026-11-14 已落地的 provenance 表
+> 更新：2026-11-14
+
+## 已落地：副本出处（a2t-provenance-v1）
+
+下面几张表在 `apps/api/src/db/migrate.ts` 里，是现在的库结构。文后其余表名（`agent_versions`、`contracts` 等）仍是设计笔记，还没有建表。
+
+| 表 | 说明 |
+|----|------|
+| `provenance_releases` | 内容寻址指纹。提交 version label、config、tools、eval conditions。标签本身不是身份。 |
+| `provenance_release_signatures` | 哪把已注册的钥签过这份发行。多把钥可以签同一指纹，不表示独占。 |
+| `provenance_instances` | 某个已注册身份的一份运行实例。`operator_declaration`、`declared_capacity`、`license_assertion` 都是自称（assurance 固定 `self-declared`）。 |
+| `provenance_evidence_bindings` | 证据的 scope：`capability` 绑指纹；`fulfillment` / `identity` / `capacity` 绑实例，不能被引用。 |
+| `provenance_references` | 实例指向同一指纹上的能力证据。不复制行，不进入 `baseline-v0.3`。 |
 
 ## 设计原则
 

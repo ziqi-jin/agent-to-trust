@@ -27,6 +27,8 @@ API tests rebuild the `acl_test` database (local Postgres must be running).
 - `POST /agents` / `GET /agents` / `GET /agents/:id`
 - `POST /agents/:id/evidence` / `GET /agents/:id/evidence`
 - `POST /agents/:id/score` / `GET /agents/:id/score`
+- `GET /agents/:id/provenance` / `GET /provenance/releases/:fingerprint`
+- `POST /provenance/releases` / `POST /provenance/instances` / `POST /provenance/bindings` / `POST /provenance/references`
 - `GET /health`
 
 ## Layout
@@ -47,4 +49,4 @@ src/
 
 ## Scoring engine
 
-Scoring logic lives in `packages/scoring` (pure function `computeScore`, model `baseline-v0.2`). The API only handles data reads/writes and orchestration, so the engine stays independently testable and reusable by the Dashboard.
+Scoring logic lives in `packages/scoring` (pure function `computeScore`, model `baseline-v0.3`). Provenance references are not score inputs. The API only handles data reads/writes and orchestration, so the engine stays independently testable and reusable by the Dashboard.

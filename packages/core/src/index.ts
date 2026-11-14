@@ -84,3 +84,4 @@ export type { Bilingual, CounterpartTheoryKey, TheoryEntry } from './counterpart
 export { COUNTERPART_THEORY } from './counterpartTheory.js';
 
 export * from './injection.js';
+export * from './provenance.js';

@@ -200,6 +200,17 @@ export interface Principle {
 /** 全局地基原则（页面顶部；维度级锚点在 DIMENSION_CARDS 内）。 */
 export const METHODOLOGY_PRINCIPLES: readonly Principle[] = [
   {
+    id: 'copies',
+    zh: {
+      anchor: '副本不是同一个人',
+      note: '出版者、发行指纹（版本+配置+工具+评测条件）和运行实例是三层。能力证据只在指纹一致时引用，且不计入 baseline-v0.3。身份、履约和容量不随克隆继承。签名只证明钥签过记录，不证明唯一、成绩为真、独占或稀缺。容量与许可是自称，这里没有独立核验设施。',
+    },
+    en: {
+      anchor: 'A copy is not the same party',
+      note: 'Publisher, release fingerprint (version + config + tools + evaluation conditions), and running instance are three layers. Capability evidence may be referenced only when fingerprints match, and the reference does not enter baseline-v0.3. Identity, fulfillment, and capacity do not follow a clone. A signature proves a key signed a record — not uniqueness, true performance, exclusive ownership, or scarcity. Capacity and licensing stay self-declared; there is no independent verifier here.',
+    },
+  },
+  {
     id: 'descartes',
     zh: {
       anchor: '笛卡尔《谈谈方法》· 方法论怀疑',

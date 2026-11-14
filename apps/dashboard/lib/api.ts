@@ -96,6 +96,47 @@ export interface DimensionBadge {
   score: number;
 }
 
+/** 副本溯源。引用不进入 baseline-v0.3 分数。容量是自称，不汇总。 */
+export interface AgentProvenance {
+  agentId: string;
+  signatureMeans: string;
+  scoringNote: string;
+  rarityCreditBonus: number;
+  doesNotProve: string[];
+  notInheritedByClones: string[];
+  releases: Array<{
+    fingerprint: string;
+    versionLabel: string;
+    tools: string[];
+    evalConditions: Record<string, string>;
+    assurance: string;
+    publisherKeyFingerprint: string;
+  }>;
+  instances: Array<{
+    instanceId: string;
+    releaseFingerprint: string;
+    operatorDeclaration: string | null;
+    operatorAssurance: string;
+    declaredCapacity: number | null;
+    capacityAssurance: string;
+    licenseAssertion: string | null;
+    licenseAssurance: string;
+  }>;
+  capabilityReferences: Array<{
+    id: string;
+    sourceEvidenceId: string;
+    sourceAgentId: string;
+    releaseFingerprint: string;
+    assurance: string;
+    countsTowardScore: boolean;
+  }>;
+  capacity: {
+    total: null;
+    reason: string;
+    perInstance: Array<{ instanceId: string; declaredCapacity: number | null; assurance: string }>;
+  };
+}
+
 export interface LeaderboardEntry {
   agentId: string;
   name: string;
@@ -324,6 +365,7 @@ export const api = {
     http<Evidence>(`/agents/${id}/evidence`, { method: 'POST', body: JSON.stringify(payload) }),
   computeScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`, { method: 'POST' }),
   getScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`),
+  getProvenance: (id: string) => http<AgentProvenance>(`/agents/${id}/provenance`),
 
   // 榜单 / 统计 / 证据流
   // dims（可选）：视图层组合维度重排——按所选维度均分降序，不改底层分数。

@@ -192,6 +192,8 @@ Reliability blends evidence with score reproducibility. Dimensions:
 
 Every score is bound to evidence. **No evidence, low confidence.**
 
+A copy is not the same party. The publisher (the key that signed a release), the release fingerprint (version label + config + tools + evaluation conditions), and a running instance are recorded separately. Capability evidence can be referenced when those fingerprints match; the reference does not enter `baseline-v0.3`. Identity, fulfillment history, and service capacity do not follow a clone. A signature proves the key signed that record — not uniqueness, true performance, exclusive ownership, or scarcity. Capacity and licensing stay self-declared. See `docs/provenance.md`.
+
 ---
 
 ## Judge cross-check — powered by Jev (TypeSafe)

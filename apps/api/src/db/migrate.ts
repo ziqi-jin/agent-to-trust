@@ -196,6 +196,72 @@ CREATE TABLE IF NOT EXISTS verify_challenges (
   agent_id text NOT NULL REFERENCES agents(id),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Provenance v1 (2026-11-14): release fingerprint, running instance, evidence scope.
+-- Additive only. Existing evidence and baseline-v0.3 scores are unchanged.
+-- Capacity columns default to self-declared; this migration does not add a verifier.
+CREATE TABLE IF NOT EXISTS provenance_releases (
+  fingerprint text PRIMARY KEY,
+  schema_version text NOT NULL,
+  version_label text NOT NULL,
+  config_hash text NOT NULL,
+  tools jsonb NOT NULL,
+  eval_conditions jsonb NOT NULL,
+  material jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS provenance_release_signatures (
+  id text PRIMARY KEY,
+  fingerprint text NOT NULL REFERENCES provenance_releases(fingerprint),
+  publisher_pubkey text NOT NULL,
+  publisher_agent_id text NOT NULL REFERENCES agents(id),
+  nonce text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_provenance_release_signer
+  ON provenance_release_signatures(fingerprint, publisher_pubkey);
+CREATE INDEX IF NOT EXISTS idx_provenance_signatures_agent
+  ON provenance_release_signatures(publisher_agent_id);
+
+CREATE TABLE IF NOT EXISTS provenance_instances (
+  id text PRIMARY KEY,
+  agent_id text NOT NULL REFERENCES agents(id),
+  release_fingerprint text NOT NULL REFERENCES provenance_releases(fingerprint),
+  operator_declaration text,
+  declared_capacity integer,
+  capacity_assurance text NOT NULL DEFAULT 'self-declared',
+  license_assertion text,
+  license_assurance text NOT NULL DEFAULT 'self-declared',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provenance_instances_agent ON provenance_instances(agent_id);
+
+CREATE TABLE IF NOT EXISTS provenance_evidence_bindings (
+  evidence_id text PRIMARY KEY REFERENCES evidence(id),
+  scope text NOT NULL,
+  release_fingerprint text REFERENCES provenance_releases(fingerprint),
+  instance_id text REFERENCES provenance_instances(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS provenance_references (
+  id text PRIMARY KEY,
+  target_instance_id text NOT NULL REFERENCES provenance_instances(id),
+  target_agent_id text NOT NULL REFERENCES agents(id),
+  source_evidence_id text NOT NULL REFERENCES evidence(id),
+  source_agent_id text NOT NULL REFERENCES agents(id),
+  release_fingerprint text NOT NULL,
+  assurance text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_provenance_reference_once
+  ON provenance_references(target_instance_id, source_evidence_id);
+CREATE INDEX IF NOT EXISTS idx_provenance_references_agent
+  ON provenance_references(target_agent_id);
 `;
 
 export async function migrate(url: string): Promise<void> {

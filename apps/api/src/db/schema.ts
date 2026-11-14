@@ -229,3 +229,98 @@ export const agentConnections = pgTable(
   },
   (t) => [index('idx_agent_connections_agent_id').on(t.agentId)],
 );
+
+/**
+ * Content-addressed release. The fingerprint commits to version label, config,
+ * tools, and evaluation conditions. The version label is not the identity.
+ */
+export const provenanceReleases = pgTable('provenance_releases', {
+  fingerprint: text('fingerprint').primaryKey(),
+  schemaVersion: text('schema_version').notNull(),
+  versionLabel: text('version_label').notNull(),
+  configHash: text('config_hash').notNull(),
+  tools: jsonb('tools').$type<string[]>().notNull(),
+  evalConditions: jsonb('eval_conditions').$type<Record<string, string>>().notNull(),
+  material: jsonb('material').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** A signature proves this key signed the release record. It does not prove exclusivity. */
+export const provenanceReleaseSignatures = pgTable(
+  'provenance_release_signatures',
+  {
+    id: text('id').primaryKey(),
+    fingerprint: text('fingerprint')
+      .notNull()
+      .references(() => provenanceReleases.fingerprint),
+    publisherPubkey: text('publisher_pubkey').notNull(),
+    publisherAgentId: text('publisher_agent_id')
+      .notNull()
+      .references(() => agents.id),
+    nonce: text('nonce').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('uq_provenance_release_signer').on(t.fingerprint, t.publisherPubkey),
+    index('idx_provenance_signatures_agent').on(t.publisherAgentId),
+  ],
+);
+
+/** One running copy. Capacity here is self-declared and is not a credit input. */
+export const provenanceInstances = pgTable(
+  'provenance_instances',
+  {
+    id: text('id').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    releaseFingerprint: text('release_fingerprint')
+      .notNull()
+      .references(() => provenanceReleases.fingerprint),
+    operatorDeclaration: text('operator_declaration'),
+    declaredCapacity: integer('declared_capacity'),
+    capacityAssurance: text('capacity_assurance').notNull().default('self-declared'),
+    licenseAssertion: text('license_assertion'),
+    licenseAssurance: text('license_assurance').notNull().default('self-declared'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('idx_provenance_instances_agent').on(t.agentId)],
+);
+
+/** Scope binding. Capability may later be referenced; the other scopes may not. */
+export const provenanceEvidenceBindings = pgTable('provenance_evidence_bindings', {
+  evidenceId: text('evidence_id')
+    .primaryKey()
+    .references(() => evidence.id),
+  scope: text('scope').notNull(),
+  releaseFingerprint: text('release_fingerprint').references(() => provenanceReleases.fingerprint),
+  instanceId: text('instance_id').references(() => provenanceInstances.id),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Pointer from an instance to capability evidence recorded for the same release. */
+export const provenanceReferences = pgTable(
+  'provenance_references',
+  {
+    id: text('id').primaryKey(),
+    targetInstanceId: text('target_instance_id')
+      .notNull()
+      .references(() => provenanceInstances.id),
+    targetAgentId: text('target_agent_id')
+      .notNull()
+      .references(() => agents.id),
+    sourceEvidenceId: text('source_evidence_id')
+      .notNull()
+      .references(() => evidence.id),
+    sourceAgentId: text('source_agent_id')
+      .notNull()
+      .references(() => agents.id),
+    releaseFingerprint: text('release_fingerprint').notNull(),
+    assurance: text('assurance').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('uq_provenance_reference_once').on(t.targetInstanceId, t.sourceEvidenceId),
+    index('idx_provenance_references_agent').on(t.targetAgentId),
+  ],
+);
