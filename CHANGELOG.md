@@ -2,6 +2,11 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 约定，版本遵循语义化版本。
 
+## 2026-11-14 · 自称任务与考场幂等
+
+- `POST /fulfillment`：注册钥签下的任务说法。同一身份同一 `taskId` 只留一行；内容相同是重复，内容不同拒绝覆盖。`assurance` 固定 `self-reported`，`countsTowardScore` 固定 false，不写入 evidence，因此不改 `baseline-v0.3`。
+- 考场相同内容再交（新 nonce）不再追加证据、不再重算分。答案变了才追加；计分仍按题目只取最新，旧卷和新卷不会一起算。
+
 ## 2026-11-14 · 副本出处（provenance v1）
 
 - 区分出版者（签名钥）、发行指纹（版本标签 + 配置 + 工具 + 评测条件）和运行实例。版本标签相同但配置不同不算同一发行。

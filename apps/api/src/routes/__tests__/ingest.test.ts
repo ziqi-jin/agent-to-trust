@@ -81,11 +81,34 @@ describe('POST /ingest/results', () => {
     expect(agent?.endpoint).toBe('https://agent.invalid/v1');
   });
 
-  it('accepts re-upload from the same key (score recomputed, evidence appended)', async () => {
+  it('identical re-upload is idempotent: no second evidence row and no second score', async () => {
+    const scoresBefore = (await db.query.creditScores.findMany()).length;
     const payload = buildIngestPayload(suiteFixture, { name: 'e2e-agent' }, keypair);
     const res = await post(payload);
     expect(res.statusCode).toBe(200);
-    const body = res.json() as { agentId: string };
+    const body = res.json() as { agentId: string; duplicate: boolean };
+    expect(body.duplicate).toBe(true);
+    const mine = (await db.query.evidence.findMany()).filter((e) => e.agentId === body.agentId);
+    expect(mine.length).toBe(1);
+    expect((await db.query.creditScores.findMany()).length).toBe(scoresBefore);
+  });
+
+  it('a changed answer appends one new row for that case', async () => {
+    const base = buildIngestPayload(suiteFixture, { name: 'e2e-agent' }, keypair);
+    const first = (base.results as Array<Record<string, unknown>>)[0];
+    const changed = reSign(
+      {
+        ...base,
+        nonce: `retake-${Date.now()}`,
+        timestamp: Date.now(),
+        results: [{ ...first, value: 0.13 }],
+      },
+      keypair.privateKeyPem,
+    );
+    const res = await post(changed);
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { agentId: string; duplicate: boolean };
+    expect(body.duplicate).toBe(false);
     const mine = (await db.query.evidence.findMany()).filter((e) => e.agentId === body.agentId);
     expect(mine.length).toBe(2);
   });

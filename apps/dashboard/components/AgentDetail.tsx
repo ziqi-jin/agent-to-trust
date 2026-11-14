@@ -11,6 +11,7 @@ import {
   type Agent,
   type AgentProvenance,
   type Evidence,
+  type FulfillmentReport,
   type ScoreResponse,
 } from '@/lib/api';
 import { useLocale, useT, fill, mapApiError } from '@/lib/i18n';
@@ -85,6 +86,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
   const [score, setScore] = useState<ScoreResponse | null>(null);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [provenance, setProvenance] = useState<AgentProvenance | null>(null);
+  const [fulfillment, setFulfillment] = useState<FulfillmentReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // T6 榜单展示开关：本地状态 + 乐观更新（失败回滚）
@@ -96,16 +98,18 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
     setBusy(true);
     setError(null);
     try {
-      const [agent, ev, sc, prov] = await Promise.all([
+      const [agent, ev, sc, prov, tasks] = await Promise.all([
         api.getAgent(agentId),
         api.listEvidence(agentId),
         api.getScore(agentId),
         api.getProvenance(agentId).catch(() => null),
+        api.getFulfillment(agentId).catch(() => null),
       ]);
       setAgent(agent);
       setEvidence(ev);
       setScore(sc);
       setProvenance(prov);
+      setFulfillment(tasks);
     } catch (e) {
       const msg = (e as Error).message;
       setError(locale === 'zh' ? msg : mapApiError(msg, t.apiError));
@@ -374,7 +378,7 @@ export function AgentDetail({ agentId, onBack }: { agentId: string; onBack: () =
                 )}
               </Panel>
 
-              <ProvenancePanel provenance={provenance} />
+              <ProvenancePanel provenance={provenance} fulfillment={fulfillment} />
             </div>
 
             {/* 右列：展示开关 / 分享 / 徽章 / 市场 */}

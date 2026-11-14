@@ -137,6 +137,23 @@ export interface AgentProvenance {
   };
 }
 
+/** 自称的任务记录。不进入 baseline-v0.3，也不是独立核验。 */
+export interface FulfillmentReport {
+  agentId: string;
+  assurance: 'self-reported';
+  countsTowardScore: false;
+  note: string;
+  records: Array<{
+    id: string;
+    taskId: string;
+    outcome: string;
+    summary: string;
+    assurance: 'self-reported';
+    independentlyVerified: false;
+    countsTowardScore: false;
+  }>;
+}
+
 export interface LeaderboardEntry {
   agentId: string;
   name: string;
@@ -366,6 +383,7 @@ export const api = {
   computeScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`, { method: 'POST' }),
   getScore: (id: string) => http<ScoreResponse>(`/agents/${id}/score`),
   getProvenance: (id: string) => http<AgentProvenance>(`/agents/${id}/provenance`),
+  getFulfillment: (id: string) => http<FulfillmentReport>(`/agents/${id}/fulfillment`),
 
   // 榜单 / 统计 / 证据流
   // dims（可选）：视图层组合维度重排——按所选维度均分降序，不改底层分数。

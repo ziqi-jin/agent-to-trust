@@ -264,6 +264,10 @@ export const zh = {
     provenanceRefs: '能力证据引用',
     provenanceNotScored: '不计入信用分',
     provenanceCapacityTotal: '多份实例的自称容量不会被加总',
+    fulfillmentTitle: 'Tasks · 自称的任务',
+    fulfillmentNote: '这是当事人签过名的说法，不是独立核验的履约，也不进入 baseline-v0.3。同一任务号重复提交不会再记一笔。',
+    fulfillmentEmpty: '还没有自称的任务记录。',
+    fulfillmentNotVerified: '未经独立核验',
   },
 
   // ── FeedbackBubble ──
@@ -935,6 +939,11 @@ export const en: Dict = {
     provenanceRefs: 'Capability references',
     provenanceNotScored: 'not counted in the credit score',
     provenanceCapacityTotal: 'Self-declared capacity across instances is not summed',
+    fulfillmentTitle: 'Tasks \u00b7 Self-reported',
+    fulfillmentNote:
+      'These are statements the key signed. They are not an independent check that the task happened, and they do not enter baseline-v0.3. Repeating the same task id does not add another credit.',
+    fulfillmentEmpty: 'No self-reported tasks yet.',
+    fulfillmentNotVerified: 'not independently verified',
   },
 
   feedback: {

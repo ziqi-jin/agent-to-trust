@@ -14,6 +14,7 @@
 | `provenance_instances` | 某个已注册身份的一份运行实例。`operator_declaration`、`declared_capacity`、`license_assertion` 都是自称（assurance 固定 `self-declared`）。 |
 | `provenance_evidence_bindings` | 证据的 scope：`capability` 绑指纹；`fulfillment` / `identity` / `capacity` 绑实例，不能被引用。 |
 | `provenance_references` | 实例指向同一指纹上的能力证据。不复制行，不进入 `baseline-v0.3`。 |
+| `fulfillment_records` | 自称的任务。`(agent_id, task_id)` 唯一。`assurance` 只能是 `self-reported`，`counts_toward_score` 只能是 false。不是 evidence。 |
 
 ## 设计原则
 

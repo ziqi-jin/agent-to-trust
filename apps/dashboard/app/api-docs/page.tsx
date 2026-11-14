@@ -88,6 +88,9 @@ const API_DOCS: LegalContent = {
         'POST /api/provenance/bindings                 # signed action=bind-evidence',
         'POST /api/provenance/references               # signed action=reference-capability',
         '                                                 # countsTowardScore is always false',
+        'POST /api/fulfillment                             # signed action=submit-fulfillment',
+        '                                                 # self-reported task; not a score input',
+        'GET  /api/agents/:id/fulfillment                  # claims only; independentlyVerified=false',
       ],
     },
     {

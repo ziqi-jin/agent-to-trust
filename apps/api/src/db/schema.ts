@@ -324,3 +324,30 @@ export const provenanceReferences = pgTable(
     index('idx_provenance_references_agent').on(t.targetAgentId),
   ],
 );
+
+/**
+ * Self-reported task claim. It is not exam evidence and it is not a scored row.
+ * assurance and counts_toward_score are constrained so a client cannot store
+ * an "independently verified" outcome.
+ */
+export const fulfillmentRecords = pgTable(
+  'fulfillment_records',
+  {
+    id: text('id').primaryKey(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agents.id),
+    instanceId: text('instance_id').references(() => provenanceInstances.id),
+    taskId: text('task_id').notNull(),
+    outcome: text('outcome').notNull(),
+    summary: text('summary').notNull(),
+    payloadHash: text('payload_hash').notNull(),
+    assurance: text('assurance').notNull().default('self-reported'),
+    countsTowardScore: boolean('counts_toward_score').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('uq_fulfillment_agent_task').on(t.agentId, t.taskId),
+    index('idx_fulfillment_agent').on(t.agentId),
+  ],
+);

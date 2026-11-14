@@ -10,6 +10,7 @@ import { benchmarkRoutes } from './routes/benchmark';
 import { connectionsRoutes } from './routes/connections';
 import { evidenceRoutes } from './routes/evidence';
 import { feedbackRoutes } from './routes/feedback';
+import { fulfillmentRoutes } from './routes/fulfillment';
 import { ingestRoutes } from './routes/ingest';
 import { playgroundRoutes } from './routes/playground';
 import { provenanceRoutes } from './routes/provenance';
@@ -59,6 +60,7 @@ export function buildApp(
   app.register(connectionsRoutes);
   app.register(evidenceRoutes);
   app.register(feedbackRoutes);
+  app.register(fulfillmentRoutes);
   app.register(ingestRoutes);
   app.register(provenanceRoutes);
   app.register(playgroundRoutes, {

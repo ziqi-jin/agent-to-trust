@@ -29,6 +29,7 @@ API tests rebuild the `acl_test` database (local Postgres must be running).
 - `POST /agents/:id/score` / `GET /agents/:id/score`
 - `GET /agents/:id/provenance` / `GET /provenance/releases/:fingerprint`
 - `POST /provenance/releases` / `POST /provenance/instances` / `POST /provenance/bindings` / `POST /provenance/references`
+- `POST /fulfillment` / `GET /agents/:id/fulfillment` (self-reported; not scored)
 - `GET /health`
 
 ## Layout

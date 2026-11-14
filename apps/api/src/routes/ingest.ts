@@ -4,7 +4,7 @@
  * 流程：限流 → 防重放（时间窗 + nonce 表）→ 验签（Ed25519 canonical-json）→
  * 题集版本校验 → caseId 白名单（服务端权威维度映射，不信任客户端）→
  * upsert agent（pubkey 绑定，同名不同钥拒绝）→
- * 证据落库（source=real-benchmark，append-only）→ 触发评分重算。
+ * 证据落库（source=real-benchmark，append-only；相同内容幂等，不重复计分）→ 触发评分重算。
  *
  * 红线：真实数据 source=real-benchmark；verificationLevel 只到 basic（签名有效），
  * verified 必须由抽样复算（reverify）升级，绝不伪装。
@@ -19,7 +19,8 @@ import {
   loadSuite,
   verifyPayload,
 } from 'agent-to-trust';
-import { evidence, ingestNonces } from '../db/schema';
+import { and, desc, eq, isNull } from 'drizzle-orm';
+import { creditScores, evidence, ingestNonces } from '../db/schema';
 import { isPublicEndpoint } from '../playground/scenario';
 import { reverifyAgent } from '../services/reverify';
 import { upsertAgentIdentity, normalizeHandle } from '../services/agentIdentity';
@@ -204,9 +205,32 @@ export async function ingestRoutes(app: FastifyInstance) {
     const agentId = identity.agentId;
 
     // 8) 证据落库（append-only，source=real-benchmark）
+    // 同一身份、同一考卷内容（payload hash）且仍有效 → 幂等：不追加行、不重算分。
+    // 内容变了才追加；计分侧仍按 evidenceUri 只取最新，所以重考不会双重计分。
     const payloadHash = createHash('sha256')
       .update(JSON.stringify(results))
       .digest('hex');
+    const already = await app.db.query.evidence.findMany({
+      where: and(
+        eq(evidence.agentId, agentId),
+        eq(evidence.payloadHash, payloadHash),
+        eq(evidence.source, 'real-benchmark'),
+        isNull(evidence.retiredAt),
+      ),
+    });
+    if (already.length >= (results as unknown[]).length) {
+      const latest = await app.db.query.creditScores.findFirst({
+        where: eq(creditScores.agentId, agentId),
+        orderBy: [desc(creditScores.createdAt)],
+      });
+      return reply.send({
+        agentId,
+        verified: false,
+        verificationLevel: 'basic',
+        score: latest?.score ?? null,
+        duplicate: true,
+      });
+    }
     for (const r of results as Array<{ caseId: string; value: number; result: string }>) {
       await app.db.insert(evidence).values({
         id: randomUUID(),
@@ -238,6 +262,7 @@ export async function ingestRoutes(app: FastifyInstance) {
       verified: false,
       verificationLevel: 'basic',
       score: score?.score ?? null,
+      duplicate: false,
     });
   });
 }

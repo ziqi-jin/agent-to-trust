@@ -262,6 +262,28 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_provenance_reference_once
   ON provenance_references(target_instance_id, source_evidence_id);
 CREATE INDEX IF NOT EXISTS idx_provenance_references_agent
   ON provenance_references(target_agent_id);
+
+-- Self-reported task claims (2026-11-14). Not evidence, not a score input.
+-- The check constraint refuses any assurance other than self-reported.
+CREATE TABLE IF NOT EXISTS fulfillment_records (
+  id text PRIMARY KEY,
+  agent_id text NOT NULL REFERENCES agents(id),
+  instance_id text REFERENCES provenance_instances(id),
+  task_id text NOT NULL,
+  outcome text NOT NULL,
+  summary text NOT NULL,
+  payload_hash text NOT NULL,
+  assurance text NOT NULL DEFAULT 'self-reported',
+  counts_toward_score boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fulfillment_self_reported CHECK (
+    assurance = 'self-reported' AND counts_toward_score = false
+  )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_fulfillment_agent_task
+  ON fulfillment_records(agent_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_fulfillment_agent ON fulfillment_records(agent_id);
 `;
 
 export async function migrate(url: string): Promise<void> {
